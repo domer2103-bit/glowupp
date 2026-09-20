@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { declineQuoteRequest, submitQuote, type ActionState } from "@/lib/actions/quotes";
+import { createLeadFeeCheckoutSession } from "@/lib/actions/payments";
 import { penceToPounds } from "@/lib/money";
 
 interface OpportunityCardProps {
@@ -14,7 +15,7 @@ interface OpportunityCardProps {
     quoteTimeline: string | null;
     quoteNotes: string | null;
     selected: boolean;
-    transaction: { feeAmount: number; status: string } | null;
+    transaction: { id: string; feeAmount: number; status: string } | null;
     project: { title: string; projectType: string; postcode: string; description: string | null; budgetMin: number | null; budgetMax: number | null };
   };
 }
@@ -56,9 +57,18 @@ export function OpportunityCard({ quoteRequest: qr }: OpportunityCardProps) {
       )}
 
       {qr.transaction && (
-        <p className="text-xs text-zinc-500">
-          Lead fee: £{penceToPounds(qr.transaction.feeAmount)} · {qr.transaction.status}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-zinc-500">
+            Lead fee: £{penceToPounds(qr.transaction.feeAmount)} · {qr.transaction.status}
+          </p>
+          {qr.transaction.status === "PENDING" && (
+            <form action={createLeadFeeCheckoutSession.bind(null, qr.transaction.id)}>
+              <button type="submit" className="rounded-full bg-black px-3 py-1 text-xs text-white dark:bg-white dark:text-black">
+                Pay to unlock address
+              </button>
+            </form>
+          )}
+        </div>
       )}
 
       {canRespond && (

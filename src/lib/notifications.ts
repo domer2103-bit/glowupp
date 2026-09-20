@@ -182,3 +182,25 @@ export async function notifyQuotesWaiting(input: QuotesWaitingInput): Promise<vo
     ),
   });
 }
+
+interface LeadFeePaidInput {
+  professionalEmail: string;
+  professionalName: string;
+  projectTitle: string;
+  feeAmountPence: number;
+}
+
+/** Sent once a lead fee's Stripe Checkout payment is confirmed by the webhook — also the point at which the homeowner's full address unlocks (src/lib/data/quotes.ts). */
+export async function notifyLeadFeePaid(input: LeadFeePaidInput): Promise<void> {
+  const link = `${APP_URL}/professional/opportunities`;
+  const amount = formatPence(input.feeAmountPence);
+
+  await sendBestEffort({
+    to: input.professionalEmail,
+    subject: `Payment received — ${input.projectTitle}`,
+    text: `Hi ${input.professionalName},\n\nThanks — we've received your ${amount} lead fee for "${input.projectTitle}". The homeowner's full address is now visible on the opportunity.\n\n${link}\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.professionalName)},</p><p>Thanks — we've received your ${amount} lead fee for <strong>${escapeHtml(input.projectTitle)}</strong>. The homeowner's full address is now visible on the opportunity.</p><p><a href="${link}">View the opportunity</a></p>`
+    ),
+  });
+}

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, requireRole } from "@/lib/auth";
 import { requireProjectOwner } from "@/lib/data/projects";
 import { getOutwardCode } from "@/lib/postcode";
-import { UserRole, QuoteRequestStatus } from "@/generated/prisma/client";
+import { UserRole, QuoteRequestStatus, TransactionStatus } from "@/generated/prisma/client";
 
 /** All quote requests sent out for a project, most recent first — homeowner-owner only. */
 export async function getProjectQuoteRequests(projectId: string) {
@@ -60,14 +60,14 @@ export async function getProfessionalOpportunities() {
   }
 
   // Privacy: a professional only sees the postcode *area* (e.g. "L18",
-  // not "L18 5NF") until they're actually the selected professional —
-  // matching that district is all they need to decide whether to quote.
-  // The full postcode reveals once selected, when they genuinely need it
-  // to do the work. This is also a soft deterrent against a professional
-  // finding the exact address and arranging the job off-platform before
-  // ever winning it through GlowUpp.
+  // not "L18 5NF") until they're both selected AND their lead fee is
+  // paid — matching that district is all they need to decide whether to
+  // quote. The full postcode reveals once the fee clears, when they
+  // genuinely need it to do the work. This is also a soft deterrent
+  // against a professional finding the exact address and arranging the
+  // job off-platform before ever winning it through GlowUpp.
   for (const r of requests) {
-    if (!r.selected) {
+    if (!r.selected || r.transaction?.status !== TransactionStatus.PAID) {
       r.project.postcode = getOutwardCode(r.project.postcode);
     }
   }
