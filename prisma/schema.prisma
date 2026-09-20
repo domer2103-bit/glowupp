@@ -1,0 +1,417 @@
+// GlowUpp database schema
+// See docs/BACKEND_ARCHITECTURE.md for the reasoning behind these choices.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Users
+// ─────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  HOMEOWNER
+  PROFESSIONAL
+  ADMIN
+}
+
+// `id` intentionally has no default — it must always be set explicitly to
+// match the corresponding Supabase `auth.users.id`. Auth (Phase 2) creates
+// this row right after signup; Prisma never generates this id itself.
+model User {
+  id        String   @id @db.Uuid
+  role      UserRole
+  name      String
+  email     String   @unique
+  phone     String?
+  postcode  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projects          Project[]      @relation("HomeownerProjects")
+  quoteRequestsSent QuoteRequest[] @relation("HomeownerQuoteRequests")
+  professional      Professional?
+  activity          ActivityLog[]  @relation("ActivityActor")
+  messagesSent      Message[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Projects
+// ─────────────────────────────────────────────────────────────────────────
+
+enum ProjectStatus {
+  DRAFT
+  COLLECTING_INFORMATION
+  DESIGNING
+  DESIGN_READY
+  REQUESTING_QUOTES
+  QUOTES_RECEIVED
+  PROFESSIONAL_SELECTED
+  COMPLETED
+  CANCELLED
+}
+
+// `projectType` is a plain string, not a Postgres enum, and validated at
+// the application layer against the registry in `src/lib/project-types.ts`.
+// This is the mechanism that lets us add "Loft conversion" or "Extension"
+// later without a schema migration — only a new registry entry (and its
+// question set) is needed. See docs/BACKEND_ARCHITECTURE.md §4.
+model Project {
+  id              String        @id @default(uuid()) @db.Uuid
+  homeownerId     String        @map("homeowner_id") @db.Uuid
+  homeowner       User          @relation("HomeownerProjects", fields: [homeownerId], references: [id], onDelete: Cascade)
+  projectType     String        @map("project_type")
+  title           String
+  description     String?       @db.Text
+  postcode        String
+  // Budget stored in minor currency units (pence) to avoid floating-point
+  // rounding errors. £15,000 is stored as 1500000.
+  budgetMin       Int?          @map("budget_min")
+  budgetMax       Int?          @map("budget_max")
+  targetStartDate DateTime?     @map("target_start_date") @db.Date
+  status          ProjectStatus @default(DRAFT)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  // Set once the "you have quotes waiting" reminder email has been sent
+  // for this project (src/lib/reminders.ts) — prevents sending it more
+  // than once. Null until then.
+  quoteReminderSentAt DateTime? @map("quote_reminder_sent_at")
+
+  photos            ProjectPhoto[]
+  requirements      ProjectRequirements?
+  designConcepts    DesignConcept[]
+  quoteRequests     QuoteRequest[]
+  activity          ActivityLog[]
+  assistantMessages AssistantMessage[]
+  transactions      Transaction[]
+
+  @@index([homeownerId])
+  @@index([status])
+  @@index([projectType])
+  @@map("projects")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Project photos
+// ─────────────────────────────────────────────────────────────────────────
+
+enum PhotoType {
+  BEFORE
+  INSPIRATION
+  OTHER
+}
+
+model ProjectPhoto {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Supabase Storage object path (e.g. "project-photos/<project_id>/<uuid>.jpg"),
+  // never a public URL and never binary data. Access is via short-lived
+  // signed URLs generated server-side — see docs/BACKEND_ARCHITECTURE.md §6.
+  storagePath String    @map("storage_path")
+  photoType   PhotoType @default(BEFORE) @map("photo_type")
+  uploadOrder Int       @default(0) @map("upload_order")
+  // width, height, mime type, size in bytes — EXIF is stripped before storage.
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  designConcepts DesignConcept[]
+
+  @@index([projectId])
+  @@map("project_photos")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Project requirements (flexible, per project type)
+// ─────────────────────────────────────────────────────────────────────────
+
+// One row per project. `data` holds project-type-specific answers as JSON,
+// validated at the application layer against the field schema registered
+// for that project type (src/lib/project-types.ts) rather than fixed
+// columns — this is what lets Kitchen, Bathroom, Driveway, etc. each have
+// a different question set without a table-per-type or a giant sparse
+// table. This same record is the "structured project profile" that the
+// GlowUpp AI assistant reads and updates in Phase 4 — the conversation
+// itself is never the source of truth, this row is.
+model ProjectRequirements {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @unique @map("project_id") @db.Uuid
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  data      Json     @default("{}")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("project_requirements")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Assistant conversation (Phase 4)
+// ─────────────────────────────────────────────────────────────────────────
+
+// The transcript, kept for display/continuity — but it is explicitly NOT
+// the source of truth for the project's brief. `ProjectRequirements.data`
+// (and Project.budgetMin/budgetMax/targetStartDate) are; the assistant
+// reads and writes those through the same validated path Phase 3's manual
+// requirements form uses, never the other way around. Deliberately not
+// exposed to professionals — see docs/BACKEND_ARCHITECTURE.md §16.
+model AssistantMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // "user" | "assistant" — a plain string rather than an enum, matching
+  // ActivityLog's reasoning: room for e.g. a future "system" role without
+  // a migration.
+  role      String
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@map("assistant_messages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Design concepts (AI-generated visuals)
+// ─────────────────────────────────────────────────────────────────────────
+
+enum DesignConceptStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+// Every generation is its own row and is never overwritten or updated in
+// place (other than status/result as the async job progresses) — retrying
+// or regenerating creates a new row with the next `version` number. This
+// is what makes every design traceable back to its exact prompt, source
+// photo, provider, and model.
+model DesignConcept {
+  id               String              @id @default(uuid()) @db.Uuid
+  projectId        String              @map("project_id") @db.Uuid
+  project          Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourcePhotoId    String              @map("source_photo_id") @db.Uuid
+  sourcePhoto      ProjectPhoto        @relation(fields: [sourcePhotoId], references: [id])
+  // Set once generation completes; null while pending/processing.
+  storagePath      String?             @map("storage_path")
+  generationPrompt String              @map("generation_prompt") @db.Text
+  description      String?             @db.Text
+  // Which entry of src/lib/design-styles.ts produced this concept — lets
+  // "regenerate this style" reuse the same style modifier. Null for
+  // concepts created via "request changes" (an edit of a prior concept,
+  // not a fresh style application) or older pre-Phase-6 rows.
+  styleKey         String?             @map("style_key")
+  // Sequential per project (1, 2, 3, ...), assigned by the application at
+  // creation time so the full history of a project's designs is orderable.
+  version          Int
+  status           DesignConceptStatus @default(PENDING)
+  selectedByUser   Boolean             @default(false) @map("selected_by_user")
+  provider         String
+  model            String
+  errorMessage     String?             @map("error_message") @db.Text
+  createdAt        DateTime            @default(now()) @map("created_at")
+
+  @@unique([projectId, version])
+  @@index([projectId])
+  @@index([sourcePhotoId])
+  @@map("design_concepts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Professionals
+// ─────────────────────────────────────────────────────────────────────────
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Professional {
+  id                 String              @id @default(uuid()) @db.Uuid
+  userId             String              @unique @map("user_id") @db.Uuid
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName       String              @map("business_name")
+  description        String?             @db.Text
+  postcode           String
+  // UK postcode outward-code prefixes this professional serves, e.g.
+  // ["L1", "L18"] or just ["L"] to cover an entire postcode area.
+  // Matched via simple prefix comparison in src/lib/matching.ts —
+  // deliberately not a numeric range parser (the brief's own example,
+  // "L1-L25", is a range, but a prefix list covers the same real cases —
+  // "serve one district" or "serve the whole area" — without needing
+  // range-parsing logic for an MVP rule engine). serviceRadiusKm stays
+  // below, unused by matching for now: proper geo-radius matching needs
+  // postcode geocoding, deferred per docs/BACKEND_ARCHITECTURE.md.
+  serviceAreaPrefixes String[]           @default([]) @map("service_area_prefixes")
+  serviceRadiusKm    Int?                @map("service_radius_km")
+  verificationStatus VerificationStatus  @default(UNVERIFIED) @map("verification_status")
+  isAvailable        Boolean             @default(true) @map("is_available")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  services      ProfessionalService[]
+  quoteRequests QuoteRequest[]
+  transactions  Transaction[]
+
+  @@map("professionals")
+}
+
+// Which project types (Kitchen, Bathroom, ...) a professional offers.
+// Values are validated against the same project-type registry as
+// `Project.projectType`. This is the primary input to Phase 7's matching
+// service.
+model ProfessionalService {
+  id             String       @id @default(uuid()) @db.Uuid
+  professionalId String       @map("professional_id") @db.Uuid
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  projectType    String       @map("project_type")
+
+  @@unique([professionalId, projectType])
+  @@index([professionalId])
+  @@map("professional_services")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Quote requests
+// ─────────────────────────────────────────────────────────────────────────
+
+// A single status field covers the request/quote lifecycle end to end —
+// the brief lists "request status" and "quote status" as separate fields,
+// but they describe the same lifecycle from two angles, so one enum keeps
+// the state machine unambiguous instead of allowing contradictory
+// combinations (e.g. request "declined" but quote "submitted").
+enum QuoteRequestStatus {
+  PENDING // sent to the professional, awaiting a response
+  VIEWED // professional has opened it
+  DECLINED // professional passed on the opportunity
+  QUOTED // professional submitted a quote
+  EXPIRED // no response within the window
+}
+
+model QuoteRequest {
+  id             String              @id @default(uuid()) @db.Uuid
+  projectId      String              @map("project_id") @db.Uuid
+  project        Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  homeownerId    String              @map("homeowner_id") @db.Uuid
+  homeowner      User                @relation("HomeownerQuoteRequests", fields: [homeownerId], references: [id])
+  professionalId String              @map("professional_id") @db.Uuid
+  professional   Professional        @relation(fields: [professionalId], references: [id])
+  status         QuoteRequestStatus  @default(PENDING)
+  message        String?             @db.Text
+  sentAt         DateTime            @default(now()) @map("sent_at")
+  viewedAt       DateTime?           @map("viewed_at")
+  respondedAt    DateTime?           @map("responded_at")
+  // Quote amount in pence, mirroring Project.budgetMin/Max.
+  quoteAmount    Int?                @map("quote_amount")
+  quoteTimeline  String?             @map("quote_timeline")
+  quoteNotes     String?             @map("quote_notes") @db.Text
+  // Mirrors DesignConcept.selectedByUser — only one quote request per
+  // project should be selected at a time (enforced in the action, not a
+  // DB constraint, same pattern as design selection in Phase 6).
+  selected       Boolean             @default(false)
+  messages       Message[]
+  transaction    Transaction?
+
+  @@index([projectId])
+  @@index([professionalId])
+  @@index([homeownerId])
+  @@map("quote_requests")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Messages
+// ─────────────────────────────────────────────────────────────────────────
+
+// One thread per QuoteRequest — a project-scoped conversation between the
+// homeowner and one specific professional, not a general project-wide
+// group chat (a project can have several QuoteRequests, each with its own
+// thread, once quotes have gone out to more than one professional). Kept
+// deliberately simple per the brief: a flat, ordered list of plain-text
+// messages, no read receipts, no attachments, no editing/deleting.
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  quoteRequestId String       @map("quote_request_id") @db.Uuid
+  quoteRequest   QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  senderId       String       @map("sender_id") @db.Uuid
+  sender         User         @relation(fields: [senderId], references: [id])
+  body           String       @db.Text
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([quoteRequestId])
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Transactions (Phase 11 — design only, no real payment processing)
+// ─────────────────────────────────────────────────────────────────────────
+
+// Records a GlowUpp lead fee owed by a professional once they're
+// selected for a job — NOT a homeowner payment. The chosen business
+// model (confirmed with the product owner before building this) is
+// lead-fee, not platform-mediated escrow: GlowUpp never touches
+// homeowner→professional money at all, which keeps the MVP outside UK
+// e-money/FCA regulatory territory (see docs/BACKEND_ARCHITECTURE.md
+// §23 for the full reasoning and what's deliberately NOT built —
+// there is no real payment collection anywhere in this schema or code,
+// per the phase's explicit "design only" scope).
+enum TransactionStatus {
+  PENDING // fee owed, not yet paid
+  PAID // manually reconciled as paid (no live payment processor yet)
+  WAIVED // manually waived, e.g. goodwill or a promo
+  CANCELLED // selection was reversed before payment
+}
+
+model Transaction {
+  id             String            @id @default(uuid()) @db.Uuid
+  // One transaction per winning selection — enforced by this being a
+  // unique 1:1 relation, not just an index, since exactly one
+  // QuoteRequest per project can ever be `selected: true` (Phase 8).
+  quoteRequestId String            @unique @map("quote_request_id") @db.Uuid
+  quoteRequest   QuoteRequest      @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  professionalId String            @map("professional_id") @db.Uuid
+  professional   Professional      @relation(fields: [professionalId], references: [id])
+  projectId      String            @map("project_id") @db.Uuid
+  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Fee amount in pence, same convention as QuoteRequest.quoteAmount —
+  // computed once at creation time (src/lib/fees.ts) and frozen here,
+  // not recalculated later even if the fee rate changes.
+  feeAmount      Int               @map("fee_amount")
+  status         TransactionStatus @default(PENDING)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  paidAt         DateTime?         @map("paid_at")
+
+  @@index([professionalId])
+  @@index([projectId])
+  @@map("transactions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Activity log
+// ─────────────────────────────────────────────────────────────────────────
+
+// Deliberately schema-light: `type` is a free string (e.g.
+// "project_created", "design_generated") rather than an enum, because new
+// event types will be added throughout every later phase and none of them
+// should require a migration.
+model ActivityLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      String
+  actorId   String?  @map("actor_id") @db.Uuid
+  actor     User?    @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  projectId String?  @map("project_id") @db.Uuid
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([actorId])
+  @@index([type])
+  @@map("activity_log")
+}
