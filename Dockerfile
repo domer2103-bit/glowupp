@@ -18,16 +18,26 @@ RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# NEXT_PUBLIC_* vars are inlined into the client bundle at build time —
-# everything else the app needs is server-only and only required at
-# runtime (supplied via the container's env file, not here). DATABASE_URL
-# is a placeholder: `prisma generate` only reads the schema, it never
-# connects to a real database.
+# NEXT_PUBLIC_* vars are inlined into the client bundle, so they need
+# their real values even at build time. Everything else below is
+# server-only and gets its real value at container runtime instead
+# (supplied by the VPS's env file, not here) — these are placeholders
+# needed only because `next build` evaluates every module's top-level
+# code while collecting page data (e.g. src/lib/storage.ts constructs a
+# Supabase client at module scope), so a handful of files throw at build
+# time if their env var is completely undefined, even though nothing
+# during the build ever actually calls out to these services.
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ENV SUPABASE_SERVICE_ROLE_KEY="build-placeholder"
+ENV ANTHROPIC_API_KEY="build-placeholder"
+ENV KIE_AI_API_KEY="build-placeholder"
+ENV RESEND_API_KEY="build-placeholder"
+ENV CRON_SECRET="build-placeholder"
+ENV APP_URL="http://localhost:3000"
 
 RUN pnpm exec prisma generate
 RUN pnpm run build
