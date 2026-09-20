@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Bundles only the files the production server actually needs (a
+  // pruned node_modules + server code) into .next/standalone — keeps the
+  // Docker image lean instead of shipping the full dev node_modules.
+  output: "standalone",
   experimental: {
     serverActions: {
       // Default is 1MB. Project photo uploads are proxied through a

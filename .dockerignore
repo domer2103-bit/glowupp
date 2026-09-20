@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env
+.env*
+!.env.example
+.claude
+.agents
+.windsurf
+skills-lock.json
+*.md
+.playwright-mcp
