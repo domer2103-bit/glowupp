@@ -12,6 +12,11 @@ export default function SignupPage() {
           Log in
         </Link>
       </p>
+      <p className="max-w-xs text-center text-xs text-zinc-500 dark:text-zinc-500">
+        By signing up, you agree to GlowUpp&rsquo;s{" "}
+        <Link href="/terms" className="underline">Terms of Service</Link> and{" "}
+        <Link href="/privacy" className="underline">Privacy Policy</Link>.
+      </p>
     </div>
   );
 }
