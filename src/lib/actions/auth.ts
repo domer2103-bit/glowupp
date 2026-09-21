@@ -54,7 +54,14 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { role, name, postcode } },
+    options: {
+      data: { role, name, postcode },
+      // Explicit rather than relying on the Supabase project's Site URL
+      // default — that default had been left at a leftover dev value
+      // (localhost:3000) even after this app went to production,
+      // silently breaking every confirmation email's link.
+      emailRedirectTo: `${process.env.APP_URL}/login?confirmed=1`,
+    },
   });
 
   if (error) return { error: error.message };
