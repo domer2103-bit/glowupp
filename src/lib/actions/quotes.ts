@@ -12,7 +12,7 @@ import { poundsToPence } from "@/lib/money";
 import { notifyProfessionalSelected, notifyQuoteRequested, notifyQuoteSubmitted } from "@/lib/notifications";
 import { calculateLeadFee } from "@/lib/fees";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { ProjectStatus, QuoteRequestStatus } from "@/generated/prisma/client";
+import { ProjectStatus, QuoteRequestStatus, TransactionStatus } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string } | undefined;
 
@@ -208,8 +208,23 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
   await prisma.$transaction([
     prisma.quoteRequest.updateMany({ where: { projectId }, data: { selected: false } }),
     prisma.quoteRequest.update({ where: { id: quoteRequestId }, data: { selected: true } }),
-    prisma.transaction.create({
-      data: { quoteRequestId, professionalId: quoteRequest.professionalId, projectId, feeAmount },
+    // upsert, not create: a homeowner can select the same professional
+    // again after an earlier selection's lead fee auto-cancelled
+    // (src/lib/lead-fee-reminders.ts) — Transaction.quoteRequestId is
+    // unique, so this resets that row to a fresh PENDING cycle instead
+    // of colliding with the cancelled one.
+    prisma.transaction.upsert({
+      where: { quoteRequestId },
+      create: { quoteRequestId, professionalId: quoteRequest.professionalId, projectId, feeAmount },
+      update: {
+        feeAmount,
+        status: TransactionStatus.PENDING,
+        createdAt: new Date(),
+        paidAt: null,
+        feeFinalNoticeSentAt: null,
+        stripeCheckoutSessionId: null,
+        stripePaymentIntentId: null,
+      },
     }),
   ]);
 

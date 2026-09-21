@@ -392,6 +392,11 @@ model Transaction {
   // delivery can't be matched to the wrong transaction.
   stripeCheckoutSessionId String?  @unique @map("stripe_checkout_session_id")
   stripePaymentIntentId   String?  @unique @map("stripe_payment_intent_id")
+  // Set once the 24h "pay within 24h or this is cancelled" notice goes
+  // out (src/lib/lead-fee-reminders.ts) — stops it sending twice, and
+  // gates the actual 48h auto-cancel (only cancels fees that got the
+  // warning first).
+  feeFinalNoticeSentAt    DateTime? @map("fee_final_notice_sent_at")
 
   @@index([professionalId])
   @@index([projectId])

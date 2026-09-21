@@ -204,3 +204,64 @@ export async function notifyLeadFeePaid(input: LeadFeePaidInput): Promise<void> 
     ),
   });
 }
+
+interface LeadFeeFinalNoticeInput {
+  professionalEmail: string;
+  professionalName: string;
+  projectTitle: string;
+  feeAmountPence: number;
+}
+
+/** Sent once, 24h after a professional is selected, if their lead fee is still unpaid — the only warning before the 48h auto-cancel (src/lib/lead-fee-reminders.ts). */
+export async function notifyLeadFeeFinalNotice(input: LeadFeeFinalNoticeInput): Promise<void> {
+  const link = `${APP_URL}/professional/transactions`;
+  const amount = formatPence(input.feeAmountPence);
+
+  await sendBestEffort({
+    to: input.professionalEmail,
+    subject: `Action needed within 24h — ${input.projectTitle}`,
+    text: `Hi ${input.professionalName},\n\nYou were selected for "${input.projectTitle}", but the ${amount} lead fee is still unpaid. Pay within 24h to keep this lead — after that it'll be cancelled and the project reopened to other professionals.\n\n${link}\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.professionalName)},</p><p>You were selected for <strong>${escapeHtml(input.projectTitle)}</strong>, but the ${amount} lead fee is still unpaid. Pay within 24h to keep this lead — after that it'll be cancelled and the project reopened to other professionals.</p><p><a href="${link}">Pay now</a></p>`
+    ),
+  });
+}
+
+interface LeadFeeCancelledInput {
+  professionalEmail: string;
+  professionalName: string;
+  projectTitle: string;
+}
+
+/** Sent to the professional when their unpaid lead fee auto-cancels at the 48h mark. */
+export async function notifyLeadFeeCancelled(input: LeadFeeCancelledInput): Promise<void> {
+  await sendBestEffort({
+    to: input.professionalEmail,
+    subject: `Lead released — ${input.projectTitle}`,
+    text: `Hi ${input.professionalName},\n\nThe lead fee for "${input.projectTitle}" wasn't paid in time, so this opportunity has been released back to the homeowner. Keep an eye on your opportunities for new projects.\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.professionalName)},</p><p>The lead fee for <strong>${escapeHtml(input.projectTitle)}</strong> wasn't paid in time, so this opportunity has been released back to the homeowner. Keep an eye on your opportunities for new projects.</p>`
+    ),
+  });
+}
+
+interface ProjectReopenedInput {
+  homeownerEmail: string;
+  homeownerName: string;
+  projectId: string;
+  projectTitle: string;
+}
+
+/** Sent to the homeowner when their selected professional's lead fee auto-cancels — reopens the project's quotes for them to pick someone else. */
+export async function notifyProjectReopened(input: ProjectReopenedInput): Promise<void> {
+  const link = `${APP_URL}/projects/${input.projectId}/quotes`;
+
+  await sendBestEffort({
+    to: input.homeownerEmail,
+    subject: `Update on "${input.projectTitle}"`,
+    text: `Hi ${input.homeownerName},\n\nThe professional you selected for "${input.projectTitle}" didn't confirm in time, so we've reopened it — take a look at your other quotes whenever you're ready.\n\n${link}\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.homeownerName)},</p><p>The professional you selected for <strong>${escapeHtml(input.projectTitle)}</strong> didn't confirm in time, so we've reopened it — take a look at your other quotes whenever you're ready.</p><p><a href="${link}">View your quotes</a></p>`
+    ),
+  });
+}
