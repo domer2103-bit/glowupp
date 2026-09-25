@@ -30,9 +30,12 @@ export default async function DashboardPage() {
         </Link>
       )}
       {user.role === UserRole.PROFESSIONAL && (
-        <div className="flex gap-3">
-          <Link href="/professional/opportunities" className="rounded-full bg-black px-5 py-3 text-white dark:bg-white dark:text-black">
-            Quote opportunities
+        <div className="flex flex-wrap justify-center gap-3">
+          <Link href="/professional/open-projects" className="rounded-full bg-black px-5 py-3 text-white dark:bg-white dark:text-black">
+            Open projects
+          </Link>
+          <Link href="/professional/opportunities" className="rounded-full border border-black px-5 py-3 dark:border-white">
+            Your quotes
           </Link>
           <Link href="/professional/transactions" className="rounded-full border border-black px-5 py-3 dark:border-white">
             Lead fees

@@ -20,11 +20,11 @@ export default async function ProjectQuotesPage(props: PageProps<"/projects/[id]
 
       {quoteRequests.length === 0 ? (
         <p className="text-zinc-600 dark:text-zinc-400">
-          No quotes requested yet.{" "}
-          <Link href={`/projects/${id}/professionals`} className="underline">
-            Find professionals
-          </Link>
-          .
+          No quotes yet.{" "}
+          <Link href={`/projects/${id}`} className="underline">
+            Push your project to the open market
+          </Link>{" "}
+          to start getting them.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">

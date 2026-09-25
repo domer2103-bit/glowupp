@@ -116,7 +116,7 @@ const StatusSchema = z.enum([
  * Security/integrity fix (Phase 12 review): DESIGN_READY,
  * REQUESTING_QUOTES, and PROFESSIONAL_SELECTED are now all reached
  * automatically by real actions elsewhere (selectDesignConcept,
- * requestQuotes, selectProfessional) — letting a homeowner manually jump
+ * pushToOpenMarket, selectProfessional) — letting a homeowner manually jump
  * straight to one of them here would let a project claim a milestone
  * that never actually happened (e.g. PROFESSIONAL_SELECTED with no
  * selected QuoteRequest or Transaction behind it). QUOTES_RECEIVED and

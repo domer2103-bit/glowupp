@@ -41,29 +41,32 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-interface QuoteRequestedInput {
+interface OpenMarketProjectInput {
   professionalEmail: string;
   professionalName: string;
   projectTitle: string;
   projectType: string;
   postcode: string;
-  homeownerMessage?: string | null;
 }
 
-/** Sent to a professional the moment a homeowner requests a quote from them. */
-export async function notifyQuoteRequested(input: QuoteRequestedInput): Promise<void> {
+/**
+ * Sent once, in a batch, to every professional who matches (type + area)
+ * at the moment a homeowner pushes their project to the open market —
+ * not re-sent as new professionals sign up later, and not sent again if
+ * the project is already open. Tells them where to look; it doesn't
+ * commit them to anything, unlike the old per-professional invite email
+ * this replaces.
+ */
+export async function notifyOpenMarketProject(input: OpenMarketProjectInput): Promise<void> {
   const typeLabel = getProjectTypeDefinition(input.projectType)?.label ?? input.projectType;
-  const link = `${APP_URL}/professional/opportunities`;
-  const messageLine = input.homeownerMessage ? `\n\nTheir note: "${input.homeownerMessage}"` : "";
+  const link = `${APP_URL}/professional/open-projects`;
 
   await sendBestEffort({
     to: input.professionalEmail,
-    subject: `New quote opportunity: ${input.projectTitle}`,
-    text: `Hi ${input.professionalName},\n\nA homeowner has requested a quote for their ${typeLabel} project ("${input.projectTitle}", ${input.postcode}).${messageLine}\n\nView it and respond: ${link}\n\n— GlowUpp`,
+    subject: `New ${typeLabel} project in ${input.postcode}`,
+    text: `Hi ${input.professionalName},\n\nA new ${typeLabel} project just went live in your area ("${input.projectTitle}", ${input.postcode}). Take a look and send a quote if it's a fit.\n\n${link}\n\n— GlowUpp`,
     html: emailWrapper(
-      `<p>Hi ${escapeHtml(input.professionalName)},</p><p>A homeowner has requested a quote for their ${typeLabel} project (<strong>${escapeHtml(input.projectTitle)}</strong>, ${escapeHtml(input.postcode)}).</p>${
-        input.homeownerMessage ? `<p>Their note: <em>"${escapeHtml(input.homeownerMessage)}"</em></p>` : ""
-      }<p><a href="${link}">View it and respond</a></p>`
+      `<p>Hi ${escapeHtml(input.professionalName)},</p><p>A new ${typeLabel} project just went live in your area (<strong>${escapeHtml(input.projectTitle)}</strong>, ${escapeHtml(input.postcode)}). Take a look and send a quote if it's a fit.</p><p><a href="${link}">View open projects</a></p>`
     ),
   });
 }

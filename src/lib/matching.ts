@@ -8,9 +8,10 @@
  *
  * No "server-only" import here on purpose: these functions take plain
  * data in and return plain data out, with no database or auth access, so
- * they're trivially unit-testable and reusable from anywhere (the current
- * caller is src/lib/data/matching.ts, which does own the database access
- * and the ownership check).
+ * they're trivially unit-testable and reusable from anywhere (current
+ * callers: src/lib/data/quotes.ts's getOpenMarketProjects, and
+ * src/lib/actions/quotes.ts's pushToOpenMarket/submitOpenMarketQuote —
+ * all of which own their own database access and auth checks).
  */
 
 import { getOutwardCode, postcodeMatchesPrefix } from "@/lib/postcode";

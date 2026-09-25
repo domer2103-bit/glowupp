@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, requireRole } from "@/lib/auth";
 import { requireProjectOwner } from "@/lib/data/projects";
 import { getOutwardCode } from "@/lib/postcode";
-import { UserRole, QuoteRequestStatus, TransactionStatus } from "@/generated/prisma/client";
+import { evaluateMatch } from "@/lib/matching";
+import { UserRole, ProjectStatus, TransactionStatus } from "@/generated/prisma/client";
 
 /** All quote requests sent out for a project, most recent first — homeowner-owner only. */
 export async function getProjectQuoteRequests(projectId: string) {
@@ -17,14 +18,44 @@ export async function getProjectQuoteRequests(projectId: string) {
 }
 
 /**
- * Every quote request sent to the current professional, across all their
- * projects. Side effect: any still-PENDING request being returned here is
- * marked VIEWED — viewing the opportunities list *is* "opening" the
- * request, so there's no separate "mark as viewed" action to forget to
- * call. Mirrors how the assistant's first message triggers
- * "assistant_started" as a side effect rather than a dedicated action.
+ * Open-market projects the current professional could quote on: pushed
+ * to market (or already has quotes), matches their type/area/
+ * verification/availability, and they haven't already quoted on it.
+ * Postcode is always shown as the outward code only here — full address
+ * never appears pre-selection, same privacy rule as everywhere else.
  */
-export async function getProfessionalOpportunities() {
+export async function getOpenMarketProjects() {
+  const user = await requireRole(UserRole.PROFESSIONAL);
+
+  const professional = await prisma.professional.findUnique({ where: { userId: user.id }, include: { services: true } });
+  if (!professional) return [];
+
+  const alreadyQuoted = await prisma.quoteRequest.findMany({
+    where: { professionalId: professional.id },
+    select: { projectId: true },
+  });
+  const excludeProjectIds = alreadyQuoted.map((q) => q.projectId);
+
+  const openProjects = await prisma.project.findMany({
+    where: {
+      status: { in: [ProjectStatus.REQUESTING_QUOTES, ProjectStatus.QUOTES_RECEIVED] },
+      id: { notIn: excludeProjectIds },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return openProjects
+    .filter((project) => evaluateMatch({ projectType: project.projectType, postcode: project.postcode, budgetMin: project.budgetMin, budgetMax: project.budgetMax, targetStartDate: project.targetStartDate }, professional).isMatch)
+    .map((project) => ({ ...project, postcode: getOutwardCode(project.postcode) }));
+}
+
+/**
+ * Quotes the current professional has submitted, across all their
+ * projects, most recent first. Full postcode only reveals once they're
+ * both selected AND their lead fee is paid — same gate as before, just
+ * now the underlying quotes were self-submitted rather than invited.
+ */
+export async function getProfessionalQuotes() {
   const user = await requireRole(UserRole.PROFESSIONAL);
 
   const professional = await prisma.professional.findUnique({ where: { userId: user.id } });
@@ -36,36 +67,6 @@ export async function getProfessionalOpportunities() {
     orderBy: { sentAt: "desc" },
   });
 
-  const pendingRequests = requests.filter((r) => r.status === QuoteRequestStatus.PENDING);
-  if (pendingRequests.length > 0) {
-    const pendingIds = pendingRequests.map((r) => r.id);
-    await prisma.quoteRequest.updateMany({
-      where: { id: { in: pendingIds } },
-      data: { status: QuoteRequestStatus.VIEWED, viewedAt: new Date() },
-    });
-    await prisma.activityLog.createMany({
-      data: pendingRequests.map((r) => ({
-        type: "quote_viewed",
-        actorId: user.id,
-        projectId: r.projectId,
-        metadata: { quoteRequestId: r.id },
-      })),
-    });
-    for (const r of requests) {
-      if (pendingIds.includes(r.id)) {
-        r.status = QuoteRequestStatus.VIEWED;
-        r.viewedAt = new Date();
-      }
-    }
-  }
-
-  // Privacy: a professional only sees the postcode *area* (e.g. "L18",
-  // not "L18 5NF") until they're both selected AND their lead fee is
-  // paid — matching that district is all they need to decide whether to
-  // quote. The full postcode reveals once the fee clears, when they
-  // genuinely need it to do the work. This is also a soft deterrent
-  // against a professional finding the exact address and arranging the
-  // job off-platform before ever winning it through GlowUpp.
   for (const r of requests) {
     if (!r.selected || r.transaction?.status !== TransactionStatus.PAID) {
       r.project.postcode = getOutwardCode(r.project.postcode);

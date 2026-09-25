@@ -11,6 +11,7 @@ import { PhotoUploadForm } from "./PhotoUploadForm";
 import { StatusForm } from "./StatusForm";
 import { GenerateBatchButton } from "./GenerateBatchButton";
 import { ConceptCard } from "./ConceptCard";
+import { PushToMarketButton } from "./PushToMarketButton";
 
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params;
@@ -36,6 +37,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   // The marketplace only appears once there's a design worth building —
   // not as always-there navigation from the moment a project exists.
   const readyForMarketplace = isAtOrPastStatus(project.status, ProjectStatus.DESIGN_READY);
+  const isOnOpenMarket = isAtOrPastStatus(project.status, ProjectStatus.REQUESTING_QUOTES);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 bg-zinc-50 px-6 py-16 dark:bg-black">
@@ -101,17 +103,25 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
 
       {readyForMarketplace && (
         <section className="flex flex-col gap-2 rounded-lg border border-black bg-white p-4 dark:border-white dark:bg-zinc-950">
-          <h2 className="font-medium">Love this design?</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Get quotes from local pros who could build it — entirely your choice, no pressure.
-          </p>
+          {isOnOpenMarket ? (
+            <>
+              <h2 className="font-medium">Live on the open market</h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Local professionals who match this project can see it and send quotes. You&apos;ll get an email as they come
+                in.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="font-medium">Love this design?</h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Save it and push it to the open market to get quotes from local pros — entirely your choice, no pressure, and
+                nothing happens until you do this.
+              </p>
+            </>
+          )}
           <div className="flex gap-3">
-            <Link
-              href={`/projects/${project.id}/professionals`}
-              className="inline-block rounded-full bg-black px-4 py-2 text-sm text-white dark:bg-white dark:text-black"
-            >
-              Find local pros
-            </Link>
+            {!isOnOpenMarket && <PushToMarketButton projectId={project.id} />}
             <Link
               href={`/projects/${project.id}/quotes`}
               className="inline-block rounded-full border border-black px-4 py-2 text-sm dark:border-white"

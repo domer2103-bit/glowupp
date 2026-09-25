@@ -4,28 +4,28 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireProjectOwner } from "@/lib/data/projects";
-import { requireQuoteRequestForProfessional } from "@/lib/data/quotes";
+import { requireRole } from "@/lib/auth";
 import { getProjectTypeDefinition, isFieldValueSet } from "@/lib/project-types";
 import { evaluateMatch } from "@/lib/matching";
 import { isAtOrPastStatus } from "@/lib/project-status";
 import { poundsToPence } from "@/lib/money";
-import { notifyProfessionalSelected, notifyQuoteRequested, notifyQuoteSubmitted } from "@/lib/notifications";
+import { notifyProfessionalSelected, notifyOpenMarketProject, notifyQuoteSubmitted } from "@/lib/notifications";
 import { calculateLeadFee } from "@/lib/fees";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { ProjectStatus, QuoteRequestStatus, TransactionStatus } from "@/generated/prisma/client";
+import { ProjectStatus, QuoteRequestStatus, TransactionStatus, UserRole } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string } | undefined;
 
 /**
- * The brief's "Validate project" step, made concrete: a project can't
- * request quotes until a design has been chosen (status at or past
+ * The brief's "Validate project" step, made concrete: a project can't go
+ * to the open market until a design has been chosen (status at or past
  * DESIGN_READY — Phase 6's selectDesignConcept is what gets it there) and
  * every field the project type marks `required` actually has a value.
  * Returns an error string, or null if the project is ready.
  */
 export async function validateProjectReadyForQuotes(project: { id: string; projectType: string; status: ProjectStatus }): Promise<string | null> {
   if (!isAtOrPastStatus(project.status, ProjectStatus.DESIGN_READY)) {
-    return "Select a preferred design concept before requesting quotes.";
+    return "Select a preferred design concept before pushing to the open market.";
   }
 
   const definition = getProjectTypeDefinition(project.projectType);
@@ -35,40 +35,38 @@ export async function validateProjectReadyForQuotes(project: { id: string; proje
   const data = (requirements?.data as Record<string, unknown>) ?? {};
   const missing = definition.fields.filter((f) => f.required && !isFieldValueSet(data[f.key]));
   if (missing.length > 0) {
-    return `Please fill in before requesting quotes: ${missing.map((f) => f.label).join(", ")}.`;
+    return `Please fill in before pushing to the open market: ${missing.map((f) => f.label).join(", ")}.`;
   }
 
   return null;
 }
 
 /**
- * Homeowner action: sends quote requests to the selected professionals.
- * Every selected professional is re-checked against the matching rules
- * server-side (src/lib/matching.ts) — the checkboxes on the form reflect
- * what the client saw, but a tampered submission naming a non-matching or
- * made-up professional ID must not create a request.
+ * Homeowner action: the only way a project becomes visible to
+ * professionals at all — replaces the earlier "pick specific
+ * professionals to invite" flow with a single opt-in gate. Everything
+ * before this point (photos, AI design, requirements) is purely between
+ * the homeowner and GlowUpp; nothing about the project exists to any
+ * professional until this is clicked. Idempotent — pushing an
+ * already-open project again is a harmless no-op, not an error.
  */
-export async function requestQuotes(projectId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function pushToOpenMarket(projectId: string): Promise<ActionState> {
   const project = await requireProjectOwner(projectId);
 
-  if (!checkRateLimit(`request-quotes:${project.homeownerId}`, 20, 60 * 60 * 1000)) {
-    return { error: "You're requesting quotes too quickly — please try again later." };
+  if (isAtOrPastStatus(project.status, ProjectStatus.REQUESTING_QUOTES)) {
+    return undefined;
   }
 
   const validationError = await validateProjectReadyForQuotes(project);
   if (validationError) return { error: validationError };
 
-  const professionalIds = formData.getAll("professionalIds").map(String);
-  if (professionalIds.length === 0) return { error: "Select at least one professional to request a quote from." };
-
-  const message = (formData.get("message") as string | null)?.trim() || undefined;
-
-  const candidates = await prisma.professional.findMany({
-    where: { id: { in: professionalIds } },
-    include: { services: true, user: true },
+  await prisma.project.update({ where: { id: projectId }, data: { status: ProjectStatus.REQUESTING_QUOTES } });
+  await prisma.activityLog.create({
+    data: { type: "project_pushed_to_market", actorId: project.homeownerId, projectId },
   });
 
-  const validMatches = candidates.filter(
+  const professionals = await prisma.professional.findMany({ include: { services: true, user: true } });
+  const matches = professionals.filter(
     (pro) =>
       evaluateMatch(
         { projectType: project.projectType, postcode: project.postcode, budgetMin: project.budgetMin, budgetMax: project.budgetMax, targetStartDate: project.targetStartDate },
@@ -76,64 +74,20 @@ export async function requestQuotes(projectId: string, _prevState: ActionState, 
       ).isMatch
   );
 
-  if (validMatches.length === 0) {
-    return { error: "None of the selected professionals are currently eligible for this project." };
-  }
-
-  const existing = await prisma.quoteRequest.findMany({
-    where: { projectId, professionalId: { in: validMatches.map((p) => p.id) } },
-    select: { professionalId: true },
-  });
-  const alreadyRequested = new Set(existing.map((e) => e.professionalId));
-  const toRequest = validMatches.filter((pro) => !alreadyRequested.has(pro.id));
-
-  for (const pro of toRequest) {
-    const quoteRequest = await prisma.quoteRequest.create({
-      data: { projectId, homeownerId: project.homeownerId, professionalId: pro.id, message },
-    });
-    await prisma.activityLog.create({
-      data: { type: "quote_requested", actorId: project.homeownerId, projectId, metadata: { quoteRequestId: quoteRequest.id, professionalId: pro.id } },
-    });
-    await notifyQuoteRequested({
+  for (const pro of matches) {
+    await notifyOpenMarketProject({
       professionalEmail: pro.user.email,
       professionalName: pro.user.name,
       projectTitle: project.title,
       projectType: project.projectType,
       postcode: project.postcode,
-      homeownerMessage: message,
     });
   }
 
-  if (!isAtOrPastStatus(project.status, ProjectStatus.REQUESTING_QUOTES)) {
-    await prisma.project.update({ where: { id: projectId }, data: { status: ProjectStatus.REQUESTING_QUOTES } });
-  }
-
   revalidatePath(`/projects/${projectId}`);
-  revalidatePath(`/projects/${projectId}/professionals`);
   revalidatePath(`/projects/${projectId}/quotes`);
+  revalidatePath("/professional/open-projects");
   return undefined;
-}
-
-/** Professional action: passes on the opportunity. */
-export async function declineQuoteRequest(quoteRequestId: string): Promise<void> {
-  const quoteRequest = await requireQuoteRequestForProfessional(quoteRequestId);
-
-  await prisma.quoteRequest.update({
-    where: { id: quoteRequest.id },
-    data: { status: QuoteRequestStatus.DECLINED, respondedAt: new Date() },
-  });
-
-  await prisma.activityLog.create({
-    data: {
-      type: "quote_declined",
-      actorId: quoteRequest.professional.userId,
-      projectId: quoteRequest.projectId,
-      metadata: { quoteRequestId: quoteRequest.id },
-    },
-  });
-
-  revalidatePath("/professional/opportunities");
-  revalidatePath(`/projects/${quoteRequest.projectId}/quotes`);
 }
 
 const SubmitQuoteSchema = z.object({
@@ -142,13 +96,39 @@ const SubmitQuoteSchema = z.object({
   quoteNotes: z.string().trim().max(2000).optional(),
 });
 
-/** Professional action: submits the actual quote. Submitting a quote is treated as accepting the opportunity — there's no separate "accept" step (see docs/BACKEND_ARCHITECTURE.md §20 for why). */
-export async function submitQuote(quoteRequestId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const quoteRequest = await requireQuoteRequestForProfessional(quoteRequestId);
+/**
+ * Professional action: submits a quote on an open-market project they
+ * found themselves — there's no invite to accept first, submitting a
+ * quote both creates the QuoteRequest and fills it in one step. Every
+ * eligibility rule (type, area, verification, availability) is
+ * re-checked server-side regardless of what the browse list showed,
+ * same defensive reasoning as the old requestQuotes had for tampered
+ * professional IDs.
+ */
+export async function submitOpenMarketQuote(projectId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireRole(UserRole.PROFESSIONAL);
 
-  if (quoteRequest.status === QuoteRequestStatus.DECLINED) {
-    return { error: "You've already declined this opportunity." };
+  if (!checkRateLimit(`submit-open-quote:${user.id}`, 20, 60 * 60 * 1000)) {
+    return { error: "You're submitting quotes too quickly — please try again later." };
   }
+
+  const professional = await prisma.professional.findUnique({ where: { userId: user.id }, include: { services: true } });
+  if (!professional) return { error: "Complete your professional profile first." };
+
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project) return { error: "This project no longer exists." };
+  if (!isAtOrPastStatus(project.status, ProjectStatus.REQUESTING_QUOTES) || project.status === ProjectStatus.CANCELLED) {
+    return { error: "This project isn't open for quotes." };
+  }
+
+  const match = evaluateMatch(
+    { projectType: project.projectType, postcode: project.postcode, budgetMin: project.budgetMin, budgetMax: project.budgetMax, targetStartDate: project.targetStartDate },
+    professional
+  );
+  if (!match.isMatch) return { error: "This project isn't currently eligible for your profile." };
+
+  const existing = await prisma.quoteRequest.findFirst({ where: { projectId, professionalId: professional.id } });
+  if (existing) return { error: "You've already sent a quote for this project." };
 
   const parsed = SubmitQuoteSchema.safeParse({
     quoteAmount: formData.get("quoteAmount"),
@@ -157,38 +137,43 @@ export async function submitQuote(quoteRequestId: string, _prevState: ActionStat
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Please check the form and try again." };
 
-  await prisma.quoteRequest.update({
-    where: { id: quoteRequest.id },
+  const now = new Date();
+  const quoteRequest = await prisma.quoteRequest.create({
     data: {
+      projectId,
+      homeownerId: project.homeownerId,
+      professionalId: professional.id,
       status: QuoteRequestStatus.QUOTED,
-      respondedAt: new Date(),
+      sentAt: now,
+      respondedAt: now,
       quoteAmount: poundsToPence(parsed.data.quoteAmount),
       quoteTimeline: parsed.data.quoteTimeline,
       quoteNotes: parsed.data.quoteNotes,
     },
   });
 
+  if (project.status === ProjectStatus.REQUESTING_QUOTES) {
+    await prisma.project.update({ where: { id: projectId }, data: { status: ProjectStatus.QUOTES_RECEIVED } });
+  }
+
   await prisma.activityLog.create({
-    data: {
-      type: "quote_submitted",
-      actorId: quoteRequest.professional.userId,
-      projectId: quoteRequest.projectId,
-      metadata: { quoteRequestId: quoteRequest.id },
-    },
+    data: { type: "quote_submitted", actorId: user.id, projectId, metadata: { quoteRequestId: quoteRequest.id } },
   });
 
+  const homeowner = await prisma.user.findUniqueOrThrow({ where: { id: project.homeownerId } });
   await notifyQuoteSubmitted({
-    homeownerEmail: quoteRequest.homeowner.email,
-    homeownerName: quoteRequest.homeowner.name,
-    projectId: quoteRequest.projectId,
-    projectTitle: quoteRequest.project.title,
-    professionalBusinessName: quoteRequest.professional.businessName,
+    homeownerEmail: homeowner.email,
+    homeownerName: homeowner.name,
+    projectId,
+    projectTitle: project.title,
+    professionalBusinessName: professional.businessName,
     quoteAmountPence: poundsToPence(parsed.data.quoteAmount),
     quoteTimeline: parsed.data.quoteTimeline,
   });
 
+  revalidatePath("/professional/open-projects");
   revalidatePath("/professional/opportunities");
-  revalidatePath(`/projects/${quoteRequest.projectId}/quotes`);
+  revalidatePath(`/projects/${projectId}/quotes`);
   return undefined;
 }
 
@@ -198,9 +183,9 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
 
   const quoteRequest = await prisma.quoteRequest.findUnique({ where: { id: quoteRequestId } });
   if (!quoteRequest || quoteRequest.projectId !== projectId || quoteRequest.status !== QuoteRequestStatus.QUOTED) return;
-  // Guaranteed set whenever status is QUOTED (submitQuote always writes it
-  // together with the status change) — this is a defensive check against
-  // that invariant, not an expected runtime path.
+  // Guaranteed set whenever status is QUOTED (submitOpenMarketQuote always
+  // writes it together with the status change) — this is a defensive
+  // check against that invariant, not an expected runtime path.
   if (quoteRequest.quoteAmount === null) return;
 
   const feeAmount = calculateLeadFee(quoteRequest.quoteAmount);
