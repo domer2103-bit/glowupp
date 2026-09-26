@@ -94,8 +94,10 @@ const BATHROOM: ProjectTypeDefinition = {
     { key: "tiles", label: "Tiles", type: "text" },
     { key: "storage", label: "Storage", type: "textarea" },
     { key: "lighting", label: "Lighting", type: "text" },
-    { key: "style", label: "Style", type: "text", required: true },
-    { key: "colours", label: "Colours", type: "text" },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "bath_shower", "vanity", "toilet", "tiles", "storage", "lighting", "colours", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
 

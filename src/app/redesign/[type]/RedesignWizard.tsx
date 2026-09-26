@@ -3,18 +3,10 @@
 import { useActionState, useMemo, useState } from "react";
 import { uploadRedesignPhoto, submitRedesignBrief, type ActionState } from "@/lib/actions/redesign-wizard";
 
-const CHANGE_OPTIONS = [
-  { key: "complete_redesign", label: "Complete redesign" },
-  { key: "cabinets", label: "Cabinets" },
-  { key: "worktops", label: "Worktops" },
-  { key: "flooring", label: "Flooring" },
-  { key: "lighting", label: "Lighting" },
-  { key: "colours", label: "Colours" },
-  { key: "layout", label: "Layout" },
-  { key: "storage", label: "Storage" },
-  { key: "appliances", label: "Appliances" },
-  { key: "other", label: "Other" },
-];
+export interface ChangeOption {
+  key: string;
+  label: string;
+}
 
 const STYLE_OPTIONS = [
   { key: "Modern", label: "Modern", gradient: "from-slate-200 to-slate-400" },
@@ -97,9 +89,11 @@ interface Photo {
   url: string | null;
 }
 
-export function KitchenWizard({
+export function RedesignWizard({
   projectId,
   redesignPath,
+  categoryLabel,
+  changeOptions,
   photos,
   initialStyle,
   initialChanges,
@@ -109,6 +103,8 @@ export function KitchenWizard({
 }: {
   projectId: string;
   redesignPath: string;
+  categoryLabel: string;
+  changeOptions: ChangeOption[];
   photos: Photo[];
   initialStyle: string;
   initialChanges: string[];
@@ -153,7 +149,7 @@ export function KitchenWizard({
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
       <div className="flex flex-col gap-5 rounded-[28px] border border-zinc-200 bg-white/70 p-6 shadow-sm sm:p-8">
         <div>
-          <h1 className="text-3xl font-bold text-[#132a4d] sm:text-4xl">Let&apos;s redesign your kitchen.</h1>
+          <h1 className="text-3xl font-bold text-[#132a4d] sm:text-4xl">Let&apos;s redesign your {categoryLabel.toLowerCase()}.</h1>
           <p className="mt-2 text-sm text-zinc-600">I&apos;ll ask you a few questions so the design feels right for your space.</p>
         </div>
 
@@ -163,7 +159,7 @@ export function KitchenWizard({
             <div key={photo.id} className="h-20 w-28 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
               {photo.url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={photo.url} alt="Uploaded kitchen" className="h-full w-full object-cover" />
+                <img src={photo.url} alt={`Uploaded ${categoryLabel.toLowerCase()}`} className="h-full w-full object-cover" />
               )}
             </div>
           ))}
@@ -184,7 +180,7 @@ export function KitchenWizard({
 
         <AssistantBubble>What would you like to change?</AssistantBubble>
         <div className="ml-11 flex flex-wrap gap-2">
-          {CHANGE_OPTIONS.map((opt) => (
+          {changeOptions.map((opt) => (
             <Chip
               key={opt.key}
               label={opt.label}
@@ -244,7 +240,7 @@ export function KitchenWizard({
 
       <aside className="h-fit rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm lg:sticky lg:top-8">
         <h2 className="text-lg font-bold text-[#132a4d]">Your Design Brief</h2>
-        <p className="text-sm text-zinc-500">Your Kitchen</p>
+        <p className="text-sm text-zinc-500">Your {categoryLabel}</p>
         <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#3a6694]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#3a6694]" />
           {canGenerate ? "Ready to generate" : "Almost ready"}
@@ -252,7 +248,7 @@ export function KitchenWizard({
 
         <ul className="mt-5 flex flex-col gap-3">
           <CheckRow label="Photos" value={photos.length > 0 ? `${photos.length} photo${photos.length > 1 ? "s" : ""} uploaded` : undefined} done={photos.length > 0} />
-          <CheckRow label="Space" value="Kitchen" done />
+          <CheckRow label="Space" value={categoryLabel} done />
           <CheckRow label="Style" value={style || undefined} done={style.length > 0} />
           <CheckRow
             label="Colours"
@@ -261,7 +257,7 @@ export function KitchenWizard({
           />
           <CheckRow
             label="Changes"
-            value={changes.length > 0 ? changes.map((c) => CHANGE_OPTIONS.find((o) => o.key === c)?.label).join(", ") : undefined}
+            value={changes.length > 0 ? changes.map((c) => changeOptions.find((o) => o.key === c)?.label).join(", ") : undefined}
             done={changes.length > 0}
           />
           <CheckRow label="Budget" value={BUDGET_OPTIONS.find((o) => o.key === budgetPreset)?.label} done={budgetPreset.length > 0} />

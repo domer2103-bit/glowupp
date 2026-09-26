@@ -9,7 +9,7 @@ import { penceToPounds } from "@/lib/money";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { BeforeAfterImage } from "@/components/BeforeAfterImage";
 import { UserRole } from "@/generated/prisma/client";
-import { KitchenWizard } from "./KitchenWizard";
+import { RedesignWizard, type ChangeOption } from "./RedesignWizard";
 
 const CATEGORY_IMAGES: Record<string, string> = {
   kitchen: "/homepage/kitchen.jpg",
@@ -21,7 +21,34 @@ const CATEGORY_IMAGES: Record<string, string> = {
 };
 
 /** Category types that have graduated from the marketing landing page to the guided, fully-functional wizard below. Extended one category at a time as each is reviewed and approved. */
-const WIZARD_ENABLED_TYPES = new Set(["kitchen"]);
+const WIZARD_ENABLED_TYPES = new Set(["kitchen", "bathroom"]);
+
+/** The wizard's "what would you like to change" chips, tailored per category to that type's own field registry (src/lib/project-types.ts). */
+const CHANGE_OPTIONS_BY_TYPE: Record<string, ChangeOption[]> = {
+  kitchen: [
+    { key: "complete_redesign", label: "Complete redesign" },
+    { key: "cabinets", label: "Cabinets" },
+    { key: "worktops", label: "Worktops" },
+    { key: "flooring", label: "Flooring" },
+    { key: "lighting", label: "Lighting" },
+    { key: "colours", label: "Colours" },
+    { key: "layout", label: "Layout" },
+    { key: "storage", label: "Storage" },
+    { key: "appliances", label: "Appliances" },
+    { key: "other", label: "Other" },
+  ],
+  bathroom: [
+    { key: "complete_redesign", label: "Complete redesign" },
+    { key: "bath_shower", label: "Bath / shower" },
+    { key: "vanity", label: "Vanity" },
+    { key: "toilet", label: "Toilet" },
+    { key: "tiles", label: "Tiles" },
+    { key: "storage", label: "Storage" },
+    { key: "lighting", label: "Lighting" },
+    { key: "colours", label: "Colours" },
+    { key: "other", label: "Other" },
+  ],
+};
 
 function budgetToPreset(budgetMin: number | null, budgetMax: number | null): string {
   if (!budgetMin && !budgetMax) return "";
@@ -55,6 +82,8 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
     initialColours: string[];
     initialNotes: string;
     initialBudgetPreset: string;
+    categoryLabel: string;
+    changeOptions: ChangeOption[];
   } | null = null;
 
   if (showWizard && user) {
@@ -69,6 +98,8 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
       initialColours: Array.isArray(data.coloursPreference) ? (data.coloursPreference as string[]) : [],
       initialNotes: typeof data.mustHaveFeatures === "string" ? data.mustHaveFeatures : "",
       initialBudgetPreset: budgetToPreset(project.budgetMin, project.budgetMax),
+      categoryLabel: category.displayName,
+      changeOptions: CHANGE_OPTIONS_BY_TYPE[type] ?? [],
     };
   }
 
@@ -104,7 +135,7 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
 
       {wizardProps ? (
         <section className="relative mx-auto w-full max-w-6xl px-6 pb-16">
-          <KitchenWizard redesignPath={`/redesign/${type}`} {...wizardProps} />
+          <RedesignWizard redesignPath={`/redesign/${type}`} {...wizardProps} />
         </section>
       ) : (
         <>
