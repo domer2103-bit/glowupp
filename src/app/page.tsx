@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { HOMEPAGE_CATEGORIES } from "@/lib/homepage-categories";
 import { CategoryIcon } from "@/components/CategoryIcon";
+import { BeforeAfterImage } from "@/components/BeforeAfterImage";
 import { UserRole } from "@/generated/prisma/client";
 
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -64,21 +64,19 @@ export default async function Home() {
             ↑ Upload Your Photo
           </Link>
         </div>
-        <div className="relative">
-          <div className="relative overflow-hidden rounded-2xl border-4 border-white shadow-xl shadow-blue-900/10">
-            <Image src="/homepage/hero.jpg" alt="Kitchen before and after AI redesign" width={860} height={444} className="w-full" priority />
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1 overflow-hidden rounded-2xl border-4 border-white shadow-xl shadow-blue-900/10">
+            <BeforeAfterImage src="/homepage/hero.jpg" alt="Kitchen before and after AI redesign" width={1200} height={400} priority />
           </div>
-          <p
-            className="absolute -right-6 -top-10 hidden -rotate-3 text-lg text-blue-900 sm:block"
-            style={{ fontFamily: "var(--font-caveat)" }}
-          >
-            Same space.
-            <br />A whole new feeling.
-          </p>
-          <svg className="absolute -right-10 top-8 hidden h-10 w-10 text-blue-900 sm:block" viewBox="0 0 40 40" fill="none">
-            <path d="M35 8C28 6 14 10 8 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M4 18L8 24L14 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <div className="hidden w-24 shrink-0 flex-col items-start pt-1 sm:flex">
+            <svg className="h-8 w-10 text-blue-900" viewBox="0 0 40 32" fill="none">
+              <path d="M8 4C22 2 34 8 34 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M28 15L34 20L37 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <p className="-mt-1 rotate-2 text-lg leading-tight text-blue-900" style={{ fontFamily: "var(--font-caveat)" }}>
+              Same space. A whole new feeling.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -92,12 +90,11 @@ export default async function Home() {
               className="group flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
             >
               <div className="overflow-hidden rounded-xl">
-                <Image
+                <BeforeAfterImage
                   src={CATEGORY_IMAGES[cat.key]}
                   alt={`${cat.displayName} before and after`}
                   width={760}
-                  height={260}
-                  className="w-full"
+                  height={253}
                 />
               </div>
               <div className="flex items-center justify-between">

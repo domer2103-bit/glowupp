@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getHomepageCategory } from "@/lib/homepage-categories";
 import { getProjectTypeDefinition } from "@/lib/project-types";
 import { CategoryIcon } from "@/components/CategoryIcon";
+import { BeforeAfterImage } from "@/components/BeforeAfterImage";
 import { UserRole } from "@/generated/prisma/client";
 
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -59,7 +59,7 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
           </Link>
         </div>
         <div className="overflow-hidden rounded-2xl border-4 border-white shadow-xl shadow-blue-900/10">
-          <Image src={CATEGORY_IMAGES[category.key]} alt={`${category.displayName} before and after`} width={860} height={296} className="w-full" priority />
+          <BeforeAfterImage src={CATEGORY_IMAGES[category.key]} alt={`${category.displayName} before and after`} width={860} height={287} priority />
         </div>
       </section>
 
