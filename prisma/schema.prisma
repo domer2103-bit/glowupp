@@ -262,11 +262,30 @@ model Professional {
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
 
+  portfolioPhotos ProfessionalPortfolioPhoto[]
   services      ProfessionalService[]
   quoteRequests QuoteRequest[]
   transactions  Transaction[]
 
   @@map("professionals")
+}
+
+// A small photo gallery of past work — unlike ProjectPhoto/verification
+// documents, these are shown to homeowners upfront (on the quote detail
+// page, not the quotes list, to keep that page's load light) rather
+// than gated behind selection: the whole point of a portfolio is to
+// influence the choice, unlike an address which has no reason to be
+// seen before someone's committed.
+model ProfessionalPortfolioPhoto {
+  id             String       @id @default(uuid()) @db.Uuid
+  professionalId String       @map("professional_id") @db.Uuid
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  storagePath    String       @map("storage_path")
+  uploadOrder    Int          @default(0) @map("upload_order")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([professionalId])
+  @@map("professional_portfolio_photos")
 }
 
 // Which project types (Kitchen, Bathroom, ...) a professional offers.

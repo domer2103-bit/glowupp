@@ -24,6 +24,8 @@ export const VERIFICATION_DOCUMENTS_BUCKET = "verification-documents";
 export const ALLOWED_VERIFICATION_DOCUMENT_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png"] as const;
 export const MAX_VERIFICATION_DOCUMENT_BYTES = 10 * 1024 * 1024; // 10MB
 
+export const PORTFOLIO_PHOTOS_BUCKET = "portfolio-photos";
+
 /** Stored paths are "<bucket>/<key>" so they're unambiguous even once more buckets exist (Phase 5 adds "generated-designs"). */
 export function toStoragePath(bucket: string, key: string): string {
   return `${bucket}/${key}`;
@@ -52,6 +54,16 @@ export async function uploadVerificationDocument(key: string, file: File): Promi
 
   if (error) return { error: error.message };
   return { storagePath: toStoragePath(VERIFICATION_DOCUMENTS_BUCKET, key) };
+}
+
+export async function uploadPortfolioPhoto(key: string, file: File): Promise<{ storagePath: string } | { error: string }> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const { error } = await supabaseAdmin.storage
+    .from(PORTFOLIO_PHOTOS_BUCKET)
+    .upload(key, bytes, { contentType: file.type, upsert: false });
+
+  if (error) return { error: error.message };
+  return { storagePath: toStoragePath(PORTFOLIO_PHOTOS_BUCKET, key) };
 }
 
 export async function uploadGeneratedDesign(
