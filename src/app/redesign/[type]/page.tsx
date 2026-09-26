@@ -3,9 +3,13 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getHomepageCategory } from "@/lib/homepage-categories";
 import { getProjectTypeDefinition } from "@/lib/project-types";
+import { getOrCreateDraftProject } from "@/lib/data/projects";
+import { getSignedPhotoUrl } from "@/lib/storage";
+import { penceToPounds } from "@/lib/money";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { BeforeAfterImage } from "@/components/BeforeAfterImage";
 import { UserRole } from "@/generated/prisma/client";
+import { KitchenWizard } from "./KitchenWizard";
 
 const CATEGORY_IMAGES: Record<string, string> = {
   kitchen: "/homepage/kitchen.jpg",
@@ -16,6 +20,20 @@ const CATEGORY_IMAGES: Record<string, string> = {
   exterior: "/homepage/exterior.jpg",
 };
 
+/** Category types that have graduated from the marketing landing page to the guided, fully-functional wizard below. Extended one category at a time as each is reviewed and approved. */
+const WIZARD_ENABLED_TYPES = new Set(["kitchen"]);
+
+function budgetToPreset(budgetMin: number | null, budgetMax: number | null): string {
+  if (!budgetMin && !budgetMax) return "";
+  const min = budgetMin ? penceToPounds(budgetMin) : 0;
+  const max = budgetMax ? penceToPounds(budgetMax) : Infinity;
+  if (max <= 5000) return "under_5000";
+  if (min >= 5000 && max <= 10000) return "5000_10000";
+  if (min >= 10000 && max <= 20000) return "10000_20000";
+  if (min >= 20000) return "over_20000";
+  return "";
+}
+
 export default async function RedesignCategoryPage(props: PageProps<"/redesign/[type]">) {
   const { type } = await props.params;
   const category = getHomepageCategory(type);
@@ -24,9 +42,35 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
 
   const user = await getCurrentUser();
   const isHomeowner = user?.role === UserRole.HOMEOWNER;
+  const showWizard = isHomeowner && WIZARD_ENABLED_TYPES.has(type);
 
   const ctaHref = !user ? `/signup?type=${type}` : isHomeowner ? `/projects/new?type=${type}` : "/dashboard";
   const ctaLabel = !user ? "Sign up to get started" : isHomeowner ? `Start my ${category.displayName.toLowerCase()} project` : "Go to dashboard";
+
+  let wizardProps: {
+    projectId: string;
+    photos: { id: string; url: string | null }[];
+    initialStyle: string;
+    initialChanges: string[];
+    initialColours: string[];
+    initialNotes: string;
+    initialBudgetPreset: string;
+  } | null = null;
+
+  if (showWizard && user) {
+    const project = await getOrCreateDraftProject(user.id, type, `${category.displayName} redesign`);
+    const photos = await Promise.all(project.photos.map(async (p) => ({ id: p.id, url: await getSignedPhotoUrl(p.storagePath) })));
+    const data = (project.requirements?.data as Record<string, unknown>) ?? {};
+    wizardProps = {
+      projectId: project.id,
+      photos,
+      initialStyle: typeof data.desiredStyle === "string" ? data.desiredStyle : "",
+      initialChanges: Array.isArray(data.changesWanted) ? (data.changesWanted as string[]) : [],
+      initialColours: Array.isArray(data.coloursPreference) ? (data.coloursPreference as string[]) : [],
+      initialNotes: typeof data.mustHaveFeatures === "string" ? data.mustHaveFeatures : "",
+      initialBudgetPreset: budgetToPreset(project.budgetMin, project.budgetMax),
+    };
+  }
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-gradient-to-b from-blue-50 to-white text-[#132a4d]">
@@ -39,45 +83,67 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
           <CategoryIcon type="exterior" className="h-6 w-6 text-[#3a6694]" />
           GlowUpp
         </Link>
-        <Link href="/" className="text-sm text-zinc-600 underline">
-          ← Back to all categories
-        </Link>
+        {wizardProps ? (
+          <>
+            <nav className="hidden gap-6 text-sm font-medium text-zinc-600 sm:flex">
+              <Link href="/" className="border-b-2 border-[#3a6694] pb-1 text-[#132a4d]">Home</Link>
+              <Link href="/projects">My Projects</Link>
+              <Link href="/signup">How It Works</Link>
+              <span className="cursor-default text-zinc-400">Pricing</span>
+            </nav>
+            <Link href={`/projects/${wizardProps.projectId}`} className="text-sm font-medium text-[#132a4d] underline">
+              Save &amp; Exit
+            </Link>
+          </>
+        ) : (
+          <Link href="/" className="text-sm text-zinc-600 underline">
+            ← Back to all categories
+          </Link>
+        )}
       </header>
 
-      <section className="relative mx-auto grid w-full max-w-6xl gap-10 px-6 py-12 sm:grid-cols-2 sm:items-center">
-        <div className="flex flex-col gap-4">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-[#3a6694]">
-            <CategoryIcon type={category.key} className="h-6 w-6" />
-          </span>
-          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{category.displayName} redesign</span>
-          <h1 className="text-4xl font-bold text-[#132a4d] sm:text-5xl">{category.tagline}</h1>
-          <p className="max-w-md text-zinc-600">{category.heroSubcopy}</p>
-          <Link
-            href={ctaHref}
-            className="inline-block w-fit rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]"
-          >
-            {ctaLabel}
-          </Link>
-        </div>
-        <div className="overflow-hidden rounded-2xl border-4 border-white shadow-xl shadow-blue-900/10">
-          <BeforeAfterImage src={CATEGORY_IMAGES[category.key]} alt={`${category.displayName} before and after`} width={860} height={287} priority />
-        </div>
-      </section>
+      {wizardProps ? (
+        <section className="relative mx-auto w-full max-w-6xl px-6 pb-16">
+          <KitchenWizard redesignPath={`/redesign/${type}`} {...wizardProps} />
+        </section>
+      ) : (
+        <>
+          <section className="relative mx-auto grid w-full max-w-6xl gap-10 px-6 py-12 sm:grid-cols-2 sm:items-center">
+            <div className="flex flex-col gap-4">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-[#3a6694]">
+                <CategoryIcon type={category.key} className="h-6 w-6" />
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{category.displayName} redesign</span>
+              <h1 className="text-4xl font-bold text-[#132a4d] sm:text-5xl">{category.tagline}</h1>
+              <p className="max-w-md text-zinc-600">{category.heroSubcopy}</p>
+              <Link
+                href={ctaHref}
+                className="inline-block w-fit rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]"
+              >
+                {ctaLabel}
+              </Link>
+            </div>
+            <div className="overflow-hidden rounded-2xl border-4 border-white shadow-xl shadow-blue-900/10">
+              <BeforeAfterImage src={CATEGORY_IMAGES[category.key]} alt={`${category.displayName} before and after`} width={860} height={287} priority />
+            </div>
+          </section>
 
-      <section className="relative mx-auto w-full max-w-6xl px-6 pb-16">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 font-semibold text-[#132a4d]">What you can tell us about your {category.displayName.toLowerCase()}</h2>
-          <ul className="grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
-            {definition.fields.map((field) => (
-              <li key={field.key}>• {field.label}</li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs text-zinc-500">
-            Once you&apos;re happy with your design, you can optionally push it to the open market to get quotes from local
-            professionals — entirely your choice, no pressure.
-          </p>
-        </div>
-      </section>
+          <section className="relative mx-auto w-full max-w-6xl px-6 pb-16">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+              <h2 className="mb-3 font-semibold text-[#132a4d]">What you can tell us about your {category.displayName.toLowerCase()}</h2>
+              <ul className="grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
+                {definition.fields.map((field) => (
+                  <li key={field.key}>• {field.label}</li>
+                ))}
+              </ul>
+              <p className="mt-4 text-xs text-zinc-500">
+                Once you&apos;re happy with your design, you can optionally push it to the open market to get quotes from local
+                professionals — entirely your choice, no pressure.
+              </p>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }

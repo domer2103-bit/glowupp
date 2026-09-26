@@ -51,6 +51,28 @@ export async function requireProjectOwner(projectId: string) {
   return project;
 }
 
+/**
+ * Backs the guided per-category wizard (src/app/redesign/[type]/page.tsx):
+ * reuses the caller's existing draft of this type if they left one
+ * mid-wizard (so reloading or coming back doesn't fork a second project),
+ * otherwise starts a fresh one. Postcode is intentionally blank here — the
+ * wizard doesn't ask for it; it's required before pushing to the open
+ * market, not before generating a design, and is validated at that point.
+ */
+export async function getOrCreateDraftProject(homeownerId: string, projectType: string, title: string) {
+  const existing = await prisma.project.findFirst({
+    where: { homeownerId, projectType, status: "DRAFT" },
+    orderBy: { createdAt: "desc" },
+    include: { photos: { orderBy: { uploadOrder: "asc" } }, requirements: true },
+  });
+  if (existing) return existing;
+
+  const created = await prisma.project.create({
+    data: { homeownerId, projectType, title, postcode: "", status: "DRAFT" },
+  });
+  return { ...created, photos: [], requirements: null };
+}
+
 export async function listHomeownerProjects() {
   const user = await requireUser();
   return prisma.project.findMany({

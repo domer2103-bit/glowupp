@@ -71,6 +71,8 @@ const KITCHEN: ProjectTypeDefinition = {
   fields: [
     { key: "currentLayout", label: "Current layout", type: "textarea" },
     { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "cabinets", "worktops", "flooring", "lighting", "colours", "layout", "storage", "appliances", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
     { key: "cabinets", label: "Cabinets", type: "text" },
     { key: "worktop", label: "Worktop", type: "text" },
     { key: "appliances", label: "Appliances", type: "multiselect", options: ["oven", "hob", "extractor", "fridge_freezer", "dishwasher", "washing_machine", "microwave"] },
