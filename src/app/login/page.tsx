@@ -4,6 +4,7 @@ import { LoginForm } from "./LoginForm";
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
   const confirmed = params.confirmed === "1";
+  const projectType = typeof params.type === "string" ? params.type : undefined;
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
@@ -13,7 +14,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           Email confirmed — you can log in now.
         </p>
       )}
-      <LoginForm />
+      <LoginForm projectType={projectType} />
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Don&apos;t have an account?{" "}
         <Link href="/signup" className="underline">

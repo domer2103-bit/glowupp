@@ -4,12 +4,13 @@ import { useActionState } from "react";
 import { createProject, type ActionState } from "@/lib/actions/projects";
 import { PROJECT_TYPES } from "@/lib/project-types";
 
-export function NewProjectForm() {
+export function NewProjectForm({ initialType }: { initialType?: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createProject, undefined);
+  const isValidInitialType = initialType && PROJECT_TYPES.some((t) => t.key === initialType);
 
   return (
     <form action={action} className="flex w-full max-w-md flex-col gap-4">
-      <select name="projectType" required defaultValue="" className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+      <select name="projectType" required defaultValue={isValidInitialType ? initialType : ""} className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
         <option value="" disabled>
           What are you transforming?
         </option>

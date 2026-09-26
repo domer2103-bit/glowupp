@@ -3,12 +3,13 @@
 import { useActionState, useState } from "react";
 import { signup, type ActionState } from "@/lib/actions/auth";
 
-export function SignupForm() {
+export function SignupForm({ projectType }: { projectType?: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(signup, undefined);
   const [role, setRole] = useState<"HOMEOWNER" | "PROFESSIONAL">("HOMEOWNER");
 
   return (
     <form action={action} className="flex w-full max-w-sm flex-col gap-4">
+      {projectType && <input type="hidden" name="projectType" value={projectType} />}
       <div className="flex gap-2">
         {(["HOMEOWNER", "PROFESSIONAL"] as const).map((r) => (
           <label

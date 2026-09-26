@@ -21,6 +21,11 @@ const SignupSchema = z.object({
     .regex(/[a-zA-Z]/, "Password must contain a letter.")
     .regex(/[0-9]/, "Password must contain a number."),
   postcode: z.string().trim().min(5, "Enter a valid UK postcode.").optional(),
+  // Carried through from a /redesign/[type] landing page's "sign up to
+  // get started" CTA (src/app/signup/page.tsx reads it from the URL and
+  // the form embeds it as a hidden field) — lets a new homeowner land
+  // straight on "new kitchen project" instead of a blank form.
+  projectType: z.enum(PROJECT_TYPE_KEYS).optional(),
 });
 
 /**
@@ -42,13 +47,14 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
     email: formData.get("email"),
     password: formData.get("password"),
     postcode: formData.get("postcode") || undefined,
+    projectType: formData.get("projectType") || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Please check the form and try again." };
   }
 
-  const { role, name, email, password, postcode } = parsed.data;
+  const { role, name, email, password, postcode, projectType } = parsed.data;
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signUp({
@@ -59,8 +65,12 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
       // Explicit rather than relying on the Supabase project's Site URL
       // default — that default had been left at a leftover dev value
       // (localhost:3000) even after this app went to production,
-      // silently breaking every confirmation email's link.
-      emailRedirectTo: `${process.env.APP_URL}/login?confirmed=1`,
+      // silently breaking every confirmation email's link. The type
+      // param (when present) survives the confirm-email round trip so
+      // a /redesign/[type] signup still lands on the right project type
+      // even when email confirmation is required, not just when
+      // Supabase grants an immediate session.
+      emailRedirectTo: `${process.env.APP_URL}/login?confirmed=1${projectType ? `&type=${projectType}` : ""}`,
     },
   });
 
@@ -73,18 +83,25 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
     return { info: "Account created — check your email to confirm it before logging in." };
   }
 
-  redirect(role === UserRole.PROFESSIONAL ? "/professional/onboarding" : "/dashboard");
+  if (role === UserRole.PROFESSIONAL) redirect("/professional/onboarding");
+  redirect(projectType ? `/projects/new?type=${projectType}` : "/dashboard");
 }
 
 const LoginSchema = z.object({
   email: z.email("Enter a valid email address."),
   password: z.string().min(1, "Enter your password."),
+  // Carried through from /login?type=X — the fallback path for a
+  // /redesign/[type] signup when Supabase required email confirmation,
+  // so the chosen category isn't lost just because signup couldn't
+  // grant an immediate session (see signup()'s emailRedirectTo above).
+  projectType: z.enum(PROJECT_TYPE_KEYS).optional(),
 });
 
 export async function login(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = LoginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    projectType: formData.get("projectType") || undefined,
   });
 
   if (!parsed.success) {
@@ -99,9 +116,16 @@ export async function login(_prevState: ActionState, formData: FormData): Promis
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) return { error: error.message };
+
+  if (parsed.data.projectType) {
+    const dbUser = await prisma.user.findUnique({ where: { id: data.user.id } });
+    if (dbUser?.role === UserRole.HOMEOWNER) {
+      redirect(`/projects/new?type=${parsed.data.projectType}`);
+    }
+  }
 
   redirect("/dashboard");
 }
