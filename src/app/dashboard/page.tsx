@@ -40,6 +40,9 @@ export default async function DashboardPage() {
           <Link href="/professional/transactions" className="rounded-full border border-black px-5 py-3 dark:border-white">
             Lead fees
           </Link>
+          <Link href="/professional/verification" className="rounded-full border border-black px-5 py-3 dark:border-white">
+            Get verified
+          </Link>
         </div>
       )}
       <form action={logout}>

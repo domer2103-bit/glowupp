@@ -2,11 +2,15 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { getAllProfessionals } from "@/lib/data/admin";
 import { updateProfessionalVerification } from "@/lib/actions/admin";
+import { getSignedPhotoUrl } from "@/lib/storage";
 import { UserRole, VerificationStatus } from "@/generated/prisma/client";
 
 export default async function AdminProfessionalsPage() {
   await requireRole(UserRole.ADMIN);
   const professionals = await getAllProfessionals();
+  const documentUrls = await Promise.all(
+    professionals.map((pro) => (pro.verificationDocumentPath ? getSignedPhotoUrl(pro.verificationDocumentPath) : null))
+  );
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
@@ -21,7 +25,7 @@ export default async function AdminProfessionalsPage() {
         <p className="text-zinc-600 dark:text-zinc-400">No professionals yet.</p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {professionals.map((pro) => (
+          {professionals.map((pro, i) => (
             <li key={pro.id} className="flex flex-col gap-2 rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{pro.businessName}</span>
@@ -33,6 +37,15 @@ export default async function AdminProfessionalsPage() {
               <p className="text-xs text-zinc-500">
                 Services: {pro.services.map((s) => s.projectType).join(", ") || "none set"} · Serves:{" "}
                 {pro.serviceAreaPrefixes.join(", ") || "none set"}
+              </p>
+              <p className="text-xs text-zinc-500">
+                {documentUrls[i] ? (
+                  <a href={documentUrls[i]!} target="_blank" rel="noreferrer" className="underline">
+                    View submitted document
+                  </a>
+                ) : (
+                  "No document submitted"
+                )}
               </p>
               <div className="flex gap-2">
                 {pro.verificationStatus !== VerificationStatus.VERIFIED && (

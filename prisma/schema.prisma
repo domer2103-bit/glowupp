@@ -252,6 +252,12 @@ model Professional {
   serviceAreaPrefixes String[]           @default([]) @map("service_area_prefixes")
   serviceRadiusKm    Int?                @map("service_radius_km")
   verificationStatus VerificationStatus  @default(UNVERIFIED) @map("verification_status")
+  // Optional, professional-initiated — not required to quote (see
+  // docs/BACKEND_ARCHITECTURE.md). Uploading resets status to PENDING
+  // for admin review regardless of prior status, so a re-upload (e.g.
+  // renewed insurance) doesn't leave a stale VERIFIED badge unreviewed.
+  verificationDocumentPath String?        @map("verification_document_path")
+  verificationSubmittedAt  DateTime?      @map("verification_submitted_at")
   isAvailable        Boolean             @default(true) @map("is_available")
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")

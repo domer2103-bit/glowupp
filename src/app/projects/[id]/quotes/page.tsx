@@ -34,7 +34,14 @@ export default async function ProjectQuotesPage(props: PageProps<"/projects/[id]
               className={`flex flex-col gap-1 rounded-lg border px-4 py-3 ${qr.selected ? "border-black dark:border-white" : "border-zinc-300 dark:border-zinc-700"}`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-medium">{qr.professional.businessName}</span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  {qr.professional.businessName}
+                  {qr.professional.verificationStatus === "VERIFIED" && (
+                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+                      ✓ Verified
+                    </span>
+                  )}
+                </span>
                 <span className="text-xs text-zinc-500">
                   {qr.status}
                   {qr.selected && <span className="ml-1 font-medium text-black dark:text-white">★ Selected</span>}

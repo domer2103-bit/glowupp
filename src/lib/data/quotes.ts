@@ -5,15 +5,27 @@ import { requireUser, requireRole } from "@/lib/auth";
 import { requireProjectOwner } from "@/lib/data/projects";
 import { getOutwardCode } from "@/lib/postcode";
 import { evaluateMatch } from "@/lib/matching";
-import { UserRole, ProjectStatus, TransactionStatus } from "@/generated/prisma/client";
+import { UserRole, ProjectStatus, TransactionStatus, VerificationStatus } from "@/generated/prisma/client";
 
-/** All quote requests sent out for a project, most recent first — homeowner-owner only. */
+/**
+ * All quote requests sent out for a project, most recent first within
+ * each group — homeowner-owner only. Verified professionals sort first:
+ * the one real benefit of the optional verification badge (see
+ * docs/BACKEND_ARCHITECTURE.md) is a better chance of being seen and
+ * picked, not a requirement to quote at all.
+ */
 export async function getProjectQuoteRequests(projectId: string) {
   await requireProjectOwner(projectId);
-  return prisma.quoteRequest.findMany({
+  const requests = await prisma.quoteRequest.findMany({
     where: { projectId },
     include: { professional: true },
     orderBy: { sentAt: "desc" },
+  });
+
+  return requests.sort((a, b) => {
+    const aVerified = a.professional.verificationStatus === VerificationStatus.VERIFIED ? 0 : 1;
+    const bVerified = b.professional.verificationStatus === VerificationStatus.VERIFIED ? 0 : 1;
+    return aVerified - bVerified;
   });
 }
 
