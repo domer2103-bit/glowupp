@@ -7,6 +7,14 @@ import { getOrCreateGuestUser } from "@/lib/guest";
 import { UserRole } from "@/generated/prisma/client";
 
 /**
+ * Postgres rejects a non-UUID id with a raw driver error, not a "not
+ * found" — every lookup below must reject the shape before it ever
+ * reaches Prisma, or a malformed id in the URL (e.g. a stray path
+ * segment like `/projects/new`) surfaces as a 500 instead of a 404.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
  * The ownership/authorization boundary this phase exists to prove: a
  * homeowner only ever gets rows where `homeownerId` matches the caller
  * they just authenticated as (never a value taken from the request), a
@@ -16,6 +24,7 @@ import { UserRole } from "@/generated/prisma/client";
  * a real project id from a nonexistent one.
  */
 export const getProject = cache(async (projectId: string) => {
+  if (!UUID_RE.test(projectId)) notFound();
   const user = await requireUser();
 
   const project = await prisma.project.findUnique({
@@ -53,6 +62,7 @@ export const getProject = cache(async (projectId: string) => {
  * without gating the page itself.
  */
 export const getProjectForOwnerOrGuest = cache(async (projectId: string) => {
+  if (!UUID_RE.test(projectId)) notFound();
   const currentUser = await getCurrentUser();
 
   const project = await prisma.project.findUnique({
@@ -83,6 +93,7 @@ export const getProjectForOwnerOrGuest = cache(async (projectId: string) => {
 
 /** Only the owning homeowner may pass this check — professionals and admins get read access via getProject(), never write access. */
 export async function requireProjectOwner(projectId: string) {
+  if (!UUID_RE.test(projectId)) notFound();
   const user = await requireUser();
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project || project.homeownerId !== user.id) notFound();
@@ -96,6 +107,7 @@ export async function requireProjectOwner(projectId: string) {
  * wizard through to a generated design before ever creating an account.
  */
 export async function requireProjectOwnerOrGuest(projectId: string) {
+  if (!UUID_RE.test(projectId)) notFound();
   const currentUser = await getCurrentUser();
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project) notFound();
