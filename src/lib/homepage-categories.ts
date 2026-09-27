@@ -49,6 +49,48 @@ export const HOMEPAGE_CATEGORIES: readonly HomepageCategory[] = [
     tagline: "Make a lasting first impression.",
     heroSubcopy: "A new front door, render, or finish can transform how your whole home reads from the street.",
   },
+  {
+    key: "painting",
+    displayName: "Painting",
+    tagline: "Fresh coat, fresh feel.",
+    heroSubcopy: "See a room in a whole new colour before you buy a single tin of paint.",
+  },
+  {
+    key: "roofing",
+    displayName: "Roofing",
+    tagline: "A roof that lasts and looks great.",
+    heroSubcopy: "Cracked and weathered, or freshly re-roofed? Preview your roof's transformation from the street.",
+  },
+  {
+    key: "flooring",
+    displayName: "Flooring",
+    tagline: "From tired floors to standout style.",
+    heroSubcopy: "Upload a photo of the room and see it with brand new flooring — wood, tile, or carpet.",
+  },
+  {
+    key: "living-room",
+    displayName: "Living Room",
+    tagline: "A space made for gathering.",
+    heroSubcopy: "See your living room restyled with new seating, storage, and layout ideas.",
+  },
+  {
+    key: "bedroom",
+    displayName: "Bedroom",
+    tagline: "Your calm, personal retreat.",
+    heroSubcopy: "Turn a tired bedroom into the restful space you actually want to wake up in.",
+  },
+  {
+    key: "kids-room",
+    displayName: "Kids' Room",
+    tagline: "Fun, functional, and made to grow with them.",
+    heroSubcopy: "Preview a bright, playful redesign for your child's room before making any changes.",
+  },
+  {
+    key: "extension",
+    displayName: "Extension",
+    tagline: "More space, seamlessly added.",
+    heroSubcopy: "Visualise how a new extension could look on your actual home before speaking to an architect.",
+  },
 ];
 
 export function getHomepageCategory(key: string): HomepageCategory | undefined {

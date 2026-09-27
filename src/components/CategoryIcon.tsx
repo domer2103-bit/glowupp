@@ -47,6 +47,65 @@ export function CategoryIcon({ type, className }: { type: string; className?: st
           <path d="M12 2.5 21.5 10 21.5 20.5 14.5 20.5 14.5 13.5 9.5 13.5 9.5 20.5 2.5 20.5 2.5 10Z" />
         </svg>
       );
+    case "painting":
+      return (
+        <svg {...common}>
+          <rect x="5" y="4" width="14" height="6" rx="2" />
+          <rect x="10.5" y="10" width="3" height="3" rx="0.5" />
+          <rect x="10.7" y="12.5" width="2.6" height="9" rx="1.3" transform="rotate(12 12 17)" />
+        </svg>
+      );
+    case "roofing":
+      return (
+        <svg {...common}>
+          <path d="M2 14 12 5 22 14H19V17H5V14Z" />
+          <rect x="15.5" y="7" width="2.2" height="5" />
+        </svg>
+      );
+    case "flooring":
+      return (
+        <svg {...common}>
+          <rect x="3" y="5.5" width="18" height="3.4" rx="0.7" />
+          <rect x="3" y="10.3" width="18" height="3.4" rx="0.7" />
+          <rect x="3" y="15.1" width="18" height="3.4" rx="0.7" />
+        </svg>
+      );
+    case "living-room":
+      return (
+        <svg {...common}>
+          <rect x="3" y="6.5" width="4" height="6.5" rx="1.5" />
+          <rect x="17" y="6.5" width="4" height="6.5" rx="1.5" />
+          <rect x="6.3" y="7" width="11.4" height="6" rx="1.2" />
+          <rect x="3" y="10.5" width="18" height="5.5" rx="1.5" />
+          <rect x="4" y="16.5" width="2" height="3" rx="0.6" />
+          <rect x="18" y="16.5" width="2" height="3" rx="0.6" />
+        </svg>
+      );
+    case "bedroom":
+      return (
+        <svg {...common}>
+          <rect x="2" y="7.5" width="20" height="2" rx="1" />
+          <rect x="2.5" y="9.5" width="5" height="5" rx="1.3" />
+          <rect x="2.5" y="12.5" width="19" height="6.5" rx="1.5" />
+          <rect x="2" y="18.5" width="1.6" height="3" rx="0.5" />
+          <rect x="20.4" y="18.5" width="1.6" height="3" rx="0.5" />
+        </svg>
+      );
+    case "kids-room":
+      return (
+        <svg {...common}>
+          <rect x="7" y="4.5" width="7" height="7" rx="1.2" />
+          <rect x="3" y="12.5" width="7" height="7" rx="1.2" />
+          <rect x="11" y="12.5" width="7" height="7" rx="1.2" />
+        </svg>
+      );
+    case "extension":
+      return (
+        <svg {...common}>
+          <path d="M15 2.5 22 8 22 19.5 11 19.5 11 8Z" />
+          <rect x="3" y="12.5" width="7" height="7" />
+        </svg>
+      );
     default:
       return (
         <svg {...common}>

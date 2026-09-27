@@ -172,6 +172,106 @@ const EXTERIOR: ProjectTypeDefinition = {
   ],
 };
 
+const PAINTING: ProjectTypeDefinition = {
+  key: "painting",
+  label: "Painting",
+  fields: [
+    { key: "currentColour", label: "Current colour", type: "text" },
+    { key: "wallCondition", label: "Wall condition", type: "text" },
+    { key: "finish", label: "Finish", type: "select", options: ["matte", "satin", "eggshell", "gloss"] },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "colour", "feature_wall", "ceiling", "trim", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
+  ],
+};
+
+const ROOFING: ProjectTypeDefinition = {
+  key: "roofing",
+  label: "Roofing",
+  fields: [
+    { key: "currentMaterial", label: "Current material", type: "text" },
+    { key: "desiredMaterial", label: "Desired material", type: "select", options: ["tile", "slate", "metal", "flat_felt", "solar"] },
+    { key: "guttering", label: "Guttering", type: "text" },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "material", "colour", "guttering", "chimney", "skylights", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
+  ],
+};
+
+const FLOORING: ProjectTypeDefinition = {
+  key: "flooring",
+  label: "Flooring",
+  fields: [
+    { key: "currentFlooring", label: "Current flooring", type: "text" },
+    { key: "roomType", label: "Room", type: "text" },
+    { key: "desiredMaterial", label: "Desired material", type: "select", options: ["hardwood", "laminate", "vinyl", "tile", "carpet", "polished_concrete"] },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "material", "colour", "pattern", "underfloor_heating", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
+  ],
+};
+
+const LIVING_ROOM: ProjectTypeDefinition = {
+  key: "living-room",
+  label: "Living Room",
+  fields: [
+    { key: "seating", label: "Seating", type: "text" },
+    { key: "storage", label: "Storage", type: "text" },
+    { key: "lighting", label: "Lighting", type: "text" },
+    { key: "flooring", label: "Flooring", type: "text" },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "seating", "storage", "lighting", "flooring", "colours", "layout", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
+  ],
+};
+
+const BEDROOM: ProjectTypeDefinition = {
+  key: "bedroom",
+  label: "Bedroom",
+  fields: [
+    { key: "bedSize", label: "Bed size", type: "select", options: ["single", "double", "king", "super_king"] },
+    { key: "storage", label: "Storage", type: "text" },
+    { key: "lighting", label: "Lighting", type: "text" },
+    { key: "flooring", label: "Flooring", type: "text" },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "bed", "storage", "lighting", "flooring", "colours", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
+  ],
+};
+
+const KIDS_ROOM: ProjectTypeDefinition = {
+  key: "kids-room",
+  label: "Kids' Room",
+  fields: [
+    { key: "ageGroup", label: "Age group", type: "select", options: ["toddler", "child", "teen"] },
+    { key: "storage", label: "Storage", type: "text" },
+    { key: "theme", label: "Theme", type: "text" },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "bed", "storage", "theme", "lighting", "colours", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
+  ],
+};
+
+const EXTENSION: ProjectTypeDefinition = {
+  key: "extension",
+  label: "Extension",
+  fields: [
+    { key: "extensionType", label: "Extension type", type: "select", options: ["single_storey", "double_storey", "side_return", "wrap_around", "loft_conversion"] },
+    { key: "approxSizeSqm", label: "Approximate size (sqm)", type: "number" },
+    { key: "purpose", label: "Purpose (e.g. kitchen diner, home office)", type: "text" },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "windows", "doors", "roofline", "materials", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
+  ],
+};
+
 /** The live registry. Add a new category by adding an entry here. */
 export const PROJECT_TYPES: readonly ProjectTypeDefinition[] = [
   KITCHEN,
@@ -180,6 +280,13 @@ export const PROJECT_TYPES: readonly ProjectTypeDefinition[] = [
   DRIVEWAY,
   PATIO,
   EXTERIOR,
+  PAINTING,
+  ROOFING,
+  FLOORING,
+  LIVING_ROOM,
+  BEDROOM,
+  KIDS_ROOM,
+  EXTENSION,
 ];
 
 export const PROJECT_TYPE_KEYS = PROJECT_TYPES.map((t) => t.key) as [string, ...string[]];

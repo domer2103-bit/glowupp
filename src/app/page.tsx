@@ -12,6 +12,13 @@ const CATEGORY_IMAGES: Record<string, string> = {
   garden: "/homepage/garden.jpg",
   patio: "/homepage/patio.jpg",
   exterior: "/homepage/exterior.jpg",
+  painting: "/homepage/painting.jpg",
+  roofing: "/homepage/roofing.jpg",
+  flooring: "/homepage/flooring.jpg",
+  "living-room": "/homepage/living-room.jpg",
+  bedroom: "/homepage/bedroom.jpg",
+  "kids-room": "/homepage/kids-room.jpg",
+  extension: "/homepage/extension.jpg",
 };
 
 export default async function Home() {
