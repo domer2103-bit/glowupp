@@ -10,7 +10,7 @@ export function GenerateBatchButton({ projectId, photoId }: { projectId: string;
 
   return (
     <form action={action}>
-      <button type="submit" disabled={pending} className="text-xs text-black underline disabled:opacity-50 dark:text-white">
+      <button type="submit" disabled={pending} className="text-xs font-medium text-[#3a6694] underline disabled:opacity-50">
         {pending ? `Generating ${DESIGN_STYLES.length} concepts (can take a couple of minutes)…` : "Generate design concepts"}
       </button>
       {state?.error && <p className="mt-1 text-xs text-red-600">{state.error}</p>}

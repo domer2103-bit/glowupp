@@ -23,18 +23,26 @@ export function StatusForm({ projectId, currentStatus }: { projectId: string; cu
   const options = isCurrentManual ? MANUAL_STATUSES : [currentStatus, ...MANUAL_STATUSES];
 
   return (
-    <form action={action} className="flex items-center gap-2">
-      <select name="status" defaultValue={currentStatus} className="rounded-lg border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <select
+        name="status"
+        defaultValue={currentStatus}
+        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-[#132a4d] focus:border-[#3a6694] focus:outline-none"
+      >
         {options.map((s) => (
           <option key={s} value={s} disabled={s === currentStatus && !isCurrentManual}>
             {s === currentStatus && !isCurrentManual ? `${s} (reached automatically)` : s}
           </option>
         ))}
       </select>
-      <button type="submit" disabled={pending} className="rounded-full border border-black px-3 py-1 text-sm disabled:opacity-50 dark:border-white">
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-full border border-[#3a6694] px-4 py-1.5 text-sm font-medium text-[#3a6694] transition hover:bg-blue-50 disabled:opacity-50"
+      >
         {pending ? "Saving…" : "Update status"}
       </button>
-      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="w-full text-sm text-red-600">{state.error}</p>}
     </form>
   );
 }
