@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireProjectOwner } from "@/lib/data/projects";
+import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { validateRequirementsData } from "@/lib/project-types";
 import { generateDesignBatch } from "@/lib/actions/designs";
 import { poundsToPence } from "@/lib/money";
 import { ALLOWED_PHOTO_MIME_TYPES, MAX_PHOTO_BYTES, uploadPhoto } from "@/lib/storage";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { ProjectStatus, PhotoType, type Prisma } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string } | undefined;
@@ -29,7 +30,7 @@ const EXTENSION_BY_MIME: Record<string, string> = {
  * path would leave the just-uploaded thumbnail invisible until next visit.
  */
 export async function uploadRedesignPhoto(projectId: string, redesignPath: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo to upload." };
@@ -79,7 +80,7 @@ export async function submitRedesignBrief(
   _prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const raw: Record<string, unknown> = {
     desiredStyle: formData.get("desiredStyle") || undefined,
@@ -122,6 +123,15 @@ export async function submitRedesignBrief(
   const photo = await prisma.projectPhoto.findUnique({ where: { id: photoId } });
   if (!photo || photo.projectId !== projectId) {
     return { error: "Upload a photo of your space before generating a design." };
+  }
+
+  // Real accounts are already implicitly throttled (10 project creations/hour,
+  // 9 generations/project). The wizard being login-free means generation — the
+  // one step that spends real AI-provider money — needs its own floor keyed
+  // by IP, since an anonymous guest has no account-level limit at all.
+  const ip = await getClientIp();
+  if (!checkRateLimit(`guest-generate:${ip}`, 8, 60 * 60 * 1000)) {
+    return { error: "You've generated a lot of designs recently — please try again in a while, or sign in to continue." };
   }
 
   await generateDesignBatch(projectId, photoId, undefined, new FormData());

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireProjectOwner } from "@/lib/data/projects";
+import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { getProjectTypeDefinition } from "@/lib/project-types";
 import { buildDesignPrompt, runDesignGeneration } from "@/lib/design-generation";
 import { GENERATION_LIMITS } from "@/lib/generation-limits";
@@ -70,7 +70,7 @@ async function runConceptAttempt(params: {
 
 /** Generates one concept per configured style (src/lib/design-styles.ts), up to the initial batch size and whatever room remains under the per-project cap. */
 export async function generateDesignBatch(projectId: string, photoId: string, _prevState: ActionState, _formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const photo = await prisma.projectPhoto.findUnique({ where: { id: photoId } });
   if (!photo || photo.projectId !== projectId) return { error: "That photo could not be found on this project." };
@@ -118,7 +118,7 @@ export async function generateDesignBatch(projectId: string, photoId: string, _p
 
 /** Tries the same style again from the original photo — for when a specific generation came out poorly, not a refinement of its result. */
 export async function regenerateDesignConcept(projectId: string, conceptId: string, _prevState: ActionState, _formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const source = await prisma.designConcept.findUnique({ where: { id: conceptId }, include: { sourcePhoto: true } });
   if (!source || source.projectId !== projectId) return { error: "That design could not be found on this project." };
@@ -154,7 +154,7 @@ export async function regenerateDesignConcept(projectId: string, conceptId: stri
 
 /** Refines a specific completed concept's own image based on homeowner feedback — an edit of that result, not a fresh attempt from the original photo. */
 export async function requestDesignChanges(projectId: string, conceptId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const changeRequest = (formData.get("changeRequest") as string | null)?.trim();
   if (!changeRequest) return { error: "Describe the change you'd like first." };
@@ -196,7 +196,7 @@ export async function requestDesignChanges(projectId: string, conceptId: string,
 
 /** Marks one concept as preferred (unmarking any other) and advances the project to DESIGN_READY if it hasn't gotten there yet. */
 export async function selectDesignConcept(projectId: string, conceptId: string): Promise<void> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const concept = await prisma.designConcept.findUnique({ where: { id: conceptId } });
   if (!concept || concept.projectId !== projectId) return;

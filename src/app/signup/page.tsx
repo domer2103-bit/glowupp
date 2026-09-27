@@ -6,19 +6,26 @@ export default async function SignupPage(props: PageProps<"/signup">) {
   const params = await props.searchParams;
   const typeParam = typeof params.type === "string" ? params.type : undefined;
   const category = typeParam ? getHomepageCategory(typeParam) : undefined;
+  const next = typeof params.next === "string" ? params.next : undefined;
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
       <h1 className="text-2xl font-semibold">Create your GlowUpp account</h1>
-      {category && (
+      {next ? (
         <p className="max-w-sm text-center text-sm text-zinc-600 dark:text-zinc-400">
-          You&apos;ll land straight on a new {category.displayName.toLowerCase()} project after this.
+          Your design is already saved — sign up to find a professional for it.
         </p>
+      ) : (
+        category && (
+          <p className="max-w-sm text-center text-sm text-zinc-600 dark:text-zinc-400">
+            You&apos;ll land straight on a new {category.displayName.toLowerCase()} project after this.
+          </p>
+        )
       )}
-      <SignupForm projectType={category?.key} />
+      <SignupForm projectType={category?.key} next={next} />
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Already have an account?{" "}
-        <Link href="/login" className="underline">
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="underline">
           Log in
         </Link>
       </p>

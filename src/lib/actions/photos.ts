@@ -5,8 +5,9 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
-import { requireProjectOwner } from "@/lib/data/projects";
+import { getCurrentUser } from "@/lib/auth";
+import { getOrCreateGuestUser } from "@/lib/guest";
+import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { PhotoType } from "@/generated/prisma/client";
 import { ALLOWED_PHOTO_MIME_TYPES, MAX_PHOTO_BYTES, uploadPhoto, deleteStorageObject } from "@/lib/storage";
 
@@ -22,7 +23,7 @@ const EXTENSION_BY_MIME: Record<string, string> = {
 };
 
 export async function uploadProjectPhoto(projectId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -63,13 +64,20 @@ export async function uploadProjectPhoto(projectId: string, _prevState: ActionSt
 }
 
 export async function deleteProjectPhoto(photoId: string) {
-  const user = await requireUser();
+  const currentUser = await getCurrentUser();
 
   const photo = await prisma.projectPhoto.findUnique({
     where: { id: photoId },
     include: { project: true },
   });
-  if (!photo || photo.project.homeownerId !== user.id) notFound();
+  if (!photo) notFound();
+
+  if (currentUser) {
+    if (photo.project.homeownerId !== currentUser.id) notFound();
+  } else {
+    const guest = await getOrCreateGuestUser();
+    if (!guest || photo.project.homeownerId !== guest.id) notFound();
+  }
 
   await deleteStorageObject(photo.storagePath);
   await prisma.projectPhoto.delete({ where: { id: photoId } });

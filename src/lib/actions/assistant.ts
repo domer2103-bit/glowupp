@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireProjectOwner } from "@/lib/data/projects";
+import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { getProjectTypeDefinition, schemaForProjectType } from "@/lib/project-types";
 import { runAssistantTurn, PROJECT_LEVEL_FIELD_KEYS } from "@/lib/assistant";
 import { poundsToPence } from "@/lib/money";
@@ -18,7 +18,7 @@ const ProjectLevelSchema = z.object({
 });
 
 export async function sendAssistantMessage(projectId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const message = (formData.get("message") as string | null)?.trim();
   if (!message) return { error: "Type a message first." };

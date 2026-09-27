@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireProjectOwner } from "@/lib/data/projects";
+import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { prisma } from "@/lib/prisma";
 import { getProjectTypeDefinition } from "@/lib/project-types";
 import { computeProfileStatus } from "@/lib/assistant";
@@ -7,7 +7,7 @@ import { AssistantChatForm } from "./AssistantChatForm";
 
 export default async function AssistantPage(props: PageProps<"/projects/[id]/assistant">) {
   const { id } = await props.params;
-  const project = await requireProjectOwner(id);
+  const project = await requireProjectOwnerOrGuest(id);
 
   const [requirements, messages] = await Promise.all([
     prisma.projectRequirements.findUnique({ where: { projectId: id } }),

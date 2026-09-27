@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProject } from "@/lib/data/projects";
+import { getProjectForOwnerOrGuest } from "@/lib/data/projects";
 import { getSignedPhotoUrl } from "@/lib/storage";
 import { getProjectTypeDefinition } from "@/lib/project-types";
 import { penceToPounds } from "@/lib/money";
@@ -16,7 +16,7 @@ import { PushToMarketButton } from "./PushToMarketButton";
 
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params;
-  const project = await getProject(id);
+  const { project, isGuest } = await getProjectForOwnerOrGuest(id);
 
   const definition = getProjectTypeDefinition(project.projectType);
   const existingRequirements = (project.requirements?.data as Record<string, unknown>) ?? {};
@@ -116,7 +116,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
             <h2 className="text-lg font-bold text-[#132a4d]">Design concepts</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {conceptsWithUrls.map((concept) => (
-                <ConceptCard key={concept.id} projectId={project.id} concept={concept} url={concept.url} />
+                <ConceptCard key={concept.id} projectId={project.id} concept={concept} url={concept.url} isGuest={isGuest} />
               ))}
             </div>
           </section>
@@ -141,15 +141,27 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
                 </p>
               </>
             )}
-            <div className="mt-4 flex flex-wrap gap-3">
-              {!isOnOpenMarket && <PushToMarketButton projectId={project.id} />}
-              <Link
-                href={`/projects/${project.id}/quotes`}
-                className="inline-flex items-center rounded-full border border-[#3a6694] px-4 py-2 text-sm font-medium text-[#3a6694] transition hover:bg-white"
-              >
-                View your quotes
-              </Link>
-            </div>
+            {isGuest ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/signup?next=${encodeURIComponent(`/projects/${project.id}`)}`}
+                  className="inline-flex items-center rounded-full bg-[#3a6694] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2c5075]"
+                >
+                  Sign in to find a professional
+                </Link>
+                <span className="text-xs text-zinc-500">Your design is saved — signing in takes a second and won&apos;t lose it.</span>
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-wrap gap-3">
+                {!isOnOpenMarket && <PushToMarketButton projectId={project.id} />}
+                <Link
+                  href={`/projects/${project.id}/quotes`}
+                  className="inline-flex items-center rounded-full border border-[#3a6694] px-4 py-2 text-sm font-medium text-[#3a6694] transition hover:bg-white"
+                >
+                  View your quotes
+                </Link>
+              </div>
+            )}
           </section>
         )}
 

@@ -30,6 +30,12 @@ model User {
   email     String   @unique
   phone     String?
   postcode  String?
+  // True for a placeholder row auto-created the first time an anonymous
+  // visitor uses the redesign wizard (src/lib/guest.ts) — lets a guest
+  // upload photos and generate designs before creating a real account.
+  // Merged into the real account on signup/login (src/lib/actions/auth.ts)
+  // and never granted access to anything beyond their own project(s).
+  isGuest   Boolean  @default(false) @map("is_guest")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

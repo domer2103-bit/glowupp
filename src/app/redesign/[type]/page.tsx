@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getWizardUser } from "@/lib/guest";
 import { getHomepageCategory } from "@/lib/homepage-categories";
 import { getProjectTypeDefinition } from "@/lib/project-types";
 import { getOrCreateDraftProject } from "@/lib/data/projects";
@@ -8,7 +9,6 @@ import { getSignedPhotoUrl } from "@/lib/storage";
 import { penceToPounds } from "@/lib/money";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { BeforeAfterImage } from "@/components/BeforeAfterImage";
-import { UserRole } from "@/generated/prisma/client";
 import { RedesignWizard, type ChangeOption } from "./RedesignWizard";
 
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -188,11 +188,15 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
   if (!category || !definition) notFound();
 
   const user = await getCurrentUser();
-  const isHomeowner = user?.role === UserRole.HOMEOWNER;
-  const showWizard = isHomeowner && WIZARD_ENABLED_TYPES.has(type);
+  // Guest or homeowner both drive the wizard with no sign-in required — see
+  // src/lib/guest.ts. Only a signed-in PROFESSIONAL/ADMIN falls back to the
+  // marketing landing page below (their dashboard, not this wizard, is the
+  // right place for them).
+  const wizardUser = await getWizardUser(user);
+  const showWizard = wizardUser !== null && WIZARD_ENABLED_TYPES.has(type);
 
-  const ctaHref = !user ? `/signup?type=${type}` : isHomeowner ? `/projects/new?type=${type}` : "/dashboard";
-  const ctaLabel = !user ? "Sign up to get started" : isHomeowner ? `Start my ${category.displayName.toLowerCase()} project` : "Go to dashboard";
+  const ctaHref = "/dashboard";
+  const ctaLabel = "Go to dashboard";
 
   let wizardProps: {
     projectId: string;
@@ -206,8 +210,8 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
     changeOptions: ChangeOption[];
   } | null = null;
 
-  if (showWizard && user) {
-    const project = await getOrCreateDraftProject(user.id, type, `${category.displayName} redesign`);
+  if (showWizard && wizardUser) {
+    const project = await getOrCreateDraftProject(wizardUser.id, type, `${category.displayName} redesign`);
     const photos = await Promise.all(project.photos.map(async (p) => ({ id: p.id, url: await getSignedPhotoUrl(p.storagePath) })));
     const data = (project.requirements?.data as Record<string, unknown>) ?? {};
     wizardProps = {

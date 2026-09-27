@@ -2,7 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireUser, getCurrentUser } from "@/lib/auth";
+import { getOrCreateGuestUser } from "@/lib/guest";
 import { UserRole } from "@/generated/prisma/client";
 
 /**
@@ -43,11 +44,69 @@ export const getProject = cache(async (projectId: string) => {
   return project;
 });
 
+/**
+ * Same shape as getProject, but also lets an anonymous visitor view a
+ * project their guest cookie created (src/lib/guest.ts) — the results
+ * page (/projects/[id]) needs to work for a guest who just generated a
+ * design without ever signing in. Returns `{ project, isGuest }` so the
+ * page can gate the sign-in-required actions (download, push to market)
+ * without gating the page itself.
+ */
+export const getProjectForOwnerOrGuest = cache(async (projectId: string) => {
+  const currentUser = await getCurrentUser();
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      photos: { orderBy: { uploadOrder: "asc" } },
+      requirements: true,
+      designConcepts: { orderBy: { version: "asc" } },
+    },
+  });
+  if (!project) notFound();
+
+  if (currentUser) {
+    const isOwner = project.homeownerId === currentUser.id;
+    const isAdmin = currentUser.role === UserRole.ADMIN;
+    const isAuthorizedProfessional =
+      currentUser.role === UserRole.PROFESSIONAL
+        ? await prisma.quoteRequest.findFirst({ where: { projectId, professional: { userId: currentUser.id } }, select: { id: true } })
+        : null;
+    if (isOwner || isAdmin || isAuthorizedProfessional) return { project, isGuest: false };
+    notFound();
+  }
+
+  const guest = await getOrCreateGuestUser();
+  if (!guest || project.homeownerId !== guest.id) notFound();
+  return { project, isGuest: true };
+});
+
 /** Only the owning homeowner may pass this check — professionals and admins get read access via getProject(), never write access. */
 export async function requireProjectOwner(projectId: string) {
   const user = await requireUser();
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project || project.homeownerId !== user.id) notFound();
+  return project;
+}
+
+/**
+ * Write-access variant for the login-free wizard's own actions (upload
+ * photo, save brief + generate) — accepts a real signed-in owner OR a
+ * matching guest cookie, since a guest must be able to drive their own
+ * wizard through to a generated design before ever creating an account.
+ */
+export async function requireProjectOwnerOrGuest(projectId: string) {
+  const currentUser = await getCurrentUser();
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project) notFound();
+
+  if (currentUser) {
+    if (project.homeownerId !== currentUser.id) notFound();
+    return project;
+  }
+
+  const guest = await getOrCreateGuestUser();
+  if (!guest || project.homeownerId !== guest.id) notFound();
   return project;
 }
 

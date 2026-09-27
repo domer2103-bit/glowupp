@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import {
   regenerateDesignConcept,
@@ -19,9 +20,10 @@ interface ConceptCardProps {
     selectedByUser: boolean;
   };
   url: string | null;
+  isGuest: boolean;
 }
 
-export function ConceptCard({ projectId, concept, url }: ConceptCardProps) {
+export function ConceptCard({ projectId, concept, url, isGuest }: ConceptCardProps) {
   const regenerateAction = regenerateDesignConcept.bind(null, projectId, concept.id);
   const [regenState, regenDispatch, regenPending] = useActionState<ActionState, FormData>(regenerateAction, undefined);
 
@@ -58,7 +60,7 @@ export function ConceptCard({ projectId, concept, url }: ConceptCardProps) {
 
       {isComplete && (
         <div className="flex flex-col gap-2">
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             {!concept.selectedByUser && (
               <form action={selectDesignConcept.bind(null, projectId, concept.id)}>
                 <button type="submit" className="text-xs font-medium text-[#3a6694] underline">
@@ -71,6 +73,20 @@ export function ConceptCard({ projectId, concept, url }: ConceptCardProps) {
                 {regenPending ? "Regenerating…" : "Regenerate"}
               </button>
             </form>
+            {isGuest ? (
+              <Link
+                href={`/signup?next=${encodeURIComponent(`/projects/${projectId}`)}`}
+                className="text-xs font-medium text-[#3a6694] underline"
+              >
+                Sign in to download
+              </Link>
+            ) : (
+              url && (
+                <a href={url} download className="text-xs font-medium text-[#3a6694] underline">
+                  Download
+                </a>
+              )
+            )}
           </div>
           {regenState?.error && <p className="text-xs text-red-600">{regenState.error}</p>}
 

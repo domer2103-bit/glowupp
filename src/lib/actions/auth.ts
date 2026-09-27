@@ -4,12 +4,23 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { mergeGuestIntoUser } from "@/lib/guest";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/generated/prisma/client";
 import { PROJECT_TYPE_KEYS } from "@/lib/project-types";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export type ActionState = { error?: string; info?: string } | undefined;
+
+/**
+ * The only redirect shape "sign in to find a professional" links
+ * (/projects/[id]/page.tsx) ever send: never trust an arbitrary `next`
+ * value as an open redirect, only honor it if it's exactly this.
+ */
+const PROJECT_PATH_RE = /^\/projects\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function safeNext(value: FormDataEntryValue | null): string | undefined {
+  return typeof value === "string" && PROJECT_PATH_RE.test(value) ? value : undefined;
+}
 
 const SignupSchema = z.object({
   role: z.enum([UserRole.HOMEOWNER, UserRole.PROFESSIONAL]),
@@ -84,7 +95,10 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
   }
 
   if (role === UserRole.PROFESSIONAL) redirect("/professional/onboarding");
-  redirect(projectType ? `/projects/new?type=${projectType}` : "/dashboard");
+
+  if (data.user) await mergeGuestIntoUser(data.user.id);
+  const next = safeNext(formData.get("next"));
+  redirect(next ?? (projectType ? `/projects/new?type=${projectType}` : "/dashboard"));
 }
 
 const LoginSchema = z.object({
@@ -119,6 +133,11 @@ export async function login(_prevState: ActionState, formData: FormData): Promis
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) return { error: error.message };
+  if (!data.user) return { error: "Something went wrong logging in — please try again." };
+
+  await mergeGuestIntoUser(data.user.id);
+  const next = safeNext(formData.get("next"));
+  if (next) redirect(next);
 
   if (parsed.data.projectType) {
     const dbUser = await prisma.user.findUnique({ where: { id: data.user.id } });

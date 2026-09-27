@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
-import { requireProjectOwner } from "@/lib/data/projects";
+import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { UserRole, ProjectStatus, type Prisma } from "@/generated/prisma/client";
 import { PROJECT_TYPE_KEYS, getProjectTypeDefinition, validateRequirementsData } from "@/lib/project-types";
 import { poundsToPence } from "@/lib/money";
@@ -75,7 +75,7 @@ export async function createProject(_prevState: ActionState, formData: FormData)
 }
 
 export async function updateProject(projectId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const parsed = readProjectInput(formData);
   if (!parsed.success) {
@@ -134,7 +134,7 @@ const MANUALLY_SETTABLE_STATUSES: ProjectStatus[] = [
 ];
 
 export async function updateProjectStatus(projectId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const parsed = StatusSchema.safeParse(formData.get("status"));
   if (!parsed.success) return { error: "Not a valid project status." };
@@ -161,7 +161,7 @@ export async function updateProjectStatus(projectId: string, _prevState: ActionS
 }
 
 export async function updateProjectRequirements(projectId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwner(projectId);
+  const project = await requireProjectOwnerOrGuest(projectId);
 
   const definition = getProjectTypeDefinition(project.projectType);
   if (!definition) return { error: "This project's type is no longer recognized." };
