@@ -21,7 +21,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
 };
 
 /** Category types that have graduated from the marketing landing page to the guided, fully-functional wizard below. Extended one category at a time as each is reviewed and approved. */
-const WIZARD_ENABLED_TYPES = new Set(["kitchen", "bathroom"]);
+const WIZARD_ENABLED_TYPES = new Set(["kitchen", "bathroom", "driveway", "garden", "patio", "exterior"]);
 
 /** The wizard's "what would you like to change" chips, tailored per category to that type's own field registry (src/lib/project-types.ts). */
 const CHANGE_OPTIONS_BY_TYPE: Record<string, ChangeOption[]> = {
@@ -46,6 +46,44 @@ const CHANGE_OPTIONS_BY_TYPE: Record<string, ChangeOption[]> = {
     { key: "storage", label: "Storage" },
     { key: "lighting", label: "Lighting" },
     { key: "colours", label: "Colours" },
+    { key: "other", label: "Other" },
+  ],
+  driveway: [
+    { key: "complete_redesign", label: "Complete redesign" },
+    { key: "surface", label: "Surface" },
+    { key: "colour", label: "Colour" },
+    { key: "edging", label: "Edging" },
+    { key: "drainage", label: "Drainage" },
+    { key: "gates", label: "Gates" },
+    { key: "other", label: "Other" },
+  ],
+  garden: [
+    { key: "complete_redesign", label: "Complete redesign" },
+    { key: "lawn", label: "Lawn" },
+    { key: "planting", label: "Planting" },
+    { key: "fencing", label: "Fencing" },
+    { key: "lighting", label: "Lighting" },
+    { key: "seating", label: "Seating" },
+    { key: "storage", label: "Storage" },
+    { key: "patio", label: "Patio" },
+    { key: "other", label: "Other" },
+  ],
+  patio: [
+    { key: "complete_redesign", label: "Complete redesign" },
+    { key: "surface", label: "Surface" },
+    { key: "seating", label: "Seating" },
+    { key: "lighting", label: "Lighting" },
+    { key: "drainage", label: "Drainage" },
+    { key: "size", label: "Size" },
+    { key: "other", label: "Other" },
+  ],
+  exterior: [
+    { key: "complete_redesign", label: "Complete redesign" },
+    { key: "finish", label: "Finish" },
+    { key: "front_door", label: "Front door" },
+    { key: "windows", label: "Windows" },
+    { key: "lighting", label: "Lighting" },
+    { key: "planting", label: "Planting" },
     { key: "other", label: "Other" },
   ],
 };

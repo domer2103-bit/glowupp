@@ -112,6 +112,10 @@ const DRIVEWAY: ProjectTypeDefinition = {
     { key: "drainage", label: "Drainage", type: "text" },
     { key: "edging", label: "Edging", type: "text" },
     { key: "gates", label: "Gates", type: "boolean" },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "surface", "colour", "edging", "drainage", "gates", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
 
@@ -126,8 +130,11 @@ const GARDEN: ProjectTypeDefinition = {
     { key: "lighting", label: "Lighting", type: "text" },
     { key: "seating", label: "Seating", type: "text" },
     { key: "storage", label: "Storage", type: "text" },
-    { key: "style", label: "Style", type: "text", required: true },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
     { key: "maintenancePreference", label: "Maintenance preference", type: "select", options: ["low", "medium", "high"] },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "lawn", "planting", "fencing", "lighting", "seating", "storage", "patio", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
 
@@ -141,7 +148,10 @@ const PATIO: ProjectTypeDefinition = {
     { key: "seating", label: "Seating", type: "text" },
     { key: "lighting", label: "Lighting", type: "text" },
     { key: "drainage", label: "Drainage", type: "text" },
-    { key: "style", label: "Style", type: "text", required: true },
+    { key: "desiredStyle", label: "Desired style", type: "text", required: true },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "surface", "seating", "lighting", "drainage", "size", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
 
@@ -155,7 +165,10 @@ const EXTERIOR: ProjectTypeDefinition = {
     { key: "windows", label: "Windows", type: "text" },
     { key: "lighting", label: "Lighting", type: "text" },
     { key: "planting", label: "Planting", type: "text" },
-    { key: "style", label: "Style", type: "text" },
+    { key: "desiredStyle", label: "Desired style", type: "text" },
+    { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "finish", "front_door", "windows", "lighting", "planting", "other"] },
+    { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
 
