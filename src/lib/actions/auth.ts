@@ -98,7 +98,7 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
 
   if (data.user) await mergeGuestIntoUser(data.user.id);
   const next = safeNext(formData.get("next"));
-  redirect(next ?? (projectType ? `/projects/new?type=${projectType}` : "/dashboard"));
+  redirect(next ?? (projectType ? `/redesign/${projectType}` : "/dashboard"));
 }
 
 const LoginSchema = z.object({
@@ -142,7 +142,7 @@ export async function login(_prevState: ActionState, formData: FormData): Promis
   if (parsed.data.projectType) {
     const dbUser = await prisma.user.findUnique({ where: { id: data.user.id } });
     if (dbUser?.role === UserRole.HOMEOWNER) {
-      redirect(`/projects/new?type=${parsed.data.projectType}`);
+      redirect(`/redesign/${parsed.data.projectType}`);
     }
   }
 

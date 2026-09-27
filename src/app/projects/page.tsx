@@ -12,7 +12,7 @@ export default async function ProjectsPage() {
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Your projects</h1>
-        <Link href="/projects/new" className="rounded-full bg-black px-4 py-2 text-sm text-white dark:bg-white dark:text-black">
+        <Link href="/#categories" className="rounded-full bg-black px-4 py-2 text-sm text-white dark:bg-white dark:text-black">
           New project
         </Link>
       </div>

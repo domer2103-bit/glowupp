@@ -1,15 +1,12 @@
 "use server";
 
 import { z } from "zod";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
 import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
-import { UserRole, ProjectStatus, type Prisma } from "@/generated/prisma/client";
+import { ProjectStatus, type Prisma } from "@/generated/prisma/client";
 import { PROJECT_TYPE_KEYS, getProjectTypeDefinition, validateRequirementsData } from "@/lib/project-types";
 import { poundsToPence } from "@/lib/money";
-import { checkRateLimit } from "@/lib/rate-limit";
 
 export type ActionState = { error?: string; info?: string } | undefined;
 
@@ -38,40 +35,6 @@ function readProjectInput(formData: FormData) {
     budgetMax: formData.get("budgetMax") || undefined,
     targetStartDate: formData.get("targetStartDate") || undefined,
   });
-}
-
-export async function createProject(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireRole(UserRole.HOMEOWNER);
-
-  if (!checkRateLimit(`create-project:${user.id}`, 10, 60 * 60 * 1000)) {
-    return { error: "You're creating projects too quickly — please try again later." };
-  }
-
-  const parsed = readProjectInput(formData);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Please check the form and try again." };
-  }
-  const { projectType, title, description, postcode, budgetMin, budgetMax, targetStartDate } = parsed.data;
-
-  const project = await prisma.project.create({
-    data: {
-      homeownerId: user.id,
-      projectType,
-      title,
-      description,
-      postcode,
-      budgetMin: budgetMin !== undefined ? poundsToPence(budgetMin) : undefined,
-      budgetMax: budgetMax !== undefined ? poundsToPence(budgetMax) : undefined,
-      targetStartDate: targetStartDate ? new Date(targetStartDate) : undefined,
-      status: ProjectStatus.DRAFT,
-    },
-  });
-
-  await prisma.activityLog.create({
-    data: { type: "project_created", actorId: user.id, projectId: project.id },
-  });
-
-  redirect(`/projects/${project.id}`);
 }
 
 export async function updateProject(projectId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {

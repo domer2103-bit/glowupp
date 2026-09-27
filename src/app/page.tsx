@@ -66,7 +66,7 @@ export default async function Home() {
             seconds — no design skills needed.
           </p>
           <Link
-            href={user ? (isHomeowner ? "/projects/new" : "/dashboard") : "/signup"}
+            href={user && !isHomeowner ? "/dashboard" : "#categories"}
             className="inline-flex w-fit items-center gap-2 rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]"
           >
             ↑ Upload Your Photo
@@ -88,7 +88,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="relative mx-auto w-full max-w-6xl px-6 py-12">
+      <section id="categories" className="relative mx-auto w-full max-w-6xl px-6 py-12">
         <h2 className="mb-6 text-2xl font-semibold text-[#132a4d]">What are you redesigning?</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {HOMEPAGE_CATEGORIES.map((cat) => (
