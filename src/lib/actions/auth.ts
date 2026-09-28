@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +10,18 @@ import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/generated/prisma/client";
 import { PROJECT_TYPE_KEYS } from "@/lib/project-types";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import {
+  ALLOWED_PHOTO_MIME_TYPES,
+  MAX_PHOTO_BYTES,
+  uploadPortfolioPhoto as uploadPortfolioPhotoToStorage,
+} from "@/lib/storage";
+
+const EXTENSION_BY_MIME: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heic": "heic",
+};
 
 export type ActionState = { error?: string; info?: string } | undefined;
 
@@ -155,13 +168,18 @@ export async function logout() {
   redirect("/login");
 }
 
+const SERVICE_RADIUS_MILES = [5, 10, 15, 25, 40] as const;
+
 const ProfessionalProfileSchema = z.object({
   businessName: z.string().trim().min(2, "Business name is required."),
+  phone: z.string().trim().min(7, "Enter a valid phone number.").optional().or(z.literal("")),
   postcode: z.string().trim().min(5, "Enter a valid UK postcode."),
   description: z.string().trim().max(2000).optional(),
+  yearsExperience: z.coerce.number().int().min(0).max(70).optional(),
+  serviceRadiusMiles: z.coerce.number().refine((v) => (SERVICE_RADIUS_MILES as readonly number[]).includes(v)).optional(),
   services: z
     .array(z.enum(PROJECT_TYPE_KEYS))
-    .min(1, "Pick at least one service you offer."),
+    .min(1, "Pick at least one trade you offer."),
   // Comma-separated postcode outward-code prefixes, e.g. "L1, L18" or "L"
   // for a whole area — parsed into an array of upper-cased, deduplicated
   // prefixes. See src/lib/matching.ts for how these are used.
@@ -174,7 +192,16 @@ const ProfessionalProfileSchema = z.object({
     ),
 });
 
-/** Creates the Professional business profile for the signed-in user. Requires role=PROFESSIONAL; one profile per user (unique on user_id). */
+const MAX_PORTFOLIO_PHOTOS_AT_ONBOARDING = 6;
+
+/**
+ * Creates (or edits) the Professional business profile for the signed-in
+ * user, one profile per user (unique on user_id). Also accepts up to
+ * MAX_PORTFOLIO_PHOTOS_AT_ONBOARDING work photos in the same submission —
+ * the professional record doesn't exist yet before this action runs, so
+ * "add your best work" can't reuse uploadPortfolioPhoto
+ * (src/lib/actions/portfolio.ts) until after the row below is created.
+ */
 export async function createProfessionalProfile(
   _prevState: ActionState,
   formData: FormData
@@ -186,8 +213,11 @@ export async function createProfessionalProfile(
 
   const parsed = ProfessionalProfileSchema.safeParse({
     businessName: formData.get("businessName"),
+    phone: formData.get("phone") || undefined,
     postcode: formData.get("postcode"),
     description: formData.get("description") || undefined,
+    yearsExperience: formData.get("yearsExperience") || undefined,
+    serviceRadiusMiles: formData.get("serviceRadiusMiles") || undefined,
     services: formData.getAll("services"),
     serviceAreaPrefixes: formData.get("serviceAreaPrefixes"),
   });
@@ -196,15 +226,21 @@ export async function createProfessionalProfile(
     return { error: parsed.error.issues[0]?.message ?? "Please check the form and try again." };
   }
 
-  const { businessName, postcode, description, services, serviceAreaPrefixes } = parsed.data;
+  const { businessName, phone, postcode, description, yearsExperience, serviceRadiusMiles, services, serviceAreaPrefixes } =
+    parsed.data;
+  const serviceRadiusKm = serviceRadiusMiles ? Math.round(serviceRadiusMiles * 1.60934) : undefined;
 
-  await prisma.professional.upsert({
+  if (phone) await prisma.user.update({ where: { id: user.id }, data: { phone } });
+
+  const professional = await prisma.professional.upsert({
     where: { userId: user.id },
     create: {
       userId: user.id,
       businessName,
       postcode,
       description,
+      yearsExperience,
+      serviceRadiusKm,
       serviceAreaPrefixes,
       services: { create: services.map((projectType) => ({ projectType })) },
     },
@@ -212,6 +248,8 @@ export async function createProfessionalProfile(
       businessName,
       postcode,
       description,
+      yearsExperience,
+      serviceRadiusKm,
       serviceAreaPrefixes,
       services: {
         deleteMany: {},
@@ -219,6 +257,23 @@ export async function createProfessionalProfile(
       },
     },
   });
+
+  const photos = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
+  if (photos.length > 0) {
+    const existingCount = await prisma.professionalPortfolioPhoto.count({ where: { professionalId: professional.id } });
+    const room = Math.max(0, MAX_PORTFOLIO_PHOTOS_AT_ONBOARDING - existingCount);
+    for (const [i, file] of photos.slice(0, room).entries()) {
+      if (!ALLOWED_PHOTO_MIME_TYPES.includes(file.type as (typeof ALLOWED_PHOTO_MIME_TYPES)[number])) continue;
+      if (file.size > MAX_PHOTO_BYTES) continue;
+      const key = `${professional.id}/${randomUUID()}.${EXTENSION_BY_MIME[file.type] ?? "jpg"}`;
+      const result = await uploadPortfolioPhotoToStorage(key, file);
+      if ("storagePath" in result) {
+        await prisma.professionalPortfolioPhoto.create({
+          data: { professionalId: professional.id, storagePath: result.storagePath, uploadOrder: existingCount + i },
+        });
+      }
+    }
+  }
 
   redirect("/dashboard");
 }

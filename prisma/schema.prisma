@@ -257,6 +257,7 @@ model Professional {
   // postcode geocoding, deferred per docs/BACKEND_ARCHITECTURE.md.
   serviceAreaPrefixes String[]           @default([]) @map("service_area_prefixes")
   serviceRadiusKm    Int?                @map("service_radius_km")
+  yearsExperience    Int?                @map("years_experience")
   verificationStatus VerificationStatus  @default(UNVERIFIED) @map("verification_status")
   // Optional, professional-initiated — not required to quote (see
   // docs/BACKEND_ARCHITECTURE.md). Uploading resets status to PENDING
