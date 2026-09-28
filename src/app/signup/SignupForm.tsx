@@ -16,42 +16,56 @@ export function SignupForm({
   const [role, setRole] = useState<"HOMEOWNER" | "PROFESSIONAL">(defaultRole);
 
   return (
-    <form action={action} className="flex w-full max-w-sm flex-col gap-4">
+    <form action={action} className="flex w-full flex-col gap-4">
       {projectType && <input type="hidden" name="projectType" value={projectType} />}
       {next && <input type="hidden" name="next" value={next} />}
-      <div className="flex gap-2">
+      <div className="flex rounded-full border border-zinc-300 p-0.5 text-sm">
         {(["HOMEOWNER", "PROFESSIONAL"] as const).map((r) => (
           <label
             key={r}
-            className={`flex-1 cursor-pointer rounded-lg border px-3 py-2 text-center text-sm ${
-              role === r ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black" : "border-zinc-300 dark:border-zinc-700"
+            className={`flex-1 cursor-pointer rounded-full px-3 py-2 text-center transition ${
+              role === r ? "bg-[#3a6694] text-white" : "text-zinc-600 hover:text-[#132a4d]"
             }`}
           >
-            <input
-              type="radio"
-              name="role"
-              value={r}
-              checked={role === r}
-              onChange={() => setRole(r)}
-              className="sr-only"
-            />
+            <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} className="sr-only" />
             {r === "HOMEOWNER" ? "I'm a homeowner" : "I'm a professional"}
           </label>
         ))}
       </div>
 
-      <input name="name" placeholder="Full name" required className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
-      <input name="email" type="email" placeholder="Email" required className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
-      <input name="password" type="password" placeholder="Password (min 8 characters)" required className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
-      <input name="postcode" placeholder="Postcode" className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+      <input
+        name="name"
+        placeholder="Full name"
+        required
+        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-[#132a4d] outline-none focus:border-[#3a6694]"
+      />
+      <input
+        name="email"
+        type="email"
+        placeholder="Email"
+        required
+        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-[#132a4d] outline-none focus:border-[#3a6694]"
+      />
+      <input
+        name="password"
+        type="password"
+        placeholder="Password (min 8 characters)"
+        required
+        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-[#132a4d] outline-none focus:border-[#3a6694]"
+      />
+      <input
+        name="postcode"
+        placeholder="Postcode"
+        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-[#132a4d] outline-none focus:border-[#3a6694]"
+      />
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state?.info && <p className="text-sm text-green-700 dark:text-green-400">{state.info}</p>}
+      {state?.info && <p className="text-sm text-emerald-700">{state.info}</p>}
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-full bg-black px-5 py-3 text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        className="rounded-full bg-[#3a6694] px-5 py-3 text-sm font-medium text-white hover:bg-[#2c5075] disabled:opacity-50"
       >
         {pending ? "Creating account…" : "Sign up"}
       </button>

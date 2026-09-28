@@ -10,31 +10,36 @@ export default async function SignupPage(props: PageProps<"/signup">) {
   const defaultRole = params.role === "professional" ? "PROFESSIONAL" : "HOMEOWNER";
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
-      <h1 className="text-2xl font-semibold">Create your GlowUpp account</h1>
-      {next ? (
-        <p className="max-w-sm text-center text-sm text-zinc-600 dark:text-zinc-400">
-          Your design is already saved — sign up to find a professional for it.
+    <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-blue-50 to-white px-6 py-16 text-[#132a4d]">
+      <div className="pointer-events-none absolute -top-16 -right-20 h-96 w-96 rounded-full bg-blue-300/45 blur-2xl" />
+      <div className="pointer-events-none absolute bottom-0 -left-20 h-96 w-96 rounded-full bg-blue-300/35 blur-2xl" />
+
+      <div className="relative flex w-full max-w-sm flex-col gap-6 rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl shadow-blue-900/10">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold">Create your GlowUpp account</h1>
+          {next ? (
+            <p className="mt-2 text-sm text-zinc-600">Your design is already saved — sign up to find a professional for it.</p>
+          ) : (
+            category && (
+              <p className="mt-2 text-sm text-zinc-600">
+                You&apos;ll land straight on a new {category.displayName.toLowerCase()} project after this.
+              </p>
+            )
+          )}
+        </div>
+        <SignupForm projectType={category?.key} next={next} defaultRole={defaultRole} />
+        <p className="text-center text-sm text-zinc-600">
+          Already have an account?{" "}
+          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-[#3a6694] underline">
+            Log in
+          </Link>
         </p>
-      ) : (
-        category && (
-          <p className="max-w-sm text-center text-sm text-zinc-600 dark:text-zinc-400">
-            You&apos;ll land straight on a new {category.displayName.toLowerCase()} project after this.
-          </p>
-        )
-      )}
-      <SignupForm projectType={category?.key} next={next} defaultRole={defaultRole} />
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Already have an account?{" "}
-        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="underline">
-          Log in
-        </Link>
-      </p>
-      <p className="max-w-xs text-center text-xs text-zinc-500 dark:text-zinc-500">
-        By signing up, you agree to GlowUpp&rsquo;s{" "}
-        <Link href="/terms" className="underline">Terms of Service</Link> and{" "}
-        <Link href="/privacy" className="underline">Privacy Policy</Link>.
-      </p>
+        <p className="text-center text-xs text-zinc-500">
+          By signing up, you agree to GlowUpp&rsquo;s{" "}
+          <Link href="/terms" className="underline">Terms of Service</Link> and{" "}
+          <Link href="/privacy" className="underline">Privacy Policy</Link>.
+        </p>
+      </div>
     </div>
   );
 }
