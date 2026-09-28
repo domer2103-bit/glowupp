@@ -7,6 +7,7 @@ export default async function SignupPage(props: PageProps<"/signup">) {
   const typeParam = typeof params.type === "string" ? params.type : undefined;
   const category = typeParam ? getHomepageCategory(typeParam) : undefined;
   const next = typeof params.next === "string" ? params.next : undefined;
+  const defaultRole = params.role === "professional" ? "PROFESSIONAL" : "HOMEOWNER";
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
@@ -22,7 +23,7 @@ export default async function SignupPage(props: PageProps<"/signup">) {
           </p>
         )
       )}
-      <SignupForm projectType={category?.key} next={next} />
+      <SignupForm projectType={category?.key} next={next} defaultRole={defaultRole} />
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Already have an account?{" "}
         <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="underline">

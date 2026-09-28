@@ -233,29 +233,17 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
       <div className="pointer-events-none absolute top-40 -left-32 h-96 w-96 rounded-full bg-blue-200/50 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 right-10 h-72 w-72 rounded-full bg-blue-100/70 blur-3xl" />
 
-      <header className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-        <Link href="/" className="flex items-center gap-2 text-lg font-bold text-[#132a4d]">
-          <CategoryIcon type="exterior" className="h-6 w-6 text-[#3a6694]" />
-          GlowUpp
-        </Link>
+      <div className="relative mx-auto flex w-full max-w-6xl items-center justify-end px-6 py-4">
         {wizardProps ? (
-          <>
-            <nav className="hidden gap-6 text-sm font-medium text-zinc-600 sm:flex">
-              <Link href="/" className="border-b-2 border-[#3a6694] pb-1 text-[#132a4d]">Home</Link>
-              <Link href="/projects">My Projects</Link>
-              <Link href="/signup">How It Works</Link>
-              <span className="cursor-default text-zinc-400">Pricing</span>
-            </nav>
-            <Link href={`/projects/${wizardProps.projectId}`} className="text-sm font-medium text-[#132a4d] underline">
-              Save &amp; Exit
-            </Link>
-          </>
+          <Link href={`/projects/${wizardProps.projectId}`} className="text-sm font-medium text-[#132a4d] underline">
+            Save &amp; Exit
+          </Link>
         ) : (
           <Link href="/" className="text-sm text-zinc-600 underline">
             ← Back to all categories
           </Link>
         )}
-      </header>
+      </div>
 
       {wizardProps ? (
         <section className="relative mx-auto w-full max-w-6xl px-6 pb-16">

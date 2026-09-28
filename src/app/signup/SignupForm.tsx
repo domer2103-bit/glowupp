@@ -3,9 +3,17 @@
 import { useActionState, useState } from "react";
 import { signup, type ActionState } from "@/lib/actions/auth";
 
-export function SignupForm({ projectType, next }: { projectType?: string; next?: string }) {
+export function SignupForm({
+  projectType,
+  next,
+  defaultRole = "HOMEOWNER",
+}: {
+  projectType?: string;
+  next?: string;
+  defaultRole?: "HOMEOWNER" | "PROFESSIONAL";
+}) {
   const [state, action, pending] = useActionState<ActionState, FormData>(signup, undefined);
-  const [role, setRole] = useState<"HOMEOWNER" | "PROFESSIONAL">("HOMEOWNER");
+  const [role, setRole] = useState<"HOMEOWNER" | "PROFESSIONAL">(defaultRole);
 
   return (
     <form action={action} className="flex w-full max-w-sm flex-col gap-4">

@@ -33,28 +33,6 @@ export default async function Home() {
       <div className="pointer-events-none absolute bottom-0 right-10 h-72 w-72 rounded-full bg-blue-300/35 blur-2xl" />
       <div className="pointer-events-none absolute top-[640px] left-1/3 h-64 w-64 rounded-full bg-blue-300/30 blur-2xl" />
 
-      <header className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2 text-lg font-bold text-[#132a4d]">
-          <CategoryIcon type="exterior" className="h-6 w-6 text-[#3a6694]" />
-          GlowUpp
-        </div>
-        <nav className="hidden gap-6 text-sm font-medium text-zinc-600 sm:flex">
-          <Link href="/" className="border-b-2 border-[#3a6694] pb-1 text-[#132a4d]">Home</Link>
-          <Link href={user ? "/projects" : "/signup"}>My Projects</Link>
-          <Link href="/signup">How It Works</Link>
-          <span className="cursor-default text-zinc-400">Pricing</span>
-        </nav>
-        {user ? (
-          <Link href="/dashboard" className="rounded-full border border-black px-4 py-2 text-sm">
-            Dashboard
-          </Link>
-        ) : (
-          <Link href="/login" className="flex items-center gap-2 rounded-full border border-zinc-300 px-4 py-2 text-sm">
-            Sign In
-          </Link>
-        )}
-      </header>
-
       <section className="relative mx-auto grid w-full max-w-6xl gap-10 px-6 py-12 sm:grid-cols-2 sm:items-center">
         <div className="flex flex-col gap-4">
           <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">AI Home Redesign</span>
