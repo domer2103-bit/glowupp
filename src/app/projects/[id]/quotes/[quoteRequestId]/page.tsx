@@ -25,51 +25,53 @@ export default async function QuoteThreadPage(props: PageProps<"/projects/[id]/q
   const photoUrls = await Promise.all(photos.map((p) => getSignedPhotoUrl(p.storagePath)));
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
-      <div>
-        <Link href={`/projects/${id}/quotes`} className="text-sm text-zinc-600 underline dark:text-zinc-400">
-          ← Quotes
-        </Link>
-        <h1 className="mt-2 flex items-center gap-1.5 text-2xl font-semibold">
-          {quoteRequest.professional.businessName}
-          {quoteRequest.professional.verificationStatus === VerificationStatus.VERIFIED && (
-            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
-              ✓ Verified
-            </span>
-          )}
-        </h1>
-        {quoteRequest.professional.description && (
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{quoteRequest.professional.description}</p>
-        )}
-        <p className="mt-1 text-sm text-zinc-500">
-          {quoteRequest.status}
-          {quoteRequest.status === QuoteRequestStatus.QUOTED && quoteRequest.quoteAmount
-            ? ` — £${penceToPounds(quoteRequest.quoteAmount)}`
-            : ""}
-        </p>
-      </div>
+    <div className="relative flex flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-blue-50 to-white px-6 py-16 text-[#132a4d]">
+      <div className="pointer-events-none absolute -top-16 -right-20 h-96 w-96 rounded-full bg-blue-300/45 blur-2xl" />
 
-      {photos.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Their work</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {photoUrls.map(
-              (url, i) =>
-                url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={photos[i].id} src={url} alt="Past work" className="aspect-square rounded-lg object-cover" />
-                )
+      <div className="relative flex w-full max-w-2xl flex-col gap-6">
+        <div>
+          <Link href={`/projects/${id}/quotes`} className="text-sm text-zinc-600 underline">
+            ← Quotes
+          </Link>
+          <h1 className="mt-2 flex items-center gap-1.5 text-2xl font-semibold">
+            {quoteRequest.professional.businessName}
+            {quoteRequest.professional.verificationStatus === VerificationStatus.VERIFIED && (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">✓ Verified</span>
             )}
-          </div>
-        </section>
-      )}
+          </h1>
+          {quoteRequest.professional.description && (
+            <p className="mt-1 text-sm text-zinc-600">{quoteRequest.professional.description}</p>
+          )}
+          <p className="mt-1 text-sm text-zinc-500">
+            {quoteRequest.status}
+            {quoteRequest.status === QuoteRequestStatus.QUOTED && quoteRequest.quoteAmount
+              ? ` — £${penceToPounds(quoteRequest.quoteAmount)}`
+              : ""}
+          </p>
+        </div>
 
-      <MessageThread
-        quoteRequestId={quoteRequestId}
-        messages={messages}
-        currentUserId={user.id}
-        disabled={quoteRequest.status === QuoteRequestStatus.DECLINED}
-      />
+        {photos.length > 0 && (
+          <section className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <h2 className="font-medium">Their work</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {photoUrls.map(
+                (url, i) =>
+                  url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={photos[i].id} src={url} alt="Past work" className="aspect-square rounded-lg object-cover" />
+                  )
+              )}
+            </div>
+          </section>
+        )}
+
+        <MessageThread
+          quoteRequestId={quoteRequestId}
+          messages={messages}
+          currentUserId={user.id}
+          disabled={quoteRequest.status === QuoteRequestStatus.DECLINED}
+        />
+      </div>
     </div>
   );
 }

@@ -23,7 +23,7 @@ export function MessageThread({ quoteRequestId, messages, currentUserId, disable
   const [state, dispatch, pending] = useActionState<ActionState, FormData>(action, undefined);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-2">
         {messages.length === 0 && <p className="text-sm text-zinc-500">No messages yet.</p>}
         {messages.map((m) => {
@@ -31,12 +31,12 @@ export function MessageThread({ quoteRequestId, messages, currentUserId, disable
           return (
             <div
               key={m.id}
-              className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                mine ? "self-end bg-black text-white dark:bg-white dark:text-black" : "self-start bg-zinc-200 dark:bg-zinc-800"
+              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                mine ? "self-end bg-[#3a6694] text-white" : "self-start bg-blue-50 text-[#132a4d]"
               }`}
             >
               <p>{m.body}</p>
-              <p className={`mt-1 text-[10px] ${mine ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-500"}`}>
+              <p className={`mt-1 text-[10px] ${mine ? "text-blue-100" : "text-zinc-500"}`}>
                 {mine ? "You" : m.sender.name} ·{" "}
                 {new Date(m.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
               </p>
@@ -53,14 +53,14 @@ export function MessageThread({ quoteRequestId, messages, currentUserId, disable
             name="body"
             placeholder="Write a message…"
             required
-            className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-lg border border-zinc-300 px-2 py-1 text-sm text-[#132a4d] outline-none focus:border-[#3a6694]"
           />
           {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
           {state?.info && <p className="text-xs text-zinc-500">{state.info}</p>}
           <button
             type="submit"
             disabled={pending}
-            className="self-start rounded-full bg-black px-3 py-1 text-xs text-white disabled:opacity-50 dark:bg-white dark:text-black"
+            className="self-start rounded-full bg-[#3a6694] px-3 py-1 text-xs font-medium text-white hover:bg-[#2c5075] disabled:opacity-50"
           >
             {pending ? "Sending…" : "Send"}
           </button>

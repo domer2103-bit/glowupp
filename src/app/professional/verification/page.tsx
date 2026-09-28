@@ -17,28 +17,32 @@ export default async function VerificationPage() {
   if (!professional) return null;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
-      <div>
-        <Link href="/dashboard" className="text-sm text-zinc-600 underline dark:text-zinc-400">
-          ← Dashboard
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Get verified</h1>
-        <p className="text-sm text-zinc-500">
-          Completely optional — you can quote on projects with or without this. Upload your public liability insurance
-          certificate and, once approved, homeowners see a Verified badge on your quotes — a real edge when they&apos;re
-          comparing who to pick.
-        </p>
-      </div>
+    <div className="relative flex flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-blue-50 to-white px-6 py-16 text-[#132a4d]">
+      <div className="pointer-events-none absolute -top-16 -right-20 h-96 w-96 rounded-full bg-blue-300/45 blur-2xl" />
 
-      <div className="rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700">
-        <p className="text-sm font-medium">Status: {professional.verificationStatus}</p>
-        <p className="text-sm text-zinc-500">{STATUS_COPY[professional.verificationStatus]}</p>
-      </div>
+      <div className="relative flex w-full max-w-2xl flex-col gap-6">
+        <div>
+          <Link href="/dashboard" className="text-sm text-zinc-600 underline">
+            ← Dashboard
+          </Link>
+          <h1 className="mt-2 text-2xl font-semibold">Get verified</h1>
+          <p className="text-sm text-zinc-500">
+            Completely optional — you can quote on projects with or without this. Upload your public liability insurance
+            certificate and, once approved, homeowners see a Verified badge on your quotes — a real edge when they&apos;re
+            comparing who to pick.
+          </p>
+        </div>
 
-      <VerificationForm />
-      {professional.verificationStatus === VerificationStatus.VERIFIED && (
-        <p className="text-xs text-zinc-500">Uploading a new document (e.g. renewed insurance) sends you back for re-review.</p>
-      )}
+        <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
+          <p className="text-sm font-medium">Status: {professional.verificationStatus}</p>
+          <p className="text-sm text-zinc-500">{STATUS_COPY[professional.verificationStatus]}</p>
+        </div>
+
+        <VerificationForm />
+        {professional.verificationStatus === VerificationStatus.VERIFIED && (
+          <p className="text-xs text-zinc-500">Uploading a new document (e.g. renewed insurance) sends you back for re-review.</p>
+        )}
+      </div>
     </div>
   );
 }
