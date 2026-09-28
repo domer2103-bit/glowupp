@@ -458,3 +458,22 @@ model ActivityLog {
   @@index([type])
   @@map("activity_log")
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Launch waitlist
+// ─────────────────────────────────────────────────────────────────────────
+
+// Pre-launch email capture (src/app/launch), deliberately separate from
+// User/signup — this is anonymous interest, not an account, and most
+// visitors haven't decided homeowner vs. professional yet. `source`
+// carries a `?source=` query param off the shared link (e.g.
+// "instagram-launch-post") so signups can be traced back to which post
+// drove them.
+model WaitlistSignup {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("waitlist_signups")
+}

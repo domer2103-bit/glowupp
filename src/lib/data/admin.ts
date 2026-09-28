@@ -22,3 +22,12 @@ export async function getAllTransactions() {
     orderBy: { createdAt: "desc" },
   });
 }
+
+/** Every launch waitlist signup (src/app/launch), most recent first — admin-only. */
+export async function getAllWaitlistSignups() {
+  await requireRole(UserRole.ADMIN);
+
+  return prisma.waitlistSignup.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+}

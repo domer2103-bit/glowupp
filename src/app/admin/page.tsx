@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import { getAllProfessionals, getAllTransactions } from "@/lib/data/admin";
+import { getAllProfessionals, getAllTransactions, getAllWaitlistSignups } from "@/lib/data/admin";
 import { UserRole, VerificationStatus, TransactionStatus } from "@/generated/prisma/client";
 
 export default async function AdminHubPage() {
   await requireRole(UserRole.ADMIN);
 
-  const [professionals, transactions] = await Promise.all([getAllProfessionals(), getAllTransactions()]);
+  const [professionals, transactions, waitlistSignups] = await Promise.all([
+    getAllProfessionals(),
+    getAllTransactions(),
+    getAllWaitlistSignups(),
+  ]);
   const unverifiedCount = professionals.filter((p) => p.verificationStatus === VerificationStatus.UNVERIFIED).length;
   const pendingFeesCount = transactions.filter((t) => t.status === TransactionStatus.PENDING).length;
 
@@ -33,6 +37,13 @@ export default async function AdminHubPage() {
         >
           <span className="font-medium">Lead fees</span>
           <span className="text-sm text-zinc-500">{pendingFeesCount} pending</span>
+        </Link>
+        <Link
+          href="/admin/waitlist"
+          className="flex items-center justify-between rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700"
+        >
+          <span className="font-medium">Launch waitlist</span>
+          <span className="text-sm text-zinc-500">{waitlistSignups.length} signed up</span>
         </Link>
       </div>
     </div>
