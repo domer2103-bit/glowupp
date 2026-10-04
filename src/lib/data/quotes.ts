@@ -5,6 +5,7 @@ import { requireUser, requireRole } from "@/lib/auth";
 import { requireProjectOwner } from "@/lib/data/projects";
 import { getOutwardCode } from "@/lib/postcode";
 import { evaluateMatch } from "@/lib/matching";
+import { notPrivatePipelineWhere } from "@/lib/data/private-pipeline";
 import { UserRole, ProjectStatus, TransactionStatus, VerificationStatus } from "@/generated/prisma/client";
 
 /**
@@ -52,6 +53,8 @@ export async function getOpenMarketProjects() {
     where: {
       status: { in: [ProjectStatus.REQUESTING_QUOTES, ProjectStatus.QUOTES_RECEIVED] },
       id: { notIn: excludeProjectIds },
+      // Projects locked to a contractor's private pipeline are never browsable.
+      ...notPrivatePipelineWhere(),
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -80,7 +83,10 @@ export async function getProfessionalQuotes() {
   });
 
   for (const r of requests) {
-    if (!r.selected || r.transaction?.status !== TransactionStatus.PAID) {
+    // A private-pipeline job has no lead fee (the contractor brought the
+    // client), so selection alone reveals the full postcode.
+    const feeCleared = r.transaction?.status === TransactionStatus.PAID || (r.selected && r.project.isPrivatePipeline);
+    if (!r.selected || !feeCleared) {
       r.project.postcode = getOutwardCode(r.project.postcode);
     }
   }

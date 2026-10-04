@@ -44,6 +44,7 @@ model User {
   professional      Professional?
   activity          ActivityLog[]  @relation("ActivityActor")
   messagesSent      Message[]
+  privatePipelineSessions PrivatePipelineSession[]
 
   @@map("users")
 }
@@ -89,6 +90,13 @@ model Project {
   // for this project (src/lib/reminders.ts) — prevents sending it more
   // than once. Null until then.
   quoteReminderSentAt DateTime? @map("quote_reminder_sent_at")
+  // True when the project was started through a contractor's referral
+  // link/QR code (src/lib/data/private-pipeline.ts). Such a project is
+  // locked to that one professional and must never reach the open
+  // marketplace — checked server-side in pushToOpenMarket,
+  // submitOpenMarketQuote and getOpenMarketProjects, not just hidden in
+  // the UI. Always set together with a PrivatePipelineSession row.
+  isPrivatePipeline   Boolean       @default(false) @map("is_private_pipeline")
 
   photos            ProjectPhoto[]
   requirements      ProjectRequirements?
@@ -97,6 +105,7 @@ model Project {
   activity          ActivityLog[]
   assistantMessages AssistantMessage[]
   transactions      Transaction[]
+  privatePipelineSession PrivatePipelineSession?
 
   @@index([homeownerId])
   @@index([status])
@@ -266,6 +275,14 @@ model Professional {
   verificationDocumentPath String?        @map("verification_document_path")
   verificationSubmittedAt  DateTime?      @map("verification_submitted_at")
   isAvailable        Boolean             @default(true) @map("is_available")
+  // Short code for the contractor's private client link (/q/<code>).
+  // Nullable so existing professionals need no backfill — it is minted
+  // lazily the first time they open the pipeline page
+  // (ensureReferralCodes in src/lib/data/private-pipeline.ts).
+  referralCode             String?            @unique @map("referral_code")
+  // Human-readable slug for the van-decal/yard-sign URL
+  // (/pro/<slug>/quote). Same lazy minting as referralCode.
+  vanQrSlug                String?            @unique @map("van_qr_slug")
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
 
@@ -273,6 +290,7 @@ model Professional {
   services      ProfessionalService[]
   quoteRequests QuoteRequest[]
   transactions  Transaction[]
+  privatePipelineSessions PrivatePipelineSession[]
 
   @@map("professionals")
 }
@@ -344,6 +362,17 @@ model QuoteRequest {
   quoteAmount    Int?                @map("quote_amount")
   quoteTimeline  String?             @map("quote_timeline")
   quoteNotes     String?             @map("quote_notes") @db.Text
+  // Itemised breakdown for private-pipeline quotes: an array of
+  // { description: string, amountPence: number }. quoteAmount is always
+  // the sum of these when present. Null for open-market quotes.
+  quoteLineItems     Json?              @map("quote_line_items")
+  // Deposit the professional asks the homeowner to pay DIRECTLY to them.
+  // Recorded only — GlowUpp never processes or holds homeowner→
+  // professional money (see Transaction's comment and
+  // docs/BACKEND_ARCHITECTURE.md §23).
+  depositAmount      Int?               @map("deposit_amount")
+  depositRequestedAt DateTime?          @map("deposit_requested_at")
+  depositReceivedAt  DateTime?          @map("deposit_received_at")
   // Mirrors DesignConcept.selectedByUser — only one quote request per
   // project should be selected at a time (enforced in the action, not a
   // DB constraint, same pattern as design selection in Phase 6).
@@ -433,6 +462,45 @@ model Transaction {
   @@index([professionalId])
   @@index([projectId])
   @@map("transactions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Private client pipeline
+// ─────────────────────────────────────────────────────────────────────────
+
+enum PipelineLockStatus {
+  ACTIVE // client is locked to this professional for this project
+  EXPIRED // lock ended (professional released it, or expiresAt passed)
+}
+
+// Created the moment a visitor who arrived via a contractor's referral
+// link/QR starts a project (src/lib/data/private-pipeline.ts). It is the
+// source of truth for "this project belongs to a private 2-way pipeline
+// between this homeowner and this professional". The homeowner is always
+// a real users row — an anonymous visitor already gets an isGuest user
+// (src/lib/guest.ts), and mergeGuestIntoUser re-points these rows when
+// that guest signs up — so no separate anonymous-session id is needed.
+model PrivatePipelineSession {
+  id                  String             @id @default(uuid()) @db.Uuid
+  professionalId      String             @map("professional_id") @db.Uuid
+  professional        Professional       @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  homeownerId         String             @map("homeowner_id") @db.Uuid
+  homeowner           User               @relation(fields: [homeownerId], references: [id], onDelete: Cascade)
+  // One session per project: a project is in exactly one pipeline.
+  projectId           String             @unique @map("project_id") @db.Uuid
+  project             Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lockStatus          PipelineLockStatus @default(ACTIVE) @map("lock_status")
+  // Set when the homeowner presses "Send render & request official
+  // estimate" — until then the professional sees renders but no contact
+  // or address details.
+  estimateRequestedAt DateTime?          @map("estimate_requested_at")
+  // Null = permanent lock.
+  expiresAt           DateTime?          @map("expires_at")
+  createdAt           DateTime           @default(now()) @map("created_at")
+
+  @@index([professionalId, lockStatus])
+  @@index([homeownerId])
+  @@map("private_pipeline_sessions")
 }
 
 // ─────────────────────────────────────────────────────────────────────────

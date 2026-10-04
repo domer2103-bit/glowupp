@@ -12,6 +12,7 @@ import { poundsToPence } from "@/lib/money";
 import { notifyProfessionalSelected, notifyOpenMarketProject, notifyQuoteSubmitted } from "@/lib/notifications";
 import { calculateLeadFee } from "@/lib/fees";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { assertNotPrivate } from "@/lib/data/private-pipeline";
 import { ProjectStatus, QuoteRequestStatus, TransactionStatus, UserRole } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string } | undefined;
@@ -52,6 +53,12 @@ export async function validateProjectReadyForQuotes(project: { id: string; proje
  */
 export async function pushToOpenMarket(projectId: string): Promise<ActionState> {
   const project = await requireProjectOwner(projectId);
+
+  // Private Client Pipeline: a project locked to one contractor must never
+  // reach the open marketplace, whatever the UI showed. Checked before the
+  // idempotent "already open" return so a private project can't slip through it either.
+  const privateError = await assertNotPrivate(projectId);
+  if (privateError) return { error: privateError };
 
   if (isAtOrPastStatus(project.status, ProjectStatus.REQUESTING_QUOTES)) {
     return undefined;
@@ -120,6 +127,8 @@ export async function submitOpenMarketQuote(projectId: string, _prevState: Actio
   if (!isAtOrPastStatus(project.status, ProjectStatus.REQUESTING_QUOTES) || project.status === ProjectStatus.CANCELLED) {
     return { error: "This project isn't open for quotes." };
   }
+  // Private pipeline projects take quotes only through submitPrivateQuote, from the locked contractor.
+  if (await assertNotPrivate(projectId)) return { error: "This project isn't open for quotes." };
 
   const match = evaluateMatch(
     { projectType: project.projectType, postcode: project.postcode, budgetMin: project.budgetMin, budgetMax: project.budgetMax, targetStartDate: project.targetStartDate },
@@ -187,6 +196,22 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
   // writes it together with the status change) — this is a defensive
   // check against that invariant, not an expected runtime path.
   if (quoteRequest.quoteAmount === null) return;
+
+  // Private-pipeline jobs are the contractor's own client: no lead fee, no
+  // Transaction row — just record the selection. (Reverse this by removing
+  // the branch if private jobs should also be charged.)
+  if (project.isPrivatePipeline) {
+    await prisma.$transaction([
+      prisma.quoteRequest.updateMany({ where: { projectId }, data: { selected: false } }),
+      prisma.quoteRequest.update({ where: { id: quoteRequestId }, data: { selected: true } }),
+      prisma.project.update({ where: { id: projectId }, data: { status: ProjectStatus.PROFESSIONAL_SELECTED } }),
+      prisma.activityLog.create({ data: { type: "professional_selected", actorId: project.homeownerId, projectId, metadata: { quoteRequestId, privatePipeline: true } } }),
+    ]);
+    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectId}/quotes`);
+    revalidatePath("/professional/pipeline");
+    return;
+  }
 
   const feeAmount = calculateLeadFee(quoteRequest.quoteAmount);
 

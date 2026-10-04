@@ -3,6 +3,7 @@ import { getProjectQuoteRequests } from "@/lib/data/quotes";
 import { requireProjectOwner } from "@/lib/data/projects";
 import { selectProfessional } from "@/lib/actions/quotes";
 import { penceToPounds } from "@/lib/money";
+import { readLineItems } from "@/lib/pipeline-quote";
 
 export default async function ProjectQuotesPage(props: PageProps<"/projects/[id]/quotes">) {
   const { id } = await props.params;
@@ -27,7 +28,7 @@ export default async function ProjectQuotesPage(props: PageProps<"/projects/[id]
             <Link href={`/projects/${id}`} className="font-medium text-[#3a6694] underline">
               Push your project to the open market
             </Link>{" "}
-            to start getting them.
+            to start getting them. (If you came from a contractor&apos;s private portal, send them your render from the project page instead.)
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -58,7 +59,23 @@ export default async function ProjectQuotesPage(props: PageProps<"/projects/[id]
 
                 {qr.status === "QUOTED" && (
                   <div className="mt-2 flex flex-col gap-1 rounded-lg border border-zinc-200 bg-blue-50 p-3 text-sm">
-                    <p className="font-medium">{qr.quoteAmount ? `£${penceToPounds(qr.quoteAmount)}` : "Amount not given"}</p>
+                    {readLineItems(qr.quoteLineItems).length > 0 && (
+                      <ul className="mb-1 flex flex-col gap-0.5 border-b border-zinc-200 pb-2 text-zinc-700">
+                        {readLineItems(qr.quoteLineItems).map((item, i) => (
+                          <li key={i} className="flex justify-between gap-4">
+                            <span>{item.description}</span>
+                            <span className="tabular-nums">£{penceToPounds(item.amountPence).toFixed(2)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="font-medium">{qr.quoteAmount ? `Total £${penceToPounds(qr.quoteAmount).toFixed(2)}` : "Amount not given"}</p>
+                    {qr.depositAmount && (
+                      <p className="text-zinc-700">
+                        Deposit requested: <span className="font-medium">£{penceToPounds(qr.depositAmount).toFixed(2)}</span>
+                        {qr.depositReceivedAt ? " — received by your contractor ✓" : " — pay this directly to your contractor; GlowUpp doesn't take or hold it."}
+                      </p>
+                    )}
                     {qr.quoteTimeline && <p className="text-zinc-600">Timeline: {qr.quoteTimeline}</p>}
                     {qr.quoteNotes && <p className="text-zinc-600">{qr.quoteNotes}</p>}
                     {!qr.selected && (

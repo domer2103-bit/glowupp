@@ -268,3 +268,42 @@ export async function notifyProjectReopened(input: ProjectReopenedInput): Promis
     ),
   });
 }
+
+interface PrivateEstimateRequestedInput {
+  professionalEmail: string;
+  professionalName: string;
+  projectTitle: string;
+}
+
+/** Sent to the contractor when a client in their private pipeline sends a render and asks for an official estimate. */
+export async function notifyPrivateEstimateRequested(input: PrivateEstimateRequestedInput): Promise<void> {
+  const link = `${APP_URL}/professional/pipeline?tab=leads`;
+  await sendBestEffort({
+    to: input.professionalEmail,
+    subject: `Estimate requested: "${input.projectTitle}"`,
+    text: `Hi ${input.professionalName},\n\nA client from your private design portal has sent you their render for "${input.projectTitle}" and asked for an official estimate.\n\nView it and send your quote: ${link}\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.professionalName)},</p><p>A client from your private design portal sent you their render for <strong>${escapeHtml(input.projectTitle)}</strong> and asked for an official estimate.</p><p><a href="${link}">View it and send your quote</a></p>`
+    ),
+  });
+}
+
+interface PrivateQuoteSubmittedInput extends QuoteSubmittedInput {
+  depositPence: number | null;
+}
+
+/** Sent to the homeowner when their contractor sends an itemised quote; mentions a deposit request if there is one. The deposit is paid directly to the contractor — GlowUpp never takes it. */
+export async function notifyPrivateQuoteSubmitted(input: PrivateQuoteSubmittedInput): Promise<void> {
+  const link = `${APP_URL}/projects/${input.projectId}/quotes`;
+  const amount = formatPence(input.quoteAmountPence);
+  const deposit = input.depositPence ? `${formatPence(input.depositPence)} deposit requested — arranged and paid directly with ${input.professionalBusinessName}, not through GlowUpp.` : "";
+
+  await sendBestEffort({
+    to: input.homeownerEmail,
+    subject: `Your estimate from ${input.professionalBusinessName}: ${amount}`,
+    text: `Hi ${input.homeownerName},\n\n${input.professionalBusinessName} sent your itemised estimate for "${input.projectTitle}": ${amount}, estimated timeline ${input.quoteTimeline}.${deposit ? `\n${deposit}` : ""}\n\nSee the full breakdown: ${link}\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.homeownerName)},</p><p><strong>${escapeHtml(input.professionalBusinessName)}</strong> sent your itemised estimate for <strong>${escapeHtml(input.projectTitle)}</strong>: <strong>${amount}</strong>, estimated timeline ${escapeHtml(input.quoteTimeline)}.</p>${deposit ? `<p>${escapeHtml(deposit)}</p>` : ""}<p><a href="${link}">See the full breakdown</a></p>`
+    ),
+  });
+}
