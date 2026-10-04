@@ -27,12 +27,13 @@ export type ActionState = { error?: string; info?: string } | undefined;
 
 /**
  * The only redirect shape "sign in to find a professional" links
- * (/projects/[id]/page.tsx) ever send: never trust an arbitrary `next`
- * value as an open redirect, only honor it if it's exactly this.
+ * (/projects/[id]/page.tsx) ever send, plus the homepage "/" (the private
+ * design portal's sign-up/sign-in buttons): never trust an arbitrary `next`
+ * value as an open redirect, only honor it if it's exactly one of these.
  */
 const PROJECT_PATH_RE = /^\/projects\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function safeNext(value: FormDataEntryValue | null): string | undefined {
-  return typeof value === "string" && PROJECT_PATH_RE.test(value) ? value : undefined;
+  return typeof value === "string" && (value === "/" || PROJECT_PATH_RE.test(value)) ? value : undefined;
 }
 
 const SignupSchema = z.object({

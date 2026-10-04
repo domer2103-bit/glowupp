@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { HOMEPAGE_CATEGORIES } from "@/lib/homepage-categories";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { BeforeAfterImage } from "@/components/BeforeAfterImage";
+import { PrivateWelcomeCard } from "@/components/PrivateWelcomeCard";
 import { UserRole } from "@/generated/prisma/client";
 
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -32,6 +33,8 @@ export default async function Home() {
       <div className="pointer-events-none absolute top-52 -left-32 h-96 w-96 rounded-full bg-blue-300/35 blur-2xl" />
       <div className="pointer-events-none absolute bottom-0 right-10 h-72 w-72 rounded-full bg-blue-300/35 blur-2xl" />
       <div className="pointer-events-none absolute top-[640px] left-1/3 h-64 w-64 rounded-full bg-blue-300/30 blur-2xl" />
+
+      {(!user || isHomeowner) && <PrivateWelcomeCard signedIn={!!user} />}
 
       <section className="relative mx-auto grid w-full max-w-6xl gap-10 px-6 py-12 sm:grid-cols-2 sm:items-center">
         <div className="flex flex-col gap-4">

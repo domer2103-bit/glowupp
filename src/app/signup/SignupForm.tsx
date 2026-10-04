@@ -7,10 +7,13 @@ export function SignupForm({
   projectType,
   next,
   defaultRole = "HOMEOWNER",
+  lockRole = false,
 }: {
   projectType?: string;
   next?: string;
   defaultRole?: "HOMEOWNER" | "PROFESSIONAL";
+  /** Private-portal sign-ups are for a contractor's client, so the professional option is hidden and the role is fixed. */
+  lockRole?: boolean;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(signup, undefined);
   const [role, setRole] = useState<"HOMEOWNER" | "PROFESSIONAL">(defaultRole);
@@ -19,19 +22,23 @@ export function SignupForm({
     <form action={action} className="flex w-full flex-col gap-4">
       {projectType && <input type="hidden" name="projectType" value={projectType} />}
       {next && <input type="hidden" name="next" value={next} />}
-      <div className="flex rounded-full border border-zinc-300 p-0.5 text-sm">
-        {(["HOMEOWNER", "PROFESSIONAL"] as const).map((r) => (
-          <label
-            key={r}
-            className={`flex-1 cursor-pointer rounded-full px-3 py-2 text-center transition ${
-              role === r ? "bg-[#3a6694] text-white" : "text-zinc-600 hover:text-[#132a4d]"
-            }`}
-          >
-            <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} className="sr-only" />
-            {r === "HOMEOWNER" ? "I'm a homeowner" : "I'm a professional"}
-          </label>
-        ))}
-      </div>
+      {lockRole ? (
+        <input type="hidden" name="role" value="HOMEOWNER" />
+      ) : (
+        <div className="flex rounded-full border border-zinc-300 p-0.5 text-sm">
+          {(["HOMEOWNER", "PROFESSIONAL"] as const).map((r) => (
+            <label
+              key={r}
+              className={`flex-1 cursor-pointer rounded-full px-3 py-2 text-center transition ${
+                role === r ? "bg-[#3a6694] text-white" : "text-zinc-600 hover:text-[#132a4d]"
+              }`}
+            >
+              <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} className="sr-only" />
+              {r === "HOMEOWNER" ? "I'm a homeowner" : "I'm a professional"}
+            </label>
+          ))}
+        </div>
+      )}
 
       <input
         name="name"
