@@ -3,6 +3,27 @@ import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@/generated/prisma/client";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { AudienceToggle } from "@/components/AudienceToggle";
+import { RoleNav, type NavItem } from "@/components/RoleNav";
+
+/** Signed-in navigation per role. The audience toggle is for logged-out visitors only — once someone has an account the nav should reflect which side of the marketplace they're on. */
+function navItemsFor(role: UserRole): NavItem[] {
+  switch (role) {
+    case UserRole.PROFESSIONAL:
+      return [
+        { href: "/professional/open-projects", label: "Open projects" },
+        { href: "/professional/pipeline", label: "Private leads" },
+        { href: "/professional/opportunities", label: "My quotes" },
+        { href: "/professional/portfolio", label: "Portfolio" },
+      ];
+    case UserRole.HOMEOWNER:
+      return [
+        { href: "/projects", label: "My projects" },
+        { href: "/#categories", label: "New design" },
+      ];
+    case UserRole.ADMIN:
+      return [{ href: "/admin", label: "Admin" }];
+  }
+}
 
 /**
  * Rendered once in the root layout so every route gets consistent
@@ -16,7 +37,7 @@ import { AudienceToggle } from "@/components/AudienceToggle";
  */
 export async function SiteHeader() {
   const user = await getCurrentUser();
-  const isHomeowner = user?.role === UserRole.HOMEOWNER;
+  const isProfessional = user?.role === UserRole.PROFESSIONAL;
 
   return (
     <header className="relative z-10 w-full border-b border-zinc-100 bg-white px-6 py-4 sm:px-10">
@@ -24,16 +45,18 @@ export async function SiteHeader() {
         <Link href="/" className="flex items-center gap-2 text-lg font-bold text-[#132a4d]">
           <CategoryIcon type="exterior" className="h-6 w-6 text-[#3a6694]" />
           GlowUpp
+          {isProfessional && (
+            <span className="rounded-full bg-[#3a6694] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+              Pro
+            </span>
+          )}
         </Link>
 
         <nav className="flex flex-wrap items-center gap-4 text-sm font-medium text-zinc-600">
-          <AudienceToggle />
-          <Link href="/how-it-works" className="hover:text-[#132a4d]">
-            How It Works
-          </Link>
-          {isHomeowner && (
-            <Link href="/projects" className="hover:text-[#132a4d]">
-              My Projects
+          {user ? <RoleNav items={navItemsFor(user.role)} /> : <AudienceToggle />}
+          {!isProfessional && (
+            <Link href="/how-it-works" className="hover:text-[#132a4d]">
+              How It Works
             </Link>
           )}
         </nav>
