@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -14,7 +15,7 @@ const STATUS_COPY: Record<VerificationStatus, string> = {
 export default async function VerificationPage() {
   const user = await requireRole(UserRole.PROFESSIONAL);
   const professional = await prisma.professional.findUnique({ where: { userId: user.id } });
-  if (!professional) return null;
+  if (!professional) redirect("/professional/onboarding");
 
   return (
     <div className="relative flex flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-blue-50 to-white px-6 py-16 text-[#132a4d]">

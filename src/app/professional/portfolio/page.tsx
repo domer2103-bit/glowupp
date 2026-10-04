@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +10,7 @@ import { PortfolioUploadForm } from "./PortfolioUploadForm";
 export default async function PortfolioPage() {
   const user = await requireRole(UserRole.PROFESSIONAL);
   const professional = await prisma.professional.findUnique({ where: { userId: user.id } });
-  if (!professional) return null;
+  if (!professional) redirect("/professional/onboarding");
 
   const photos = await prisma.professionalPortfolioPhoto.findMany({
     where: { professionalId: professional.id },
