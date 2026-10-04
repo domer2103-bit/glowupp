@@ -13,6 +13,8 @@ import { StatusForm } from "./StatusForm";
 import { GenerateBatchButton } from "./GenerateBatchButton";
 import { ConceptCard } from "./ConceptCard";
 import { PushToMarketButton } from "./PushToMarketButton";
+import { SendPrivateEstimateButton } from "./SendPrivateEstimateButton";
+import { getActivePipelineForProject } from "@/lib/data/private-pipeline";
 
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params;
@@ -39,6 +41,8 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   // not as always-there navigation from the moment a project exists.
   const readyForMarketplace = isAtOrPastStatus(project.status, ProjectStatus.DESIGN_READY);
   const isOnOpenMarket = isAtOrPastStatus(project.status, ProjectStatus.REQUESTING_QUOTES);
+  // Private Client Pipeline: a project locked to one contractor never shows the open-market option.
+  const pipeline = await getActivePipelineForProject(project.id);
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-gradient-to-b from-blue-50 to-white text-[#132a4d]">
@@ -122,7 +126,49 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           </section>
         )}
 
-        {readyForMarketplace && (
+        {readyForMarketplace && pipeline && (
+          <section className="rounded-[28px] border border-[#3a6694]/30 bg-blue-50/60 p-6 shadow-sm sm:p-8">
+            <h2 className="text-lg font-bold text-[#132a4d]">Private design portal — {pipeline.professional.businessName}</h2>
+            {pipeline.estimateRequestedAt ? (
+              <p className="mt-2 text-sm text-zinc-600">
+                Your render has been sent to {pipeline.professional.businessName}. They&apos;ll reply with an itemised estimate, and
+                you can message them directly.
+              </p>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-600">
+                This design stays between you and {pipeline.professional.businessName} — it isn&apos;t shared with other
+                tradespeople. When you&apos;re happy with it, send it over to get an official estimate.
+              </p>
+            )}
+            {isGuest ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/signup?next=${encodeURIComponent(`/projects/${project.id}`)}`}
+                  className="inline-flex items-center rounded-full bg-[#3a6694] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2c5075]"
+                >
+                  Sign in to request your estimate
+                </Link>
+                <span className="text-xs text-zinc-500">Your design is saved — signing in takes a second and won&apos;t lose it.</span>
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-wrap gap-3">
+                {!pipeline.estimateRequestedAt && (
+                  <SendPrivateEstimateButton projectId={project.id} contractorName={pipeline.professional.businessName} />
+                )}
+                {pipeline.estimateRequestedAt && (
+                  <Link
+                    href={`/projects/${project.id}/quotes`}
+                    className="inline-flex items-center rounded-full border border-[#3a6694] px-4 py-2 text-sm font-medium text-[#3a6694] transition hover:bg-white"
+                  >
+                    View your estimate
+                  </Link>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {readyForMarketplace && !pipeline && (
           <section className="rounded-[28px] border border-[#3a6694]/30 bg-blue-50/60 p-6 shadow-sm sm:p-8">
             {isOnOpenMarket ? (
               <>

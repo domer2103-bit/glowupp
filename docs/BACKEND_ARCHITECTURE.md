@@ -1633,3 +1633,31 @@ not just what shipped.
   attachments in this app), no escalating warnings for repeated
   attempts. No broader "activation" email strategy — this remains the
   only automated reminder in the app, on purpose.
+
+---
+
+## 29. Post-roadmap — Private Client Pipeline
+
+A trade professional can hand a client a link or QR code on site. A project the client starts afterwards is **locked to that contractor** and can never reach the open marketplace.
+
+**Data model** (migration `20261004100000_add_private_client_pipeline`)
+- `Professional.referralCode` / `vanQrSlug` — unique, nullable, minted lazily the first time the contractor opens `/professional/pipeline` (`ensureReferralCodes`). Codes are 8 characters from an alphabet without 0/O/1/I; slugs are `business-name-xxxx`.
+- `PrivatePipelineSession` — `professionalId`, `homeownerId`, `projectId` (unique: a project is in one pipeline), `lockStatus` (`ACTIVE`/`EXPIRED`), `estimateRequestedAt`, `expiresAt` (null = permanent). **This row is the source of truth for the lock.** `Project.isPrivatePipeline` is a denormalised convenience flag only.
+- `QuoteRequest.quoteLineItems` (itemised quote), `depositAmount` / `depositRequestedAt` / `depositReceivedAt`.
+- RLS is enabled on the new table with no policies (deny-all to direct access), like `activity_log`.
+
+**Entry points.** `/q/[code]` and `/pro/[slug]/quote` (route handlers) validate the code, set an **httpOnly** `glowupp_pro_ref` cookie (30 days) and redirect to the category chooser. Unknown or admin-rejected contractors set no cookie. The cookie is httpOnly so the *server* decides which pipeline a project joins; it is not editable from page scripts. A site-wide banner (`PrivatePortalBanner`) names the contractor and fails soft if its lookup errors.
+
+**Locking.** `getOrCreateDraftProject` calls `lockProjectToReferrer`: with a valid cookie and a project not yet past `REQUESTING_QUOTES`, it creates the session and sets the flag in one transaction. Already-live projects are never pulled out of the marketplace. A guest's lock survives signup because `mergeGuestIntoUser` re-points sessions (and quote requests) to the real user before deleting the guest row — otherwise the FK cascade would silently unlock the project.
+
+**Enforcement is server-side, not UI-hiding.** Every marketplace entry point checks the lock: `pushToOpenMarket` (`assertNotPrivate`), `submitOpenMarketQuote` (`assertNotPrivate`), and `getOpenMarketProjects` (`notPrivatePipelineWhere()` in the query). Any new marketplace path must do the same.
+
+**Privacy.** Until the client presses "Send render & request official estimate", the contractor sees renders, project type and the **outward postcode only** — no name, email or address. After that the normal quote/messaging rules apply (a `QuoteRequest` is created, which also opens the message thread).
+
+**Money.** Per §23 GlowUpp never handles homeowner→professional money. A *deposit request* is therefore a recorded amount plus message: the client pays the contractor directly and the contractor marks it received. Nothing is processed or held. Private-pipeline jobs are the contractor's own client, so **no lead fee / `Transaction` is created** on selection (see the `isPrivatePipeline` branch in `selectProfessional`; remove it to charge them too). Selecting reveals the full postcode to the contractor.
+
+**Contractor UI.** `/professional/pipeline` — "Client Quote & Lock Tool" (copy link, on-screen QR, full-screen QR for on-site scanning, high-resolution PNG download) and "Private Leads & Direct Renders" (auto-refreshes every 10s while the tab is visible; itemised quote form with optional deposit).
+
+**Tests.** `referral.test.ts`, `pipeline-quote.test.ts` (unit). `private-pipeline.integration.test.ts` runs against a real Postgres and is skipped unless `PIPELINE_TEST_DB=1` and `DATABASE_URL` point at a scratch database (never production): code minting, locking rules, the three marketplace gates (each verified to fail if its guard is removed), the full estimate→quote→deposit→accept flow, and guest-merge.
+
+**Not built (deliberately).** Auto-expiry/release of locks (`expiresAt` and `EXPIRED` are honoured everywhere but nothing sets them yet); websocket push (polling instead); contractor-editable codes; any payment processing.

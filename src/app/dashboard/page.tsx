@@ -48,6 +48,10 @@ export default async function DashboardPage() {
                 <span className="font-medium">Open projects</span>
                 <span className="text-zinc-400">→</span>
               </Link>
+              <Link href="/professional/pipeline" className={CARD_CLASS}>
+                <span className="font-medium">Client Quote &amp; Lock Tool</span>
+                <span className="text-zinc-400">→</span>
+              </Link>
               <Link href="/professional/opportunities" className={CARD_CLASS}>
                 <span className="font-medium">Your quotes</span>
                 <span className="text-zinc-400">→</span>

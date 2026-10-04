@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser, getCurrentUser } from "@/lib/auth";
 import { getOrCreateGuestUser } from "@/lib/guest";
+import { lockProjectToReferrer } from "@/lib/data/private-pipeline";
 import { UserRole } from "@/generated/prisma/client";
 
 /**
@@ -136,12 +137,18 @@ export async function getOrCreateDraftProject(homeownerId: string, projectType: 
     orderBy: { createdAt: "desc" },
     include: { photos: { orderBy: { uploadOrder: "asc" } }, requirements: true },
   });
-  if (existing) return existing;
+  if (existing) {
+    const locked = await lockProjectToReferrer(existing.id, homeownerId);
+    return locked ? { ...existing, isPrivatePipeline: true } : existing;
+  }
 
   const created = await prisma.project.create({
     data: { homeownerId, projectType, title, postcode: "", status: "DRAFT" },
   });
-  return { ...created, photos: [], requirements: null };
+  // A visitor who arrived via a contractor's link/QR gets this project
+  // locked to that contractor (Private Client Pipeline).
+  const locked = await lockProjectToReferrer(created.id, homeownerId);
+  return { ...created, isPrivatePipeline: locked, photos: [], requirements: null };
 }
 
 export async function listHomeownerProjects() {

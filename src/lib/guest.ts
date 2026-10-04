@@ -53,7 +53,14 @@ export async function mergeGuestIntoUser(realUserId: string): Promise<void> {
   const guest = await prisma.user.findUnique({ where: { id: guestId } });
   if (!guest || !guest.isGuest) return;
 
-  await prisma.project.updateMany({ where: { homeownerId: guestId }, data: { homeownerId: realUserId } });
-  await prisma.user.delete({ where: { id: guestId } });
+  // Re-point the private-pipeline locks too — their homeowner FK would
+  // otherwise cascade-delete with the guest row and silently unlock the
+  // project (the contractor's client would vanish on signup).
+  await prisma.$transaction([
+    prisma.project.updateMany({ where: { homeownerId: guestId }, data: { homeownerId: realUserId } }),
+    prisma.privatePipelineSession.updateMany({ where: { homeownerId: guestId }, data: { homeownerId: realUserId } }),
+    prisma.quoteRequest.updateMany({ where: { homeownerId: guestId }, data: { homeownerId: realUserId } }),
+    prisma.user.delete({ where: { id: guestId } }),
+  ]);
   jar.delete(GUEST_COOKIE);
 }
