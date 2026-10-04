@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { HOMEPAGE_CATEGORIES } from "@/lib/homepage-categories";
 import { CategoryIcon } from "@/components/CategoryIcon";
+import { getCurrentUser } from "@/lib/auth";
+import { UserRole } from "@/generated/prisma/client";
 
-export default function ProfessionalsPage() {
+export default async function ProfessionalsPage() {
+  // This is the recruitment page — someone already signed up as a professional has nothing to "get started" with, so send them to their dashboard instead.
+  const user = await getCurrentUser();
+  const isProfessional = user?.role === UserRole.PROFESSIONAL;
+  const ctaHref = isProfessional ? "/dashboard" : "/signup?role=professional";
+
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-gradient-to-b from-blue-50 to-white text-[#132a4d]">
       <div className="pointer-events-none absolute -top-16 -right-20 h-96 w-96 rounded-full bg-blue-300/45 blur-2xl" />
@@ -19,10 +26,10 @@ export default function ProfessionalsPage() {
           looking for exactly what you do.
         </p>
         <Link
-          href="/signup?role=professional"
+          href={ctaHref}
           className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]"
         >
-          Get Started →
+          {isProfessional ? "Go to your dashboard →" : "Get Started →"}
         </Link>
       </section>
 
@@ -60,10 +67,10 @@ export default function ProfessionalsPage() {
 
       <section className="relative mx-auto w-full max-w-3xl px-6 pb-16 text-center">
         <Link
-          href="/signup?role=professional"
+          href={ctaHref}
           className="inline-flex w-fit items-center gap-2 rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]"
         >
-          Create Your Free Profile →
+          {isProfessional ? "Go to your dashboard →" : "Create Your Free Profile →"}
         </Link>
       </section>
     </div>
