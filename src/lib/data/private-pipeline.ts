@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getOutwardCode } from "@/lib/postcode";
@@ -100,6 +101,25 @@ export async function getReferralCodeFromCookie() {
 export async function getReferrerFromCookie() {
   return findReferrerByCode(await getReferralCodeFromCookie());
 }
+
+/**
+ * The referrer for UI chrome (header label, welcome card), memoised per
+ * request so both can ask. Fails soft: a database hiccup may hide the
+ * portal chrome but must never take down every page — the lock itself is
+ * enforced separately, server-side, where it matters. The cookie read stays
+ * outside the try/catch on purpose: it is what marks the page dynamic (by
+ * throwing), and swallowing that would let Next prerender pages statically
+ * with no portal chrome.
+ */
+export const getPortalReferrer = cache(async () => {
+  const code = await getReferralCodeFromCookie();
+  try {
+    return await findReferrerByCode(code);
+  } catch (err) {
+    console.error("[private-portal] referrer lookup failed:", err);
+    return null;
+  }
+});
 
 /**
  * Called whenever the wizard resolves a project for a visitor. If they

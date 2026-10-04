@@ -4,6 +4,7 @@ import { UserRole } from "@/generated/prisma/client";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { AudienceToggle } from "@/components/AudienceToggle";
 import { RoleNav, type NavItem } from "@/components/RoleNav";
+import { getPortalReferrer } from "@/lib/data/private-pipeline";
 
 /** Signed-in navigation per role. The audience toggle is for logged-out visitors only — once someone has an account the nav should reflect which side of the marketplace they're on. */
 function navItemsFor(role: UserRole): NavItem[] {
@@ -38,6 +39,8 @@ function navItemsFor(role: UserRole): NavItem[] {
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const isProfessional = user?.role === UserRole.PROFESSIONAL;
+  // Private mode: a visitor (or homeowner) who arrived via a contractor's link. They're working with that one contractor, so the marketplace chrome — the audience toggle that points at the professional recruitment page — is removed. A professional or admin who opens a link sees the normal header.
+  const referrer = !user || user.role === UserRole.HOMEOWNER ? await getPortalReferrer() : null;
 
   return (
     <header className="relative z-10 w-full border-b border-zinc-100 bg-white px-6 py-4 sm:px-10">
@@ -52,9 +55,15 @@ export async function SiteHeader() {
           )}
         </Link>
 
+        {referrer && (
+          <span className="rounded-full border border-[#3a6694]/30 bg-blue-50 px-3 py-1 text-xs font-medium text-[#132a4d]">
+            Private design portal · <span className="font-semibold">{referrer.businessName}</span>
+          </span>
+        )}
+
         <nav className="flex flex-wrap items-center gap-4 text-sm font-medium text-zinc-600">
-          {user ? <RoleNav items={navItemsFor(user.role)} /> : <AudienceToggle />}
-          {!isProfessional && (
+          {user ? <RoleNav items={navItemsFor(user.role)} /> : !referrer && <AudienceToggle />}
+          {!isProfessional && !referrer && (
             <Link href="/how-it-works" className="hover:text-[#132a4d]">
               How It Works
             </Link>
