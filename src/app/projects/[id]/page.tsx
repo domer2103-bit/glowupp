@@ -18,6 +18,9 @@ import { getDesignStyle } from "@/lib/design-styles";
 import { PushToMarketButton } from "./PushToMarketButton";
 import { SendPrivateEstimateButton } from "./SendPrivateEstimateButton";
 import { getActivePipelineForProject } from "@/lib/data/private-pipeline";
+import { AssistantChat, OpenAssistantButton } from "./AssistantChat";
+import { computeProfileStatus } from "@/lib/assistant";
+import { prisma } from "@/lib/prisma";
 
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params;
@@ -34,6 +37,10 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       url: await getSignedPhotoUrl(photo.storagePath),
     }))
   );
+
+  // The assistant pop-up: its history and the "details known" bar.
+  const assistantMessages = await prisma.assistantMessage.findMany({ where: { projectId: project.id }, orderBy: { createdAt: "asc" }, take: 200 });
+  const profileStatus = definition ? computeProfileStatus(definition, existingRequirements) : null;
 
   const conceptsWithUrls = await Promise.all(
     project.designConcepts.map(async (concept) => ({
@@ -88,12 +95,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
               </p>
               {project.description && <p className="mt-3 max-w-lg text-sm text-zinc-600">{project.description}</p>}
             </div>
-            <Link
-              href={`/projects/${project.id}/assistant`}
-              className="inline-block shrink-0 rounded-full bg-[#3a6694] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2c5075]"
-            >
-              Chat with GlowUpp assistant
-            </Link>
+            <OpenAssistantButton />
           </div>
 
           <div className="mt-6 border-t border-zinc-100 pt-4">
@@ -257,11 +259,26 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
             <h2 className="text-lg font-bold text-[#132a4d]">Requirements</h2>
             <p className="mt-1 text-sm text-zinc-500">The full brief GlowUpp uses to generate and refine your designs.</p>
             <div className="mt-4">
-              <RequirementsForm projectId={project.id} definition={definition} existingData={existingRequirements} />
+              {/* Keyed by the saved answers so the form refreshes when the assistant (or anything else) changes them — it only reads them as default values on first render. */}
+              <RequirementsForm key={JSON.stringify(existingRequirements)} projectId={project.id} definition={definition} existingData={existingRequirements} />
             </div>
           </section>
         )}
       </div>
+
+      <AssistantChat
+        projectId={project.id}
+        messages={assistantMessages.map((m) => ({ id: m.id, role: m.role as "user" | "assistant", content: m.content }))}
+        status={
+          profileStatus
+            ? {
+                known: profileStatus.knownFields.length,
+                total: profileStatus.knownFields.length + profileStatus.missingFields.length,
+                missing: profileStatus.missingFields.map((f) => f.label),
+              }
+            : null
+        }
+      />
     </div>
   );
 }
