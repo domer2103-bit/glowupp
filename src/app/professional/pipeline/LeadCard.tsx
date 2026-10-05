@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getProjectTypeDefinition } from "@/lib/project-types";
 import { markDepositReceived } from "@/lib/actions/private-pipeline";
 import { penceToPounds } from "@/lib/money";
-import { readLineItems } from "@/lib/pipeline-quote";
+import { itemCountLabel, readLineItems } from "@/lib/pipeline-quote";
 import type { PrivateLead } from "@/lib/data/private-pipeline";
 import { PrivateQuoteForm } from "./PrivateQuoteForm";
 import { privateLeadAnchorId } from "@/lib/pipeline-links";
@@ -47,7 +47,7 @@ export function LeadCard({ lead }: { lead: PrivateLead }) {
           {quoted && qr.quoteAmount && (
             <div className="text-sm">
               <p className="font-medium">
-                Your quote: £{penceToPounds(qr.quoteAmount).toFixed(2)} ({readLineItems(qr.quoteLineItems).length} items)
+                Your quote: £{penceToPounds(qr.quoteAmount).toFixed(2)} ({itemCountLabel(readLineItems(qr.quoteLineItems).length)})
               </p>
               {qr.depositAmount && (
                 <div className="text-zinc-600">
