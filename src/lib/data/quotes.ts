@@ -78,7 +78,7 @@ export async function getProfessionalQuotes() {
 
   const requests = await prisma.quoteRequest.findMany({
     where: { professionalId: professional.id },
-    include: { project: true, transaction: true },
+    include: { project: { include: { privatePipelineSession: { select: { id: true } } } }, transaction: true },
     orderBy: { sentAt: "desc" },
   });
 

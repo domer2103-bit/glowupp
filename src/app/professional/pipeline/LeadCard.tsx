@@ -5,6 +5,7 @@ import { penceToPounds } from "@/lib/money";
 import { readLineItems } from "@/lib/pipeline-quote";
 import type { PrivateLead } from "@/lib/data/private-pipeline";
 import { PrivateQuoteForm } from "./PrivateQuoteForm";
+import { privateLeadAnchorId } from "@/lib/pipeline-links";
 
 export function LeadCard({ lead }: { lead: PrivateLead }) {
   const qr = lead.quoteRequest;
@@ -12,7 +13,7 @@ export function LeadCard({ lead }: { lead: PrivateLead }) {
   const quoted = qr?.status === "QUOTED";
 
   return (
-    <li className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <li id={privateLeadAnchorId(lead.sessionId)} className="flex scroll-mt-24 flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-medium">{lead.clientLabel}</p>
