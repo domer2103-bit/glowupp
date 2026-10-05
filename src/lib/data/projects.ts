@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { failStaleConcepts } from "@/lib/design-stale";
 import { requireUser, getCurrentUser } from "@/lib/auth";
 import { getOrCreateGuestUser } from "@/lib/guest";
 import { lockProjectToReferrer } from "@/lib/data/private-pipeline";
@@ -64,6 +65,8 @@ export const getProject = cache(async (projectId: string) => {
  */
 export const getProjectForOwnerOrGuest = cache(async (projectId: string) => {
   if (!UUID_RE.test(projectId)) notFound();
+  // Background generation can be cut short by a restart; clear anything left "generating" for too long so it doesn't spin forever.
+  await failStaleConcepts(projectId);
   const currentUser = await getCurrentUser();
 
   const project = await prisma.project.findUnique({
