@@ -8,6 +8,8 @@ interface MessageThreadProps {
   messages: { id: string; body: string; createdAt: Date; senderId: string; sender: { name: string } }[];
   currentUserId: string;
   disabled?: boolean;
+  /** Small note under the message box (e.g. to say that messages are chat, not quotes). */
+  hint?: string;
 }
 
 /**
@@ -18,7 +20,7 @@ interface MessageThreadProps {
  * far is colocated per-route) because duplicating a list-plus-form this
  * size across two routes would drift the two copies apart over time.
  */
-export function MessageThread({ quoteRequestId, messages, currentUserId, disabled }: MessageThreadProps) {
+export function MessageThread({ quoteRequestId, messages, currentUserId, disabled, hint }: MessageThreadProps) {
   const action = sendMessage.bind(null, quoteRequestId);
   const [state, dispatch, pending] = useActionState<ActionState, FormData>(action, undefined);
 
@@ -49,6 +51,7 @@ export function MessageThread({ quoteRequestId, messages, currentUserId, disable
         <p className="text-xs text-zinc-500">This thread is closed.</p>
       ) : (
         <form action={dispatch} className="flex flex-col gap-2">
+          {hint && <p className="text-xs text-zinc-500">{hint}</p>}
           <textarea
             name="body"
             placeholder="Write a message…"

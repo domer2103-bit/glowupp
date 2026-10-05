@@ -16,7 +16,7 @@ export default async function OpportunitiesPage() {
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">Your quotes</h1>
           <p className="text-sm text-zinc-500">
-            Quotes you&apos;ve sent. Looking for new projects?{" "}
+            Quotes you&apos;ve sent, and estimates clients have asked you for. Looking for new projects?{" "}
             <Link href="/professional/open-projects" className="font-medium text-[#3a6694] underline">
               Browse the open market
             </Link>
@@ -26,7 +26,7 @@ export default async function OpportunitiesPage() {
 
         {quotes.length === 0 ? (
           <p className="text-zinc-600">
-            No quotes sent yet.{" "}
+            No quotes or estimate requests yet.{" "}
             <Link href="/professional/open-projects" className="font-medium text-[#3a6694] underline">
               Browse open projects
             </Link>
