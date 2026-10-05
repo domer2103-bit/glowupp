@@ -55,3 +55,8 @@ export function readLineItems(json: unknown): QuoteLineItem[] {
     return typeof description === "string" && Number.isInteger(amountPence) ? [{ description, amountPence: amountPence as number }] : [];
   });
 }
+
+/** "1 item" / "3 items" — for showing how many lines an itemised quote has. */
+export function itemCountLabel(count: number): string {
+  return `${count} ${count === 1 ? "item" : "items"}`;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseLineItems, readLineItems, sumLineItems, validateDeposit } from "./pipeline-quote";
+import { itemCountLabel, parseLineItems, readLineItems, sumLineItems, validateDeposit } from "./pipeline-quote";
 
 describe("parseLineItems", () => {
   it("parses rows into pence and skips blank rows", () => {
@@ -42,5 +42,17 @@ describe("readLineItems", () => {
   it("drops malformed entries instead of throwing", () => {
     expect(readLineItems([{ description: "a", amountPence: 100 }, { description: 5 }, null, "x"])).toEqual([{ description: "a", amountPence: 100 }]);
     expect(readLineItems(null)).toEqual([]);
+  });
+});
+
+describe("itemCountLabel", () => {
+  it("uses the singular for exactly one item", () => {
+    expect(itemCountLabel(1)).toBe("1 item");
+  });
+
+  it("uses the plural for any other count", () => {
+    expect(itemCountLabel(0)).toBe("0 items");
+    expect(itemCountLabel(2)).toBe("2 items");
+    expect(itemCountLabel(30)).toBe("30 items");
   });
 });
