@@ -18,9 +18,7 @@ export function GenerateRestButton({ projectId, count }: { projectId: string; co
         disabled={pending}
         className="self-start rounded-full bg-[#3a6694] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#2c5075] disabled:opacity-60"
       >
-        {pending
-          ? `Designing your other photo${count === 1 ? "" : "s"} (can take a few minutes)…`
-          : `Design my other ${count === 1 ? "photo" : `${count} photos`} in this style`}
+        {pending ? "Starting…" : `Design my other ${count === 1 ? "photo" : `${count} photos`} in this style`}
       </button>
       {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
     </form>

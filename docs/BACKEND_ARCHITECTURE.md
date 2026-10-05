@@ -1673,3 +1673,20 @@ A trade professional can hand a client a link or QR code on site. A project the 
 **Verified on real photos** (a three-photo living room, nano-banana-pro): with the structure lock and matched aspect ratio the style options keep the bay window, chimney breast and alcoves in place; a second and third photo of the same room come back with their own TV wall, window, sofas and shelves in the same positions, in the chosen palette. **Not verified:** flux-kontext models for this flow, and how often nano-banana-pro still drifts across many rooms — worth an A/B against `flux-kontext-pro` (more literal, see §17) for the first batch.
 
 **Tests.** `design-selection.test.ts`, `aspect-ratio.test.ts` (unit); `designs.integration.test.ts` (real Postgres, skipped unless `DESIGNS_TEST_DB=1` and a scratch `DATABASE_URL`): chosen-style gate, reference passing, idempotence, retry-after-failure, text fallback, cap.
+
+## 31. Post-roadmap — Background generation and duplicate protection
+
+**Problem found on the live site.** Generating a batch used to be one long server action (three images in a row, up to two minutes each). The browser's connection was cut part-way — the server carried on, but the page never got the result — and the request was then silently retried, so the same style was generated twice (a batch of 4 instead of 3, each duplicate costing an image). "Design my other photos" had the same exposure.
+
+**Reserve, then run.** Every generation path (batch, other photos, regenerate, request-changes) now goes through `startGeneration` in `src/lib/actions/designs.ts`:
+1. `reserveConcepts` (`src/lib/design-jobs.ts`) creates all the rows up front in one transaction — status `PROCESSING`, consecutive versions — so the page can show them as "Generating…" immediately.
+2. `after()` (`next/server`) runs `runReservedConcepts` once the response has gone out, up to three images at a time. A failed image is recorded on its own row (`FAILED` + message); the others are unaffected.
+3. The request returns in milliseconds. The project page re-fetches itself every 8 seconds while any concept is `PENDING`/`PROCESSING` (`AutoRefresh`, which only runs while the tab is visible).
+
+**Duplicate protection (two layers).**
+- *Pre-check:* a batch skips any style that already exists, or is in progress, for that photo (failed ones are retried); "other photos" skips photos that already have a non-failed concept in the chosen style.
+- *Race guard:* `(projectId, version)` is unique, so two simultaneous requests compute the same next version and exactly one transaction wins; the loser gets `null` from `reserveConcepts` and does nothing. No advisory lock or migration is needed.
+
+**Interrupted work.** A restart (a deploy) kills in-flight background work and would leave rows "generating" forever — which would also block a retry. `failStaleConcepts` (`src/lib/design-stale.ts`, run when the project page loads) marks anything unfinished after 10 minutes as failed with "Generation was interrupted — please try again."; it can then be retried. **Deploying while someone is mid-generation loses that image** (still billed by the provider). Prefer deploying when nothing is generating.
+
+**Tests.** `design-jobs.test.ts` (unit: unique-violation → `null`, other errors rethrown); `designs.integration.test.ts` now also covers returning before the images exist, no-op repeats, filling only the missing styles, one failure not losing the others, and stale cleanup. The duplicate tests were verified to fail with the pre-check removed.

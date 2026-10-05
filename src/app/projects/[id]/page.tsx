@@ -19,6 +19,7 @@ import { PushToMarketButton } from "./PushToMarketButton";
 import { SendPrivateEstimateButton } from "./SendPrivateEstimateButton";
 import { getActivePipelineForProject } from "@/lib/data/private-pipeline";
 import { AssistantChat, OpenAssistantButton } from "./AssistantChat";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { computeProfileStatus } from "@/lib/assistant";
 import { prisma } from "@/lib/prisma";
 
@@ -48,6 +49,9 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       url: concept.storagePath ? await getSignedPhotoUrl(concept.storagePath) : null,
     }))
   );
+
+  // Generation runs in the background, so keep the page fresh while any image is still being made.
+  const generatingNow = project.designConcepts.some((c) => c.status === "PENDING" || c.status === "PROCESSING");
 
   // Choose-a-style flow: once one style is picked the rest are hidden, and the homeowner's other photos can be designed to match.
   const chosen = getChosenConcept(project.designConcepts);
@@ -265,6 +269,8 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           </section>
         )}
       </div>
+
+      {generatingNow && <AutoRefresh everyMs={8000} />}
 
       <AssistantChat
         projectId={project.id}

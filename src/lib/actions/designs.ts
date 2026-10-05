@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { getProjectTypeDefinition } from "@/lib/project-types";
-import { buildDesignPrompt, runDesignGeneration } from "@/lib/design-generation";
+import { buildDesignPrompt } from "@/lib/design-generation";
+import { reserveConcepts, runReservedConcepts, type ConceptSpec } from "@/lib/design-jobs";
 import { GENERATION_LIMITS } from "@/lib/generation-limits";
 import { DESIGN_STYLES, getDesignStyle } from "@/lib/design-styles";
 import { isAtOrPastStatus } from "@/lib/project-status";
@@ -16,62 +18,25 @@ import { DesignConceptStatus, ProjectStatus } from "@/generated/prisma/client";
 export type ActionState = { error?: string } | undefined;
 
 /**
- * Shared by every generation path (batch, regenerate, edit): creates the
- * row up front at a pre-allocated version number, attempts the provider
- * call, and updates the same row to COMPLETE or FAILED. A version number
- * is never skipped or reused, and a failed attempt stays visible rather
- * than disappearing — the brief's "never overwrite" requirement extends to
- * failed attempts too.
+ * Shared by every generation path (batch, other photos, regenerate, edit).
+ * Reserves the rows first (which is also the duplicate guard — see
+ * reserveConcepts), then runs the slow image generation in the background so
+ * the request returns immediately instead of holding a connection open for
+ * minutes; the project page shows "Generating…" and refreshes itself.
+ *
+ * Returns false if another request got there first, in which case this one
+ * must do nothing.
  */
-async function runConceptAttempt(params: {
-  projectId: string;
-  sourcePhotoId: string;
-  version: number;
-  mode: "generate" | "regenerate" | "edit";
-  sourceStoragePath: string;
-  prompt: string;
-  /** An approved design this generation should match — see runDesignGeneration. */
-  referenceStoragePath?: string;
-  styleKey?: string;
-  description?: string;
-  actorId: string;
-}): Promise<void> {
-  const concept = await prisma.designConcept.create({
-    data: {
-      projectId: params.projectId,
-      sourcePhotoId: params.sourcePhotoId,
-      generationPrompt: params.prompt,
-      description: params.description,
-      styleKey: params.styleKey,
-      version: params.version,
-      status: DesignConceptStatus.PROCESSING,
-      provider: "kie.ai",
-      model: "pending",
-    },
-  });
-
-  try {
-    const result = await runDesignGeneration({
-      projectId: params.projectId,
-      mode: params.mode,
-      sourceStoragePath: params.sourceStoragePath,
-      prompt: params.prompt,
-      referenceStoragePath: params.referenceStoragePath,
-    });
-    await prisma.designConcept.update({
-      where: { id: concept.id },
-      data: { status: DesignConceptStatus.COMPLETE, storagePath: result.storagePath, provider: result.provider, model: result.model },
-    });
-    await prisma.activityLog.create({
-      data: { type: "design_generated", actorId: params.actorId, projectId: params.projectId, metadata: { designConceptId: concept.id } },
-    });
-  } catch (err) {
-    console.error("Design generation failed:", err);
-    await prisma.designConcept.update({
-      where: { id: concept.id },
-      data: { status: DesignConceptStatus.FAILED, errorMessage: err instanceof Error ? err.message : "Unknown error" },
-    });
-  }
+async function startGeneration(projectId: string, actorId: string, specs: ConceptSpec[]): Promise<boolean> {
+  const reserved = await reserveConcepts(projectId, specs);
+  if (reserved === null) return false;
+  after(() =>
+    runReservedConcepts(projectId, actorId, reserved).catch((err) => {
+      console.error("Background design generation crashed:", err);
+    })
+  );
+  revalidatePath(`/projects/${projectId}`);
+  return true;
 }
 
 /** Generates one concept per configured style (src/lib/design-styles.ts), up to the initial batch size and whatever room remains under the per-project cap. */
@@ -90,35 +55,31 @@ export async function generateDesignBatch(projectId: string, photoId: string, _p
     return { error: `This project has reached its limit of ${GENERATION_LIMITS.maxPerProject} generated designs.` };
   }
 
-  const stylesToUse = DESIGN_STYLES.slice(0, Math.min(GENERATION_LIMITS.initialBatchSize, remaining, DESIGN_STYLES.length));
+  // Never make a style twice for the same photo: skip any that already exist or are in progress (failed ones are retried).
+  const existingForPhoto = await prisma.designConcept.findMany({
+    where: { projectId, sourcePhotoId: photoId, status: { not: DesignConceptStatus.FAILED } },
+    select: { styleKey: true },
+  });
+  const haveStyles = new Set(existingForPhoto.map((c) => c.styleKey));
+  const stylesToUse = DESIGN_STYLES.slice(0, GENERATION_LIMITS.initialBatchSize)
+    .filter((s) => !haveStyles.has(s.key))
+    .slice(0, remaining);
+  if (stylesToUse.length === 0) return { error: "Designs for this photo are already made or on their way." };
 
   const requirements = await prisma.projectRequirements.findUnique({ where: { projectId } });
   const requirementsData = (requirements?.data as Record<string, unknown>) ?? {};
 
-  // Sequential, deliberately: running these in parallel would let two
-  // attempts read the same "current count" and compute the same next
-  // version before either commits, violating the (projectId, version)
-  // unique constraint. This only runs a few times per project, so the
-  // extra wall-clock time is an acceptable trade for not needing a
-  // transaction/lock to make concurrent version allocation safe.
-  let version = existingCount;
-  for (const style of stylesToUse) {
-    version += 1;
-    const prompt = buildDesignPrompt(project, definition, requirementsData, { styleModifier: style.promptModifier });
-    await runConceptAttempt({
-      projectId,
-      sourcePhotoId: photoId,
-      version,
-      mode: "generate",
-      sourceStoragePath: photo.storagePath,
-      prompt,
-      styleKey: style.key,
-      description: style.label,
-      actorId: project.homeownerId,
-    });
-  }
+  const specs: ConceptSpec[] = stylesToUse.map((style) => ({
+    sourcePhotoId: photoId,
+    mode: "generate",
+    sourceStoragePath: photo.storagePath,
+    prompt: buildDesignPrompt(project, definition, requirementsData, { styleModifier: style.promptModifier }),
+    styleKey: style.key,
+    description: style.label,
+  }));
 
-  revalidatePath(`/projects/${projectId}`);
+  // false = a simultaneous request already started these; nothing more to do.
+  await startGeneration(projectId, project.homeownerId, specs);
   return undefined;
 }
 
@@ -162,29 +123,20 @@ export async function generateRemainingPhotos(projectId: string, _prevState: Act
   const style = chosen.styleKey ? getDesignStyle(chosen.styleKey) : undefined;
   const useReference = getImageProvider().supportsReferenceImages;
 
-  // Sequential for the same reason as generateDesignBatch: version numbers are allocated up front and must not collide.
-  let version = Math.max(...concepts.map((c) => c.version));
-  for (const photo of targets) {
-    version += 1;
-    const prompt = buildDesignPrompt(project, definition, requirementsData, {
+  const specs: ConceptSpec[] = targets.map((photo) => ({
+    sourcePhotoId: photo.id,
+    mode: "generate",
+    sourceStoragePath: photo.storagePath,
+    referenceStoragePath: useReference ? chosen.storagePath! : undefined,
+    prompt: buildDesignPrompt(project, definition, requirementsData, {
       styleModifier: style?.promptModifier,
       matchApprovedDesign: useReference,
-    });
-    await runConceptAttempt({
-      projectId,
-      sourcePhotoId: photo.id,
-      version,
-      mode: "generate",
-      sourceStoragePath: photo.storagePath,
-      prompt,
-      referenceStoragePath: useReference ? chosen.storagePath : undefined,
-      styleKey: chosen.styleKey ?? undefined,
-      description: `${style?.label ?? "Chosen style"} — matched to your chosen design`,
-      actorId: project.homeownerId,
-    });
-  }
+    }),
+    styleKey: chosen.styleKey ?? undefined,
+    description: `${style?.label ?? "Chosen style"} — matched to your chosen design`,
+  }));
 
-  revalidatePath(`/projects/${projectId}`);
+  await startGeneration(projectId, project.homeownerId, specs);
   return undefined;
 }
 
@@ -208,19 +160,16 @@ export async function regenerateDesignConcept(projectId: string, conceptId: stri
   const style = source.styleKey ? getDesignStyle(source.styleKey) : undefined;
   const prompt = buildDesignPrompt(project, definition, requirementsData, { styleModifier: style?.promptModifier });
 
-  await runConceptAttempt({
-    projectId,
-    sourcePhotoId: source.sourcePhotoId,
-    version: existingCount + 1,
-    mode: "regenerate",
-    sourceStoragePath: source.sourcePhoto.storagePath,
-    prompt,
-    styleKey: source.styleKey ?? undefined,
-    description: style?.label ?? source.description ?? undefined,
-    actorId: project.homeownerId,
-  });
-
-  revalidatePath(`/projects/${projectId}`);
+  await startGeneration(projectId, project.homeownerId, [
+    {
+      sourcePhotoId: source.sourcePhotoId,
+      mode: "regenerate",
+      sourceStoragePath: source.sourcePhoto.storagePath,
+      prompt,
+      styleKey: source.styleKey ?? undefined,
+      description: style?.label ?? source.description ?? undefined,
+    },
+  ]);
   return undefined;
 }
 
@@ -250,19 +199,16 @@ export async function requestDesignChanges(projectId: string, conceptId: string,
   const style = source.styleKey ? getDesignStyle(source.styleKey) : undefined;
   const prompt = buildDesignPrompt(project, definition, requirementsData, { styleModifier: style?.promptModifier, changeRequest });
 
-  await runConceptAttempt({
-    projectId,
-    sourcePhotoId: source.sourcePhotoId,
-    version: existingCount + 1,
-    mode: "edit",
-    sourceStoragePath: source.storagePath,
-    prompt,
-    styleKey: source.styleKey ?? undefined,
-    description: `Refinement of v${source.version}: ${changeRequest}`,
-    actorId: project.homeownerId,
-  });
-
-  revalidatePath(`/projects/${projectId}`);
+  await startGeneration(projectId, project.homeownerId, [
+    {
+      sourcePhotoId: source.sourcePhotoId,
+      mode: "edit",
+      sourceStoragePath: source.storagePath,
+      prompt,
+      styleKey: source.styleKey ?? undefined,
+      description: `Refinement of v${source.version}: ${changeRequest}`,
+    },
+  ]);
   return undefined;
 }
 
