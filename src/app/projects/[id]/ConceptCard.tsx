@@ -52,7 +52,7 @@ export function ConceptCard({ projectId, concept, url, isGuest }: ConceptCardPro
           v{concept.version} — {concept.description ?? concept.model}
         </span>
         {concept.selectedByUser ? (
-          <span className="font-medium text-[#3a6694]">★ Preferred</span>
+          <span className="font-medium text-[#3a6694]">★ Chosen style</span>
         ) : (
           <span>{concept.status}</span>
         )}
@@ -64,7 +64,7 @@ export function ConceptCard({ projectId, concept, url, isGuest }: ConceptCardPro
             {!concept.selectedByUser && (
               <form action={selectDesignConcept.bind(null, projectId, concept.id)}>
                 <button type="submit" className="text-xs font-medium text-[#3a6694] underline">
-                  Select as preferred
+                  Choose this style
                 </button>
               </form>
             )}

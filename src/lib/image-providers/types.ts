@@ -18,6 +18,8 @@ export interface GenerateDesignInput {
   sourceImageUrl: string;
   prompt: string;
   aspectRatio?: string;
+  /** Extra images the model should take guidance from (e.g. an approved design to match). Ignored by providers whose `supportsReferenceImages` is false. */
+  referenceImageUrls?: string[];
 }
 
 export interface EditDesignInput {
@@ -38,6 +40,9 @@ export interface GenerateDesignResult {
 
 export interface ImageGenerationProvider {
   readonly providerId: string;
+
+  /** Whether `generateDesign` honours `referenceImageUrls`. Callers must check this before writing a prompt that mentions a second image. */
+  readonly supportsReferenceImages: boolean;
 
   /** Source = the homeowner's original photo. The primary "turn this photo into a design" operation. */
   generateDesign(input: GenerateDesignInput): Promise<GenerateDesignResult>;

@@ -34,11 +34,14 @@ interface KieRecordInfoResponse {
  * enum value for this model despite being valid for nano-banana-edit) —
  * omitting them and sending only `prompt` + `image_input` succeeded.
  */
-function buildInput(model: KieModel, params: { prompt: string; imageUrl: string; aspectRatio?: string }): Record<string, unknown> {
+function buildInput(model: KieModel, params: { prompt: string; imageUrl: string; aspectRatio?: string; referenceImageUrls?: string[] }): Record<string, unknown> {
   if (model === "nano-banana-pro") {
     return {
       prompt: params.prompt,
-      image_input: [params.imageUrl],
+      // The first image is the one being edited; any references follow it, in the order the prompt describes them.
+      image_input: [params.imageUrl, ...(params.referenceImageUrls ?? [])],
+      // Without this the model defaults to a square, which re-frames a wide photo and moves the room's features. Only `aspect_ratio` is added — the full documented shape (with `resolution`/`output_format`) failed with "Internal Error" in Phase 5, so runEdit retries without it if this shape is rejected too.
+      ...(params.aspectRatio ? { aspect_ratio: params.aspectRatio } : {}),
     };
   }
   return {
@@ -99,15 +102,34 @@ export class KieAiImageProvider implements ImageGenerationProvider {
     return key;
   }
 
-  private async runEdit(prompt: string, imageUrl: string, aspectRatio?: string): Promise<GenerateDesignResult> {
-    const input = buildInput(this.model, { prompt, imageUrl, aspectRatio });
-    const taskId = await createTask(this.model, input, this.apiKey);
-    const resultUrl = await pollTask(taskId, this.apiKey);
-    return { imageUrl: resultUrl, provider: this.providerId, model: this.model, raw: { taskId } };
+  /** Only nano-banana-pro takes several input images; the flux-kontext models edit a single image. */
+  get supportsReferenceImages(): boolean {
+    return this.model === "nano-banana-pro";
+  }
+
+  private async runEdit(prompt: string, imageUrl: string, aspectRatio?: string, referenceImageUrls?: string[]): Promise<GenerateDesignResult> {
+    const attempt = async (ratio: string | undefined): Promise<GenerateDesignResult> => {
+      const input = buildInput(this.model, { prompt, imageUrl, aspectRatio: ratio, referenceImageUrls: this.supportsReferenceImages ? referenceImageUrls : undefined });
+      const taskId = await createTask(this.model, input, this.apiKey);
+      const resultUrl = await pollTask(taskId, this.apiKey);
+      return { imageUrl: resultUrl, provider: this.providerId, model: this.model, raw: { taskId } };
+    };
+
+    try {
+      return await attempt(aspectRatio);
+    } catch (err) {
+      // The aspect ratio is an improvement, not a requirement: if the provider rejects the request, try once more without it rather than fail the generation. Account-level errors (credits, timeouts) would fail the retry identically, so they are not retried.
+      const message = err instanceof Error ? err.message : "";
+      if (aspectRatio && /kie\.ai (createTask|task) failed/.test(message) && !/credit/i.test(message)) {
+        console.warn("[kie-ai] request with aspect_ratio failed, retrying without it:", message);
+        return attempt(undefined);
+      }
+      throw err;
+    }
   }
 
   generateDesign(input: GenerateDesignInput) {
-    return this.runEdit(input.prompt, input.sourceImageUrl, input.aspectRatio);
+    return this.runEdit(input.prompt, input.sourceImageUrl, input.aspectRatio, input.referenceImageUrls);
   }
 
   regenerateDesign(input: GenerateDesignInput) {
