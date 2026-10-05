@@ -12,12 +12,17 @@ import { PhotoUploadForm } from "./PhotoUploadForm";
 import { StatusForm } from "./StatusForm";
 import { GenerateBatchButton } from "./GenerateBatchButton";
 import { ConceptCard } from "./ConceptCard";
+import { GenerateRestButton } from "./GenerateRestButton";
+import { conceptsToShow, getChosenConcept, photosNeedingDesign } from "@/lib/design-selection";
+import { getDesignStyle } from "@/lib/design-styles";
 import { PushToMarketButton } from "./PushToMarketButton";
 import { SendPrivateEstimateButton } from "./SendPrivateEstimateButton";
 import { getActivePipelineForProject } from "@/lib/data/private-pipeline";
 
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params;
+  // ?styles=all brings back the style options hidden after the homeowner chose one.
+  const showAllStyles = (await props.searchParams).styles === "all";
   const { project, isGuest } = await getProjectForOwnerOrGuest(id);
 
   const definition = getProjectTypeDefinition(project.projectType);
@@ -36,6 +41,12 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       url: concept.storagePath ? await getSignedPhotoUrl(concept.storagePath) : null,
     }))
   );
+
+  // Choose-a-style flow: once one style is picked the rest are hidden, and the homeowner's other photos can be designed to match.
+  const chosen = getChosenConcept(project.designConcepts);
+  const visibleConcepts = conceptsToShow(conceptsWithUrls, { showAll: showAllStyles });
+  const photosToMatch = chosen && chosen.status === "COMPLETE" ? photosNeedingDesign(project.photos, project.designConcepts, chosen) : [];
+  const chosenStyleLabel = chosen?.styleKey ? getDesignStyle(chosen.styleKey)?.label : undefined;
 
   // The marketplace only appears once there's a design worth building —
   // not as always-there navigation from the moment a project exists.
@@ -101,7 +112,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
                   <img src={photo.url} alt={photo.photoType} className="aspect-square rounded-xl border border-zinc-200 object-cover" />
                 )}
                 <span className="text-center text-xs text-zinc-500">{photo.photoType}</span>
-                <GenerateBatchButton projectId={project.id} photoId={photo.id} />
+                {!chosen && <GenerateBatchButton projectId={project.id} photoId={photo.id} />}
                 <form action={deleteProjectPhoto.bind(null, photo.id)}>
                   <button type="submit" className="w-full text-center text-xs text-red-600 underline">
                     Delete
@@ -117,12 +128,42 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
 
         {conceptsWithUrls.length > 0 && (
           <section className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="text-lg font-bold text-[#132a4d]">Design concepts</h2>
+            {chosen && !showAllStyles ? (
+              <>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-lg font-bold text-[#132a4d]">Your chosen design{chosenStyleLabel ? ` — ${chosenStyleLabel}` : ""}</h2>
+                  <Link href={`/projects/${project.id}?styles=all`} className="text-xs font-medium text-[#3a6694] underline">
+                    Choose a different style
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-lg font-bold text-[#132a4d]">{chosen ? "All style options" : "Choose your style"}</h2>
+                  {chosen && (
+                    <Link href={`/projects/${project.id}`} className="text-xs font-medium text-[#3a6694] underline">
+                      ← Back to my chosen design
+                    </Link>
+                  )}
+                </div>
+                {!chosen && (
+                  <p className="mt-1 text-sm text-zinc-500">
+                    Pick the style you like best. We&apos;ll keep it, hide the rest, and can design your other photos to match.
+                  </p>
+                )}
+              </>
+            )}
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {conceptsWithUrls.map((concept) => (
+              {visibleConcepts.map((concept) => (
                 <ConceptCard key={concept.id} projectId={project.id} concept={concept} url={concept.url} isGuest={isGuest} />
               ))}
             </div>
+            {photosToMatch.length > 0 && !showAllStyles && (
+              <div className="mt-4">
+                <GenerateRestButton projectId={project.id} count={photosToMatch.length} />
+              </div>
+            )}
           </section>
         )}
 

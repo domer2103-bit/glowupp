@@ -8,6 +8,9 @@ import { buildDesignPrompt, runDesignGeneration } from "@/lib/design-generation"
 import { GENERATION_LIMITS } from "@/lib/generation-limits";
 import { DESIGN_STYLES, getDesignStyle } from "@/lib/design-styles";
 import { isAtOrPastStatus } from "@/lib/project-status";
+import { getChosenConcept, photosNeedingDesign } from "@/lib/design-selection";
+import { getImageProvider } from "@/lib/image-providers";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { DesignConceptStatus, ProjectStatus } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string } | undefined;
@@ -27,6 +30,8 @@ async function runConceptAttempt(params: {
   mode: "generate" | "regenerate" | "edit";
   sourceStoragePath: string;
   prompt: string;
+  /** An approved design this generation should match — see runDesignGeneration. */
+  referenceStoragePath?: string;
   styleKey?: string;
   description?: string;
   actorId: string;
@@ -51,6 +56,7 @@ async function runConceptAttempt(params: {
       mode: params.mode,
       sourceStoragePath: params.sourceStoragePath,
       prompt: params.prompt,
+      referenceStoragePath: params.referenceStoragePath,
     });
     await prisma.designConcept.update({
       where: { id: concept.id },
@@ -108,6 +114,72 @@ export async function generateDesignBatch(projectId: string, photoId: string, _p
       prompt,
       styleKey: style.key,
       description: style.label,
+      actorId: project.homeownerId,
+    });
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+  return undefined;
+}
+
+/**
+ * After the homeowner has chosen a style, designs each of their other photos
+ * in that same style — same colours and materials, but each photo's own room
+ * structure and angle. Where the active image model can take a second image,
+ * the chosen design is passed in as a reference; otherwise the style
+ * direction is applied from text alone (less exact, same pipeline).
+ */
+export async function generateRemainingPhotos(projectId: string, _prevState: ActionState, _formData: FormData): Promise<ActionState> {
+  const project = await requireProjectOwnerOrGuest(projectId);
+
+  const concepts = await prisma.designConcept.findMany({ where: { projectId }, orderBy: { version: "asc" } });
+  const chosen = getChosenConcept(concepts);
+  if (!chosen || chosen.status !== DesignConceptStatus.COMPLETE || !chosen.storagePath) {
+    return { error: "Choose the style you like first." };
+  }
+
+  const photos = await prisma.projectPhoto.findMany({ where: { projectId }, orderBy: { uploadOrder: "asc" } });
+  const pending = photosNeedingDesign(photos, concepts, chosen);
+  if (pending.length === 0) return { error: "All your photos already have a design in this style." };
+
+  const remaining = GENERATION_LIMITS.maxPerProject - concepts.length;
+  if (remaining <= 0) {
+    return { error: `This project has reached its limit of ${GENERATION_LIMITS.maxPerProject} generated designs.` };
+  }
+  const targets = pending.slice(0, remaining);
+
+  const definition = getProjectTypeDefinition(project.projectType);
+  if (!definition) return { error: "This project's type is no longer recognized." };
+
+  // Same floor as the wizard: generation is the step that spends real AI-provider money, and a guest has no account-level limit.
+  const ip = await getClientIp();
+  if (!checkRateLimit(`guest-generate:${ip}`, 8, 60 * 60 * 1000)) {
+    return { error: "You've generated a lot of designs recently — please try again in a while." };
+  }
+
+  const requirements = await prisma.projectRequirements.findUnique({ where: { projectId } });
+  const requirementsData = (requirements?.data as Record<string, unknown>) ?? {};
+  const style = chosen.styleKey ? getDesignStyle(chosen.styleKey) : undefined;
+  const useReference = getImageProvider().supportsReferenceImages;
+
+  // Sequential for the same reason as generateDesignBatch: version numbers are allocated up front and must not collide.
+  let version = Math.max(...concepts.map((c) => c.version));
+  for (const photo of targets) {
+    version += 1;
+    const prompt = buildDesignPrompt(project, definition, requirementsData, {
+      styleModifier: style?.promptModifier,
+      matchApprovedDesign: useReference,
+    });
+    await runConceptAttempt({
+      projectId,
+      sourcePhotoId: photo.id,
+      version,
+      mode: "generate",
+      sourceStoragePath: photo.storagePath,
+      prompt,
+      referenceStoragePath: useReference ? chosen.storagePath : undefined,
+      styleKey: chosen.styleKey ?? undefined,
+      description: `${style?.label ?? "Chosen style"} — matched to your chosen design`,
       actorId: project.homeownerId,
     });
   }

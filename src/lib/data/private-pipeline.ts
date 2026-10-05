@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getOutwardCode } from "@/lib/postcode";
 import { isAtOrPastStatus } from "@/lib/project-status";
 import { getSignedPhotoUrl } from "@/lib/storage";
+import { conceptsToShow } from "@/lib/design-selection";
 import { PRO_REF_COOKIE } from "@/lib/private-pipeline-cookie";
 import { generateReferralCode, generateVanSlug, isValidVanSlug, normalizeReferralCode } from "@/lib/referral";
 import { DesignConceptStatus, PipelineLockStatus, ProjectStatus, VerificationStatus, type Prisma } from "@/generated/prisma/client";
@@ -166,7 +167,7 @@ export async function listPrivateLeads(professionalId: string) {
       homeowner: { select: { name: true, isGuest: true } },
       project: {
         include: {
-          designConcepts: { where: { status: DesignConceptStatus.COMPLETE }, orderBy: { version: "desc" }, take: 4 },
+          designConcepts: { where: { status: DesignConceptStatus.COMPLETE }, orderBy: { version: "desc" } },
           quoteRequests: { where: { professionalId }, take: 1 },
         },
       },
@@ -176,8 +177,10 @@ export async function listPrivateLeads(professionalId: string) {
   return Promise.all(
     sessions.map(async (s) => {
       const requested = s.estimateRequestedAt !== null;
+      // Once the client has chosen a style, the contractor sees only that style — not the options the client rejected.
+      const shown = conceptsToShow(s.project.designConcepts).slice(0, 6);
       const renders = await Promise.all(
-        s.project.designConcepts.map(async (c) => ({
+        shown.map(async (c) => ({
           id: c.id,
           version: c.version,
           styleKey: c.styleKey,
