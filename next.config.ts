@@ -14,6 +14,22 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "12mb",
     },
   },
+  // One address per site: browsers keep logins (cookies) separately for
+  // www.glowupp.co.uk and glowupp.co.uk, and the server answers on both, so
+  // anyone arriving on the "www" address looked logged out even when signed
+  // in on the other. Send "www" to the main address, keeping path and query
+  // (permanent, so browsers and search engines remember it). Runs before the
+  // proxy, so the "www" host never gets its own guest cookie.
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.glowupp.co.uk" }],
+        destination: "https://glowupp.co.uk/:path*",
+        permanent: true,
+      },
+    ];
+  },
   // Phase 12 security review: safe, low-risk headers that need no
   // per-resource tuning. A Content-Security-Policy is deliberately not
   // included here — it needs to be built against every real external
