@@ -12,12 +12,12 @@ import { PhotoUploadForm } from "./PhotoUploadForm";
 import { StatusForm } from "./StatusForm";
 import { GenerateBatchButton } from "./GenerateBatchButton";
 import { ConceptCard } from "./ConceptCard";
-import { AssistantChat, OpenAssistantButton } from "./AssistantChat";
-import { computeProfileStatus } from "@/lib/assistant";
-import { prisma } from "@/lib/prisma";
 import { PushToMarketButton } from "./PushToMarketButton";
 import { SendPrivateEstimateButton } from "./SendPrivateEstimateButton";
 import { getActivePipelineForProject } from "@/lib/data/private-pipeline";
+import { AssistantChat, OpenAssistantButton } from "./AssistantChat";
+import { computeProfileStatus } from "@/lib/assistant";
+import { prisma } from "@/lib/prisma";
 
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params;
