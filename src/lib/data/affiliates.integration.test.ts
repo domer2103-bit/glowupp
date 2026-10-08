@@ -53,6 +53,7 @@ vi.mock("@/lib/storage", () => ({ getSignedPhotoUrl: async () => "https://signed
 vi.mock("@/lib/stripe", () => ({ stripe: { webhooks: { constructEvent: (body: string) => JSON.parse(body) } } }));
 vi.mock("@/lib/notifications", () => ({
   APP_URL: "https://glowupp.test",
+  notifyPartnerNoFeeJob: vi.fn(),
   notifyLeadFeePaid: vi.fn(),
   notifyPrivateEstimateRequested: vi.fn(),
   notifyPrivateQuoteSubmitted: vi.fn(),

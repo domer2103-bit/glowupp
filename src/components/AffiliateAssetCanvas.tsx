@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import {
   ASSET_KINDS,
   ASSET_SPECS,
-  DEFAULT_SUBLINE,
+  AUDIENCE_COPY,
   buildAssetSvg,
   defaultHeadline,
+  type AssetAudience,
   type AssetKind,
 } from "@/lib/affiliate-assets";
 import { exportAssetFile, svgDataUrl } from "@/lib/affiliate-assets-client";
@@ -22,16 +23,20 @@ const BUTTON = "rounded-full px-4 py-2 text-sm font-medium transition disabled:o
  * rasterised for the PNG and embedded in the PDF
  * (src/lib/affiliate-assets.ts), so what you see is what prints.
  */
-export function AffiliateAssetCanvas(props: { businessName: string; businessSlug: string; link: string; categoryHeadline: string }) {
+export function AffiliateAssetCanvas(props: { businessName: string; businessSlug: string; link: string; proLink?: string; categoryHeadline: string }) {
+  const [audience, setAudience] = useState<AssetAudience>("homeowner");
   const [kind, setKind] = useState<AssetKind>("poster");
-  const [headlines, setHeadlines] = useState<Partial<Record<AssetKind, string>>>({});
-  const [subline, setSubline] = useState(DEFAULT_SUBLINE);
+  // Edits are kept per audience and asset type, so switching audience never carries one's wording onto the other.
+  const [headlines, setHeadlines] = useState<Partial<Record<string, string>>>({});
+  const [sublines, setSublines] = useState<Partial<Record<AssetAudience, string>>>({});
   const [busy, setBusy] = useState<"png" | "pdf" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { art: qr, element: qrElement } = useQrArt(props.link);
+  const link = audience === "professional" && props.proLink ? props.proLink : props.link;
+  const { art: qr, element: qrElement } = useQrArt(link);
 
   const spec = ASSET_SPECS[kind];
-  const headline = headlines[kind] ?? defaultHeadline(kind, props.categoryHeadline);
+  const headline = headlines[`${audience}:${kind}`] ?? defaultHeadline(kind, props.categoryHeadline, audience);
+  const subline = sublines[audience] ?? AUDIENCE_COPY[audience].subline;
 
   const svg = useMemo(() => {
     if (!qr) return null;
@@ -39,17 +44,18 @@ export function AffiliateAssetCanvas(props: { businessName: string; businessSlug
       headline,
       subline,
       businessName: props.businessName,
-      link: props.link,
+      link,
       qr,
+      audience,
     });
-  }, [qr, kind, headline, subline, props.businessName, props.link]);
+  }, [qr, kind, headline, subline, props.businessName, link, audience]);
 
   async function exportAs(format: "png" | "pdf") {
     if (!svg) return;
     setBusy(format);
     setError(null);
     try {
-      await exportAssetFile(svg, kind, format, props.businessSlug);
+      await exportAssetFile(svg, kind, format, audience === "professional" ? `${props.businessSlug}-trades` : props.businessSlug);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed.");
     } finally {
@@ -61,6 +67,21 @@ export function AffiliateAssetCanvas(props: { businessName: string; businessSlug
     <div className="flex flex-col gap-4">
       {qrElement}
 
+      {props.proLink && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Who the asset is for">
+          {(Object.keys(AUDIENCE_COPY) as AssetAudience[]).map((a) => (
+            <button
+              key={a}
+              type="button"
+              aria-pressed={a === audience}
+              onClick={() => setAudience(a)}
+              className={`${BUTTON} border ${a === audience ? "border-[#132a4d] bg-[#132a4d] text-white" : "border-zinc-300 bg-white text-[#132a4d] hover:border-[#132a4d]"}`}
+            >
+              {AUDIENCE_COPY[a].label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Asset type">
         {ASSET_KINDS.map((k) => (
           <button
@@ -92,7 +113,7 @@ export function AffiliateAssetCanvas(props: { businessName: string; businessSlug
             <span className="font-medium">Headline</span>
             <textarea
               value={headline}
-              onChange={(e) => setHeadlines((h) => ({ ...h, [kind]: e.target.value }))}
+              onChange={(e) => setHeadlines((h) => ({ ...h, [`${audience}:${kind}`]: e.target.value }))}
               rows={3}
               maxLength={140}
               className={INPUT}
@@ -100,7 +121,7 @@ export function AffiliateAssetCanvas(props: { businessName: string; businessSlug
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Small print</span>
-            <textarea value={subline} onChange={(e) => setSubline(e.target.value)} rows={2} maxLength={120} className={INPUT} />
+            <textarea value={subline} onChange={(e) => setSublines((x) => ({ ...x, [audience]: e.target.value }))} rows={2} maxLength={120} className={INPUT} />
           </label>
           <p className="text-xs text-zinc-500">
             Check every claim (&ldquo;in seconds&rdquo;, &ldquo;free&rdquo;) against the live product before printing.

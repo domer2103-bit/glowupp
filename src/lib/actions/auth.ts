@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { mergeGuestIntoUser } from "@/lib/guest";
 import { prisma } from "@/lib/prisma";
+import { stampProfessionalSignupWithAffiliate } from "@/lib/data/affiliates";
 import { UserRole } from "@/generated/prisma/client";
 import { PROJECT_TYPE_KEYS } from "@/lib/project-types";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -100,6 +101,12 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
   });
 
   if (error) return { error: error.message };
+
+  // A professional who arrived through a partner's tradespeople link is
+  // remembered against that partner. Done here, before the session/confirm
+  // branches, because the confirmation email is often opened in another
+  // browser that has no cookie.
+  if (role === UserRole.PROFESSIONAL && data.user) await stampProfessionalSignupWithAffiliate(data.user.id);
 
   // Supabase projects with "Confirm email" on don't return a session here —
   // the account exists but can't log in until the confirmation link is

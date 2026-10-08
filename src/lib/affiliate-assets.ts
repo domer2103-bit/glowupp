@@ -38,6 +38,30 @@ export const SOCIAL_AND_POSTER_HEADLINE = "Redesign your home in seconds with AI
 export const COASTER_HEADLINE = "Scan to see your room redesigned";
 const POSTER_STEPS = ["Snap a photo of your room", "Get your redesign", "Meet local pros"];
 
+/** Who an asset is aimed at: homeowners (the partner's /a/<slug> link) or tradespeople (the /a/<slug>/pro link that opens the professional sign-up). */
+export type AssetAudience = "homeowner" | "professional";
+
+export const AUDIENCE_COPY: Record<AssetAudience, { subline: string; cta: string; steps: string[]; headline: string; coasterHeadline: string; stickerHeadline: string; label: string }> = {
+  homeowner: {
+    label: "For homeowners",
+    subline: DEFAULT_SUBLINE,
+    cta: "Scan to try it",
+    steps: POSTER_STEPS,
+    headline: SOCIAL_AND_POSTER_HEADLINE,
+    coasterHeadline: COASTER_HEADLINE,
+    stickerHeadline: "",
+  },
+  professional: {
+    label: "For tradespeople",
+    subline: "Free to join. Scan the code to create your profile.",
+    cta: "Scan to join free",
+    steps: ["Snap your client's room", "Show them the redesign", "Get quote requests from local homeowners"],
+    headline: "Show clients the redesign before you quote",
+    coasterHeadline: "Show clients the redesign before you quote",
+    stickerHeadline: "Clients can't picture the result? Show them the redesign before you quote",
+  },
+};
+
 /** The QR code's own SVG: its viewBox and inner markup, lifted from qrcode.react's output. */
 export interface QrArt {
   viewBox: string;
@@ -51,6 +75,8 @@ export interface AssetContent {
   /** The link the QR encodes, shown under it as plain text. */
   link: string;
   qr: QrArt;
+  /** Who the asset is for; changes the call to action and the poster's three steps. Homeowners if omitted. */
+  audience?: AssetAudience;
 }
 
 const NAVY = "#132a4d";
@@ -136,6 +162,7 @@ function wrapSvg(width: number, height: number, body: string, defs = ""): string
 }
 
 function socialPost(c: AssetContent): string {
+  const cta = AUDIENCE_COPY[c.audience ?? "homeowner"].cta;
   const { width: W, height: H } = ASSET_SPECS.social;
   const head = fitText(c.headline, { maxWidth: 920, maxHeight: 330, startSize: 92, minSize: 48 });
   const sub = fitText(c.subline, { maxWidth: 920, maxHeight: 110, startSize: 38, minSize: 26, lineHeight: 1.3 });
@@ -150,13 +177,14 @@ function socialPost(c: AssetContent): string {
       textBlock(sub.lines, 80, 270 + head.lines.length * head.lineHeight + 20, sub.fontSize, sub.lineHeight, BLUE, { weight: 500 }) +
       `<rect x="60" y="715" width="960" height="310" rx="40" fill="#ffffff" opacity="0.9"/>` +
       qrCard(c.qr, 90, 735, 270, 24) +
-      `<text x="400" y="830" font-family="${FONT}" font-size="54" font-weight="800" fill="${NAVY}">Scan to try it</text>` +
+      `<text x="400" y="830" font-family="${FONT}" font-size="54" font-weight="800" fill="${NAVY}">${escapeXml(cta)}</text>` +
       textBlock(name.lines, 400, 895, name.fontSize, name.lineHeight, BLUE, { weight: 600 }) +
       `<text x="400" y="990" font-family="${FONT}" font-size="${fitLineSize(shortLink(c.link), 600, 28)}" fill="${MUTED}">${escapeXml(shortLink(c.link))}</text>`
   );
 }
 
 function coaster(c: AssetContent): string {
+  const cta = AUDIENCE_COPY[c.audience ?? "homeowner"].cta;
   const { width: W, height: H } = ASSET_SPECS.coaster;
   const head = fitText(c.headline, { maxWidth: 880, maxHeight: 150, startSize: 64, minSize: 34 });
   const name = fitText(c.businessName, { maxWidth: 860, maxHeight: 46, startSize: 40, minSize: 24 });
@@ -170,13 +198,14 @@ function coaster(c: AssetContent): string {
       `<text x="${W / 2}" y="108" text-anchor="middle" font-family="${FONT}" font-size="60" font-weight="800" fill="${NAVY}">GlowUpp</text>` +
       textBlock(head.lines, W / 2, 180, head.fontSize, head.lineHeight, NAVY, { anchor: "middle" }) +
       qrCard(c.qr, 255, 300, 540, 28) +
-      `<text x="${W / 2}" y="905" text-anchor="middle" font-family="${FONT}" font-size="54" font-weight="800" fill="${BLUE}">Scan to try it</text>` +
+      `<text x="${W / 2}" y="905" text-anchor="middle" font-family="${FONT}" font-size="54" font-weight="800" fill="${BLUE}">${escapeXml(cta)}</text>` +
       textBlock(name.lines, W / 2, 955, name.fontSize, name.lineHeight, MUTED, { anchor: "middle", weight: 600 }) +
       `<text x="${W / 2}" y="995" text-anchor="middle" font-family="${FONT}" font-size="${fitLineSize(link, 860, 24)}" fill="${MUTED}">${escapeXml(link)}</text>`
   );
 }
 
 function counterCard(c: AssetContent): string {
+  const cta = AUDIENCE_COPY[c.audience ?? "homeowner"].cta;
   const { width: W, height: H } = ASSET_SPECS.sticker;
   const head = fitText(c.headline, { maxWidth: 980, maxHeight: 470, startSize: 112, minSize: 60 });
   const name = fitText(c.businessName, { maxWidth: 980, maxHeight: 60, startSize: 54, minSize: 30 });
@@ -190,29 +219,33 @@ function counterCard(c: AssetContent): string {
       `<text x="${W / 2}" y="190" text-anchor="middle" font-family="${FONT}" font-size="88" font-weight="800" fill="${NAVY}">GlowUpp</text>` +
       textBlock(head.lines, W / 2, 330, head.fontSize, head.lineHeight, NAVY, { anchor: "middle" }) +
       qrCard(c.qr, 260, 750, 720, 36) +
-      `<text x="${W / 2}" y="1565" text-anchor="middle" font-family="${FONT}" font-size="78" font-weight="800" fill="${BLUE}">Scan to try it</text>` +
+      `<text x="${W / 2}" y="1565" text-anchor="middle" font-family="${FONT}" font-size="78" font-weight="800" fill="${BLUE}">${escapeXml(cta)}</text>` +
       textBlock(name.lines, W / 2, 1626, name.fontSize, name.lineHeight, MUTED, { anchor: "middle", weight: 600 }) +
       `<text x="${W / 2}" y="1672" text-anchor="middle" font-family="${FONT}" font-size="${fitLineSize(shortLink(c.link), 980, 30)}" fill="${MUTED}">${escapeXml(shortLink(c.link))}</text>`
   );
 }
 
 function wallPoster(c: AssetContent): string {
+  const cta = AUDIENCE_COPY[c.audience ?? "homeowner"].cta;
+  const stepsCopy = AUDIENCE_COPY[c.audience ?? "homeowner"].steps;
   const { width: W, height: H } = ASSET_SPECS.poster;
   const head = fitText(c.headline, { maxWidth: 2080, maxHeight: 760, startSize: 270, minSize: 130 });
   const stepsTop = 560 + head.lines.length * head.lineHeight + 120;
-  const steps = POSTER_STEPS.map((step, i) => {
+  // One font size for all three steps, small enough that the longest fits between the number badge and the page edge.
+  const stepSize = Math.min(104, ...stepsCopy.slice(0, 3).map((t) => fitLineSize(t, (W - 390 - 160) * 0.92, 104, 56)));
+  const steps = stepsCopy.slice(0, 3).map((step, i) => {
     const y = stepsTop + i * 190;
     return (
       `<circle cx="270" cy="${y - 38}" r="66" fill="${BLUE}"/>` +
       `<text x="270" y="${y - 6}" text-anchor="middle" font-family="${FONT}" font-size="86" font-weight="800" fill="#ffffff">${i + 1}</text>` +
-      `<text x="390" y="${y}" font-family="${FONT}" font-size="104" font-weight="600" fill="${NAVY}">${escapeXml(step)}</text>`
+      `<text x="390" y="${y}" font-family="${FONT}" font-size="${stepSize}" font-weight="600" fill="${NAVY}">${escapeXml(step)}</text>`
     );
   }).join("");
 
   // Bottom panel: QR on the left, a text column on the right (x 1400..2260), and the link centred underneath.
   const COL_X = 1400;
   const COL_W = 860;
-  const title = fitText("Scan to try it", { maxWidth: COL_W, maxHeight: 380, startSize: 160, minSize: 90 });
+  const title = fitText(cta, { maxWidth: COL_W, maxHeight: 380, startSize: 160, minSize: 90 });
   const titleY = 2440;
   const name = fitText(`With ${c.businessName}`, { maxWidth: COL_W, maxHeight: 260, startSize: 88, minSize: 48 });
   const nameY = titleY + (title.lines.length - 1) * title.lineHeight + 140;
@@ -243,9 +276,11 @@ export function buildAssetSvg(kind: AssetKind, content: AssetContent): string {
   return wallPoster(content);
 }
 
-export function defaultHeadline(kind: AssetKind, categoryHeadline: string): string {
-  if (kind === "coaster") return COASTER_HEADLINE;
-  return kind === "sticker" ? categoryHeadline : SOCIAL_AND_POSTER_HEADLINE;
+export function defaultHeadline(kind: AssetKind, categoryHeadline: string, audience: AssetAudience = "homeowner"): string {
+  const copy = AUDIENCE_COPY[audience];
+  if (kind === "coaster") return copy.coasterHeadline;
+  if (kind === "sticker") return audience === "professional" ? copy.stickerHeadline : categoryHeadline;
+  return copy.headline;
 }
 
 export function assetFileName(businessSlug: string, kind: AssetKind, ext: "png" | "pdf"): string {

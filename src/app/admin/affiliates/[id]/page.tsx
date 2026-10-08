@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { getAffiliatePartner, getBlockedSelfReferrals } from "@/lib/data/affiliates";
 import { releaseSelfReferral } from "@/lib/actions/affiliates";
 import { APP_URL } from "@/lib/notifications";
-import { AFFILIATE_CATEGORY_LABELS, AFFILIATE_DEFAULT_HEADLINES, AFFILIATE_MIN_PAYOUT_PENCE, buildAffiliateLink } from "@/lib/affiliate";
+import { AFFILIATE_CATEGORY_LABELS, AFFILIATE_DEFAULT_HEADLINES, AFFILIATE_MIN_PAYOUT_PENCE, buildAffiliateLink, buildAffiliateProLink } from "@/lib/affiliate";
 import { formatPenceExact } from "@/lib/money";
 import { AffiliateStatus, UserRole } from "@/generated/prisma/client";
 import { AffiliateAssetCanvas } from "@/components/AffiliateAssetCanvas";
@@ -18,12 +18,15 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
   if (!data) notFound();
   const { partner, row } = data;
   const link = buildAffiliateLink(APP_URL, partner.qrSlug);
+  const proLink = buildAffiliateProLink(APP_URL, partner.qrSlug);
   const blocked = await getBlockedSelfReferrals(partner.id);
 
   const stats: [string, string][] = [
     ["Clicks", String(row.clickCount)],
     ["Projects started", String(row.projects)],
     ["Conversions", String(row.conversions)],
+    ["Tradespeople referred", String(row.professionalsReferred)],
+    ["Paid jobs from them", String(row.referredProJobs)],
     ["Job value", formatPenceExact(row.gmvPence)],
     ["GlowUpp profit", formatPenceExact(row.glowuppProfitPence)],
     [`Partner share (${Math.round(row.revenueShareRate * 100)}%)`, formatPenceExact(row.totalEarningsPence)],
@@ -66,6 +69,8 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
         <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">Link</h2>
           <CopyLink link={link} />
+          <p className="text-sm font-medium">Tradespeople link</p>
+          <CopyLink link={proLink} />
           <p className="text-xs text-zinc-500">
             Also works with the short code <code>{partner.referralCode}</code> (…/a/{partner.referralCode}). Visits show in Plausible as source <code>affiliate</code>, campaign{" "}
             <code>{partner.qrSlug}</code>.
@@ -131,6 +136,7 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
             businessName={partner.businessName}
             businessSlug={partner.qrSlug}
             link={link}
+            proLink={proLink}
             categoryHeadline={AFFILIATE_DEFAULT_HEADLINES[partner.category]}
           />
         </section>

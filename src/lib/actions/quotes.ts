@@ -13,6 +13,7 @@ import { notifyProfessionalSelected, notifyOpenMarketProject, notifyQuoteSubmitt
 import { calculateMarketplaceFee, calculatePrivateLinkFee } from "@/lib/fees";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { assertNotPrivate, countPriorMarketplaceJobs, countPriorPrivateLinkJobs } from "@/lib/data/private-pipeline";
+import { settleFreeJobForAffiliate } from "@/lib/data/affiliates";
 import { ProjectStatus, QuoteRequestStatus, TransactionStatus, UserRole } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string } | undefined;
@@ -246,6 +247,8 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
         });
       }
     }
+    // A free job has no fee to pay later, so a partner whose link brought it in is told here that it earned nothing.
+    await settleFreeJobForAffiliate(quoteRequestId);
     revalidatePath(`/projects/${projectId}`);
     revalidatePath(`/projects/${projectId}/quotes`);
     revalidatePath("/professional/pipeline");
@@ -306,6 +309,9 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
       selected: qr.id === quoteRequestId,
     });
   }
+
+  // Early-bird free job: no fee to pay later, so settle the partner side now (see settleFreeJobForAffiliate).
+  await settleFreeJobForAffiliate(quoteRequestId);
 
   revalidatePath(`/projects/${projectId}`);
   revalidatePath(`/projects/${projectId}/quotes`);

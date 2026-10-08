@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { buildAffiliateLink } from "@/lib/affiliate";
+import { buildAffiliateLink, buildAffiliateProLink } from "@/lib/affiliate";
 import { PARTNER_COOKIE, PARTNER_SESSION_MAX_AGE_SECONDS, buildDashboardLink } from "@/lib/partner-session";
 import { PARTNER_TERMS_VERSION, PartnerSignupSchema, isSameOrigin, parseCheckbox, publicCategoryToDb } from "@/lib/partner-signup";
 import { issuePartnerLoginToken, registerSelfServePartner } from "@/lib/data/affiliates";
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     contactName: partner.contactName,
     businessName: partner.businessName,
     trackingLink: buildAffiliateLink(APP_URL, partner.qrSlug),
+    proLink: buildAffiliateProLink(APP_URL, partner.qrSlug),
     dashboardLink: buildDashboardLink(APP_URL, token),
     sharePercent: Math.round(partner.revenueShareRate.toNumber() * 100),
   });

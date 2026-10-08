@@ -54,6 +54,7 @@ vi.mock("@/lib/prisma", async () => {
 vi.mock("@/lib/storage", () => ({ getSignedPhotoUrl: async () => "https://signed.test/render.jpg" }));
 vi.mock("@/lib/notifications", () => ({
   APP_URL: "https://glowupp.test",
+  notifyPartnerNoFeeJob: vi.fn(),
   notifyPartnerWelcome: vi.fn(),
   notifyPartnerLoginLink: vi.fn(),
   notifyLeadFeePaid: vi.fn(),
@@ -166,6 +167,7 @@ run("B2B partner self-onboarding", () => {
         contactName: "Sam Taylor",
         businessName: "Kite Coffee",
         trackingLink: `https://glowupp.test/a/${partner.qrSlug}`,
+        proLink: `https://glowupp.test/a/${partner.qrSlug}/pro`,
         dashboardLink: `https://glowupp.test/partner/dashboard?token=${token}`,
         sharePercent: 50,
       });
@@ -396,13 +398,15 @@ run("B2B partner self-onboarding", () => {
       expect(html).toContain('id="materials"');
       expect(html).toContain("Download high-res PNG");
       expect(html).toContain(`https://glowupp.test/a/${mine.partner.qrSlug}`);
+      expect(html).toContain(`https://glowupp.test/a/${mine.partner.qrSlug}/pro`); // the tradespeople link
+      expect(html).toContain("For tradespeople");
       for (const secret of ["Rival Gym", other.qrSlug, "Secret Homeowner", "Secret Pro", "Secret Builders", "Secret kitchen", "secret bank ref", "9,876.54", "246.90", "£246"]) {
         expect(html).not.toContain(secret);
       }
 
       const data = await getPartnerDashboard(mine.partner.id);
       expect(Object.keys(data!).sort()).toEqual(
-        ["balancePence", "businessName", "clickCount", "contactName", "conversions", "paidEarningsPence", "payouts", "projects", "qrSlug", "revenueSharePercent", "status", "totalEarningsPence", "verified"].sort()
+        ["balancePence", "businessName", "clickCount", "contactName", "conversions", "paidEarningsPence", "payouts", "professionalsReferred", "projects", "qrSlug", "referredProJobs", "revenueSharePercent", "status", "totalEarningsPence", "verified"].sort()
       );
       expect(data).toMatchObject({ conversions: 1, projects: 1, totalEarningsPence: 12345, paidEarningsPence: 12345, balancePence: 0 });
     });

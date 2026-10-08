@@ -46,7 +46,13 @@ model User {
   messagesSent      Message[]
   privatePipelineSessions PrivatePipelineSession[]
   affiliatePayoutsMade    AffiliatePayout[] @relation("AffiliatePayoutAdmin")
+  // The partner whose link/QR this professional signed up through (set once,
+  // right after sign-up — see stampProfessionalSignupWithAffiliate). The
+  // partner earns a share of the lead fees on this professional's jobs.
+  affiliatePartnerId      String?           @map("affiliate_partner_id") @db.Uuid
+  affiliatePartner        AffiliatePartner? @relation("ReferredProfessionals", fields: [affiliatePartnerId], references: [id], onDelete: SetNull)
 
+  @@index([affiliatePartnerId])
   @@map("users")
 }
 
@@ -108,6 +114,10 @@ model Project {
   affiliatePartnerId    String?           @map("affiliate_partner_id") @db.Uuid
   affiliatePartner      AffiliatePartner? @relation(fields: [affiliatePartnerId], references: [id], onDelete: SetNull)
   affiliatePayoutAmount Int?              @map("affiliate_payout_amount")
+  // Which side brought the partner in: the HOMEOWNER opened the partner's
+  // link (stamped when the project is created), or the PROFESSIONAL who won
+  // the job signed up through it (attached when the fee is paid).
+  affiliateSource       AffiliateSource?  @map("affiliate_source")
 
   photos            ProjectPhoto[]
   requirements      ProjectRequirements?
@@ -568,6 +578,11 @@ enum AffiliateCategory {
   OTHER
 }
 
+enum AffiliateSource {
+  HOMEOWNER
+  PROFESSIONAL
+}
+
 enum AffiliateStatus {
   ACTIVE
   SUSPENDED
@@ -616,12 +631,16 @@ model AffiliatePartner {
   // partner an admin creates by hand is verified at creation; one that
   // signed itself up stays null until an admin verifies it.
   verifiedAt       DateTime?         @map("verified_at")
+  // When the partner last dismissed the "no fee on a job from your link" pop-up
+  // on their dashboard; notices newer than this are shown again as unseen.
+  noticesSeenAt    DateTime?         @map("notices_seen_at")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
   projects Project[]
   payouts  AffiliatePayout[]
   loginTokens AffiliateLoginToken[]
+  referredUsers User[] @relation("ReferredProfessionals")
 
   @@index([status])
   @@map("affiliate_partners")

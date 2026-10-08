@@ -2,6 +2,7 @@ import "server-only";
 import { getNotificationProvider } from "@/lib/notification-providers";
 import { formatPence } from "@/lib/money";
 import { getProjectTypeDefinition } from "@/lib/project-types";
+import { noFeeNoticeMessage, PRO_REFERRAL_EARNING_MONTHS } from "@/lib/affiliate";
 
 export const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
@@ -312,8 +313,10 @@ interface PartnerWelcomeInput {
   email: string;
   contactName: string;
   businessName: string;
-  /** The partner's personal link/QR address. */
+  /** The partner's personal link/QR address for homeowners. */
   trackingLink: string;
+  /** The partner's link for tradespeople (opens the professional sign-up). */
+  proLink: string;
   /** Magic login link for the partner dashboard (contains the one-time-shown token). */
   dashboardLink: string;
   sharePercent: number;
@@ -325,12 +328,12 @@ export async function notifyPartnerWelcome(input: PartnerWelcomeInput): Promise<
   await sendBestEffort({
     to: input.email,
     subject: `You're in — your GlowUpp partner link for ${input.businessName}`,
-    text: `Hi ${input.contactName},\n\nWelcome to the GlowUpp partner programme — ${input.businessName} is all set up.\n\nOur agreement in short: you earn ${input.sharePercent}% of the lead fee GlowUpp collects on jobs booked by homeowners who start through your link or QR code. We'll be in touch to arrange payment of anything you've earned.\n\nYour personal link (this is what your QR code opens):\n${input.trackingLink}\n\nDownload your poster, coaster and social graphic:\n${materials}\n\nYour live earnings dashboard:\n${input.dashboardLink}\n\nKeep this email: the dashboard link signs you in, so please don't forward it. If you lose it you can ask for a new one at ${APP_URL}/partner/login.\n\n— GlowUpp`,
+    text: `Hi ${input.contactName},\n\nWelcome to the GlowUpp partner programme — ${input.businessName} is all set up.\n\nOur agreement in short: you earn ${input.sharePercent}% of the lead fee GlowUpp collects on jobs booked by homeowners who start through your link or QR code, and on jobs won by tradespeople who sign up through your tradespeople link${PRO_REFERRAL_EARNING_MONTHS === null ? "" : ` (for ${PRO_REFERRAL_EARNING_MONTHS} months after they sign up)`}. Free introductory jobs and other promotions earn no share, because no fee is collected on them — we'll tell you when that happens. We'll be in touch to arrange payment of anything you've earned.\n\nYour personal link (this is what your QR code opens):\n${input.trackingLink}\n\nYour link for tradespeople:\n${input.proLink}\n\nDownload your poster, coaster and social graphic:\n${materials}\n\nYour live earnings dashboard:\n${input.dashboardLink}\n\nKeep this email: the dashboard link signs you in, so please don't forward it. If you lose it you can ask for a new one at ${APP_URL}/partner/login.\n\n— GlowUpp`,
     html: emailWrapper(
       `<p>Hi ${escapeHtml(input.contactName)},</p>` +
         `<p>Welcome to the GlowUpp partner programme — <strong>${escapeHtml(input.businessName)}</strong> is all set up.</p>` +
-        `<p><strong>Our agreement in short:</strong> you earn ${input.sharePercent}% of the lead fee GlowUpp collects on jobs booked by homeowners who start through your link or QR code. We'll be in touch to arrange payment of anything you've earned.</p>` +
-        `<p>Your personal link (this is what your QR code opens):<br><a href="${escapeHtml(input.trackingLink)}">${escapeHtml(input.trackingLink)}</a></p>` +
+        `<p><strong>Our agreement in short:</strong> you earn ${input.sharePercent}% of the lead fee GlowUpp collects on jobs booked by homeowners who start through your link or QR code, and on jobs won by tradespeople who sign up through your tradespeople link${PRO_REFERRAL_EARNING_MONTHS === null ? "" : ` (for ${PRO_REFERRAL_EARNING_MONTHS} months after they sign up)`}. Free introductory jobs and other promotions earn no share, because no fee is collected on them — we'll tell you when that happens. We'll be in touch to arrange payment of anything you've earned.</p>` +
+        `<p>Your personal link (this is what your QR code opens):<br><a href="${escapeHtml(input.trackingLink)}">${escapeHtml(input.trackingLink)}</a></p><p>Your link for tradespeople:<br><a href="${escapeHtml(input.proLink)}">${escapeHtml(input.proLink)}</a></p>` +
         `<p><a href="${escapeHtml(materials)}" style="display:inline-block;background:#3a6694;color:#ffffff;padding:10px 18px;border-radius:999px;text-decoration:none;">Download your poster, coaster &amp; social graphic</a></p>` +
         `<p><a href="${escapeHtml(input.dashboardLink)}">Open your live earnings dashboard</a></p>` +
         `<p style="color:#71717a;font-size:13px;">Keep this email: the dashboard link signs you in, so please don't forward it. If you lose it you can ask for a new one at <a href="${APP_URL}/partner/login">${APP_URL}/partner/login</a>.</p>`
@@ -354,6 +357,26 @@ export async function notifyPartnerLoginLink(input: PartnerLoginLinkInput): Prom
       `<p>Hi ${escapeHtml(input.contactName)},</p><p>Here is your sign-in link for the GlowUpp partner dashboard:</p>` +
         `<p><a href="${escapeHtml(input.dashboardLink)}" style="display:inline-block;background:#3a6694;color:#ffffff;padding:10px 18px;border-radius:999px;text-decoration:none;">Open my dashboard</a></p>` +
         `<p style="color:#71717a;font-size:13px;">Please don't forward it — anyone with it can see your dashboard. If you didn't ask for this, you can ignore this email.</p>`
+    ),
+  });
+}
+
+interface PartnerNoFeeJobInput {
+  email: string;
+  contactName: string;
+  source: "HOMEOWNER" | "PROFESSIONAL";
+  dashboardLink: string;
+}
+
+/** Sent when a job that came from a partner's link carried no fee (a free introductory job), so they know why it earned nothing. Names nobody. */
+export async function notifyPartnerNoFeeJob(input: PartnerNoFeeJobInput): Promise<void> {
+  const message = noFeeNoticeMessage(input.source);
+  await sendBestEffort({
+    to: input.email,
+    subject: "A job from your GlowUpp link had no fee this time",
+    text: `Hi ${input.contactName},\n\n${message}\n\nYou can see this and your other updates on your dashboard:\n${input.dashboardLink}\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.contactName)},</p><p>${escapeHtml(message)}</p><p><a href="${escapeHtml(input.dashboardLink)}">See your dashboard</a></p>`
     ),
   });
 }

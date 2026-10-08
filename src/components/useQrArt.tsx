@@ -15,7 +15,8 @@ export function useQrArt(link: string): { art: QrArt | null; element: ReactNode 
   const art = useMemo(() => (node ? { viewBox: node.getAttribute("viewBox") ?? "0 0 33 33", content: node.innerHTML } : null), [node]);
   const element = (
     <div className="hidden" aria-hidden="true">
-      <QRCodeSVG ref={setNode} value={link} size={256} level="M" marginSize={4} />
+      {/* key={link}: a new link must mount a NEW svg, because `art` is read from the node when it mounts. Without it the QR would keep the first link's modules. */}
+      <QRCodeSVG key={link} ref={setNode} value={link} size={256} level="M" marginSize={4} />
     </div>
   );
   return { art, element };
