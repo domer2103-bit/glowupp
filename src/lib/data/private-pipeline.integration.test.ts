@@ -48,6 +48,7 @@ vi.mock("@/lib/prisma", async () => {
 vi.mock("@/lib/storage", () => ({ getSignedPhotoUrl: async () => "https://signed.test/render.jpg" }));
 vi.mock("@/lib/notifications", () => ({
   APP_URL: "https://glowupp.test",
+  notifyPartnerNoFeeJob: vi.fn(),
   notifyPrivateEstimateRequested: vi.fn(),
   notifyPrivateQuoteSubmitted: vi.fn(),
   notifyOpenMarketProject: vi.fn(),

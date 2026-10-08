@@ -41,7 +41,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Project information</strong> — photos of your space, your postcode/address, design preferences, and any AI-generated visualisations created from these.</li>
               <li><strong>Messages</strong> — content you send through GlowUpp&rsquo;s messaging feature, including to our AI design assistant and to professionals once you choose to request quotes.</li>
               <li><strong>Quote and matching data</strong> — details of quote requests, professional responses, and which professional (if any) you select.</li>
-              <li><strong>Referral information</strong> — if you arrive through a contractor&rsquo;s or a GlowUpp partner&rsquo;s link or QR code, we note which one, and attach it to your project so the right person is credited. A partner never sees who you are — only how many people used their link.</li>
+              <li><strong>Referral information</strong> — if you arrive through a contractor&rsquo;s or a GlowUpp partner&rsquo;s link or QR code, we note which one, and attach it to your project (or, if you sign up as a professional, to your account) so the right person is credited. A partner never sees who you are — only how many people used their link.</li>
               <li><strong>Partner details</strong> — if you join the GlowUpp partner programme: your business name, your name, email address, phone number, the kind of business, the terms you accepted and when, and records of what you have earned and been paid.</li>
               <li><strong>Technical data</strong> — basic server logs (IP address, timestamps, error logs) kept for security and debugging.</li>
             </ul>
@@ -95,7 +95,7 @@ export default function PrivacyPolicyPage() {
             <p className="font-medium text-zinc-900 dark:text-zinc-50">Referral cookies (only if you open a referral link or QR code)</p>
             <ul className="list-disc space-y-2 pl-5">
               <li><strong><code>glowupp_pro_ref</code></strong> — remembers which contractor&rsquo;s link or QR code you opened, so your project goes privately to that contractor. Lasts 30 days.</li>
-              <li><strong><code>glowupp_affiliate</code></strong> — remembers which GlowUpp partner&rsquo;s link or QR code you opened, so we can credit that partner if you go on to book a professional through GlowUpp. Lasts 30 days.</li>
+              <li><strong><code>glowupp_affiliate</code></strong> — remembers which GlowUpp partner&rsquo;s link or QR code you opened, so we can credit that partner if you go on to book a professional through GlowUpp, or if you sign up as a professional. Lasts 30 days.</li>
             </ul>
             <p>
               You can block or delete cookies in your browser settings at any time. GlowUpp will still work, but the sign-in cookies will need to be allowed to stay signed in, and a contractor or

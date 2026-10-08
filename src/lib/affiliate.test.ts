@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   AFFILIATE_MIN_PAYOUT_PENCE,
+  PRO_REFERRAL_EARNING_MONTHS,
+  affiliateProLandingPath,
+  buildAffiliateProLink,
+  withinReferralWindow,
   affiliateBalancePence,
   affiliateLandingPath,
   buildAffiliateLink,
   calculateAffiliateShare,
   classifyAffiliateCode,
   generateAffiliateIdentifiers,
+  noFeeNoticeMessage,
   normalizeEmail,
   normalizePhone,
   payoutBlock,
@@ -120,5 +125,48 @@ describe("self-referral detection", () => {
     expect(sharesIdentity(partner, { email: null, phone: null })).toBe(false);
     expect(sharesIdentity({ email: "a@b.com", phone: null }, { email: null, phone: null })).toBe(false);
     expect(sharesIdentity({ email: null, phone: null }, { email: null, phone: null })).toBe(false); // missing data never matches
+  });
+});
+
+describe("professional referrals", () => {
+  const signedUp = new Date("2026-10-08T12:00:00Z");
+
+  it("earns for 12 months after the professional signs up, and then stops", () => {
+    expect(PRO_REFERRAL_EARNING_MONTHS).toBe(12);
+    expect(withinReferralWindow(signedUp, new Date("2027-10-08T11:59:59Z"))).toBe(true);
+    expect(withinReferralWindow(signedUp, new Date("2027-10-08T12:00:00Z"))).toBe(false);
+    expect(withinReferralWindow(signedUp, new Date("2036-01-01T00:00:00Z"))).toBe(false);
+  });
+
+  it("an explicit null means no limit", () => {
+    expect(withinReferralWindow(signedUp, new Date("2036-01-01T00:00:00Z"), null)).toBe(true);
+  });
+
+  it("counts whole calendar months from sign-up and stops exactly at the end", () => {
+    expect(withinReferralWindow(signedUp, new Date("2027-10-08T11:59:59Z"), 12)).toBe(true);
+    expect(withinReferralWindow(signedUp, new Date("2027-10-08T12:00:00Z"), 12)).toBe(false);
+    expect(withinReferralWindow(signedUp, new Date("2026-10-09T00:00:00Z"), 1)).toBe(true);
+    expect(withinReferralWindow(signedUp, new Date("2026-11-08T12:00:00Z"), 1)).toBe(false);
+  });
+
+  it("builds the tradespeople link and its tagged landing page", () => {
+    expect(buildAffiliateProLink("https://www.glowupp.co.uk/", "grind-ab12")).toBe("https://www.glowupp.co.uk/a/grind-ab12/pro");
+    expect(affiliateProLandingPath("grind-ab12")).toBe("/signup?role=professional&utm_source=affiliate&utm_medium=qr&utm_campaign=grind-ab12-pro");
+  });
+});
+
+describe("noFeeNoticeMessage", () => {
+  it("tells a partner the job had no fee, that it is not a mistake, and what happens next — without naming anyone", () => {
+    const home = noFeeNoticeMessage("HOMEOWNER");
+    const pro = noFeeNoticeMessage("PROFESSIONAL");
+    for (const m of [home, pro]) {
+      expect(m).toMatch(/no fee was charged/i);
+      expect(m).toMatch(/not a mistake/i);
+      expect(m).toMatch(/free introductory jobs/i);
+    }
+    expect(home).toMatch(/homeowner you sent/);
+    expect(pro).toMatch(/tradesperson you referred/);
+    expect(pro).toMatch(/12 months after they signed up/); // follows PRO_REFERRAL_EARNING_MONTHS
+    expect(noFeeNoticeMessage("PROFESSIONAL", null)).not.toMatch(/months/);
   });
 });

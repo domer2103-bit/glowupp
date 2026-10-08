@@ -135,3 +135,55 @@ export function sharesIdentity(a: { email?: string | null; phone?: string | null
   const pb = normalizePhone(b.phone);
   return !!pa && !!pb && pa === pb;
 }
+
+// ---------------------------------------------------------------------------
+// Partner credit for professionals they bring ("Trades" link)
+// ---------------------------------------------------------------------------
+
+/**
+ * How long, from the day a professional signs up through a partner's link,
+ * the partner keeps earning a share of the lead fees on that professional's
+ * jobs: 12 months. `null` = no limit (the share applies to every fee the
+ * professional pays, for as long as they use GlowUpp). This is a business
+ * decision, not a technical one: changing it also changes the sentence shown in the partner
+ * terms (src/lib/partner-terms.ts) — bump PARTNER_TERMS_VERSION with it.
+ */
+export const PRO_REFERRAL_EARNING_MONTHS: number | null = 12;
+
+/** True if a fee dated `at` still earns the partner a share on a professional who signed up at `referredAt`. */
+export function withinReferralWindow(referredAt: Date, at: Date, months: number | null = PRO_REFERRAL_EARNING_MONTHS): boolean {
+  if (months === null) return true;
+  const end = new Date(referredAt);
+  end.setUTCMonth(end.getUTCMonth() + months);
+  return at.getTime() < end.getTime();
+}
+
+/** The partner's link for tradespeople: opens the professional sign-up (not the homeowner page) and remembers the partner. */
+export function buildAffiliateProLink(origin: string, qrSlug: string): string {
+  return `${origin.replace(/\/+$/, "")}/a/${qrSlug}/pro`;
+}
+
+export function affiliateProLandingPath(qrSlug: string): string {
+  return `/signup?role=professional&utm_source=affiliate&utm_medium=qr&utm_campaign=${encodeURIComponent(qrSlug)}-pro`;
+}
+
+// ---------------------------------------------------------------------------
+// "No fee on this job" notice
+// ---------------------------------------------------------------------------
+
+export type NoFeeSource = "HOMEOWNER" | "PROFESSIONAL";
+
+/**
+ * What a partner is told when a job that came from their link carried no fee
+ * (the professional was on a free introductory job, so nothing was collected
+ * and there is no share). Shown in the dashboard pop-up and list, and in the
+ * email, so the wording is in one place. Never names anyone: a partner only
+ * ever learns that a job happened, not who was involved.
+ */
+export function noFeeNoticeMessage(source: NoFeeSource, months: number | null = PRO_REFERRAL_EARNING_MONTHS): string {
+  if (source === "PROFESSIONAL") {
+    const window = months === null ? "" : ` (for ${months} months after they signed up)`;
+    return `A tradesperson you referred won a job, but it was one of their free introductory jobs. No fee was charged, so there is no share on this one — this is not a mistake. Their later paid jobs will earn you your share${window}.`;
+  }
+  return "A homeowner you sent chose a professional who is on GlowUpp's free introductory jobs offer. No fee was charged on this job, so there is no share on it — this is not a mistake. You earn your share on jobs where a professional pays a fee.";
+}

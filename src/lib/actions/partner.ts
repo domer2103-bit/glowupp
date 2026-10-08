@@ -3,9 +3,10 @@
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { buildDashboardLink, PARTNER_COOKIE } from "@/lib/partner-session";
-import { findPartnerByEmail, issuePartnerLoginToken, revokePartnerLoginToken } from "@/lib/data/affiliates";
+import { findPartnerByEmail, getCurrentPartner, issuePartnerLoginToken, markPartnerNoticesSeen, revokePartnerLoginToken } from "@/lib/data/affiliates";
 import { APP_URL, notifyPartnerLoginLink } from "@/lib/notifications";
 
 export type PartnerActionState = { error?: string; info?: string } | undefined;
@@ -41,4 +42,12 @@ export async function partnerSignOut(): Promise<void> {
   await revokePartnerLoginToken(jar.get(PARTNER_COOKIE)?.value);
   jar.delete(PARTNER_COOKIE);
   redirect("/partner/login");
+}
+
+/** "Got it" on the dashboard pop-up: the signed-in partner has read their new notices, so they are not shown as a pop-up again (they stay in the Updates list). */
+export async function dismissPartnerNotices(): Promise<void> {
+  const partner = await getCurrentPartner();
+  if (!partner) redirect("/partner/login");
+  await markPartnerNoticesSeen(partner.id);
+  revalidatePath("/partner/dashboard");
 }

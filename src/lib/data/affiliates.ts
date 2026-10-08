@@ -2,12 +2,13 @@ import "server-only";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
-import { AffiliateStatus, TransactionStatus, UserRole } from "@/generated/prisma/client";
+import { AffiliateSource, AffiliateStatus, TransactionStatus, UserRole } from "@/generated/prisma/client";
 import type { AffiliateCategory, Prisma } from "@/generated/prisma/client";
 import { AFFILIATE_COOKIE } from "@/lib/affiliate-cookie";
 import { cache } from "react";
-import { affiliateBalancePence, calculateAffiliateShare, classifyAffiliateCode, generateAffiliateIdentifiers, payoutBlock, sharesIdentity } from "@/lib/affiliate";
+import { affiliateBalancePence, calculateAffiliateShare, classifyAffiliateCode, generateAffiliateIdentifiers, payoutBlock, sharesIdentity, withinReferralWindow } from "@/lib/affiliate";
 import { PARTNER_COOKIE, generateLoginToken, hashLoginToken, isPlausibleLoginToken, loginTokenExpiry } from "@/lib/partner-session";
+import { APP_URL, notifyPartnerNoFeeJob } from "@/lib/notifications";
 
 /**
  * Database side of the B2B Affiliate & Partner Program. Pure maths and
@@ -71,7 +72,7 @@ export async function stampProjectWithAffiliate(projectId: string, homeownerId: 
     if (!partner) return;
     const { count } = await prisma.project.updateMany({
       where: { id: projectId, homeownerId, affiliatePartnerId: null },
-      data: { affiliatePartnerId: partner.id },
+      data: { affiliatePartnerId: partner.id, affiliateSource: AffiliateSource.HOMEOWNER },
     });
     if (count === 1) {
       await prisma.activityLog.create({
@@ -80,6 +81,34 @@ export async function stampProjectWithAffiliate(projectId: string, homeownerId: 
     }
   } catch (err) {
     console.error("[affiliate] attribution failed:", err);
+  }
+}
+
+/**
+ * Called right after a professional's sign-up (src/lib/actions/auth.ts). If
+ * they arrived through a partner's link/QR in this browser, remember the
+ * partner on their user row — the partner then earns a share of the lead fees
+ * on that professional's jobs (creditAffiliateForTransaction). Done at sign-up
+ * rather than later because the account is often confirmed from an email
+ * link in another browser, where the cookie would be gone. First touch wins,
+ * only professionals are tagged, and it fails soft: losing an attribution
+ * must never break sign-up.
+ */
+export async function stampProfessionalSignupWithAffiliate(userId: string): Promise<void> {
+  const code = await getAffiliateCodeFromCookie();
+  if (!code) return;
+  try {
+    const partner = await findActiveAffiliate(code);
+    if (!partner) return;
+    const { count } = await prisma.user.updateMany({
+      where: { id: userId, role: UserRole.PROFESSIONAL, affiliatePartnerId: null },
+      data: { affiliatePartnerId: partner.id },
+    });
+    if (count === 1) {
+      await prisma.activityLog.create({ data: { type: "affiliate_professional_attributed", actorId: userId, metadata: { partnerId: partner.id } } });
+    }
+  } catch (err) {
+    console.error("[affiliate] professional attribution failed:", err);
   }
 }
 
@@ -97,38 +126,73 @@ export async function creditAffiliateForTransaction(transactionId: string): Prom
     select: {
       status: true,
       feeAmount: true,
+      createdAt: true,
       projectId: true,
-      professional: { select: { user: { select: { email: true, phone: true } } } },
+      professional: {
+        select: {
+          user: {
+            select: {
+              email: true,
+              phone: true,
+              createdAt: true,
+              affiliatePartnerId: true,
+              affiliatePartner: { select: { status: true, revenueShareRate: true, email: true, phone: true, contactName: true } },
+            },
+          },
+        },
+      },
       project: {
         select: {
           affiliatePartnerId: true,
           affiliatePayoutAmount: true,
+          affiliateSource: true,
           homeowner: { select: { email: true, phone: true } },
-          affiliatePartner: { select: { status: true, revenueShareRate: true, email: true, phone: true } },
+          affiliatePartner: { select: { status: true, revenueShareRate: true, email: true, phone: true, contactName: true } },
         },
       },
     },
   });
   if (!transaction || transaction.status !== TransactionStatus.PAID) return null;
 
-  const { affiliatePartnerId, affiliatePayoutAmount, affiliatePartner } = transaction.project;
-  if (!affiliatePartnerId || !affiliatePartner || affiliatePartner.status !== AffiliateStatus.ACTIVE) return null;
-  if (affiliatePayoutAmount !== null) return null;
+  // Who is credited. A fee goes to at most ONE partner, so GlowUpp never pays
+  // out more than the partner share of a single fee: the partner the
+  // homeowner came through if there is one, otherwise the partner the
+  // professional signed up through (while still inside the referral window).
+  const proUser = transaction.professional.user;
+  let partnerId = transaction.project.affiliatePartnerId;
+  let partner = transaction.project.affiliatePartner;
+  let source = transaction.project.affiliateSource ?? AffiliateSource.HOMEOWNER;
+  let attachToProject = false;
+  if (!partnerId && proUser.affiliatePartnerId && proUser.affiliatePartner && withinReferralWindow(proUser.createdAt, transaction.createdAt)) {
+    partnerId = proUser.affiliatePartnerId;
+    partner = proUser.affiliatePartner;
+    source = AffiliateSource.PROFESSIONAL;
+    attachToProject = true;
+  }
 
-  const wouldEarn = calculateAffiliateShare(transaction.feeAmount, affiliatePartner.revenueShareRate.toNumber());
+  if (!partnerId || !partner || partner.status !== AffiliateStatus.ACTIVE) return null;
+  if (transaction.project.affiliatePayoutAmount !== null) return null;
+
+  // The share is of the fee actually collected, after any promotion: a free
+  // introductory job (fee £0) earns nothing, a discounted fee earns half of
+  // the discounted amount.
+  const wouldEarn = calculateAffiliateShare(transaction.feeAmount, partner.revenueShareRate.toNumber());
 
   // Self-referral guard: a job whose homeowner or professional is the partner
   // themselves (same email or phone number) earns nothing. The project is
   // still marked processed (payout 0) so it is not re-examined, and the
   // block is logged so an admin can review it and release it if it was a
   // false alarm (releaseBlockedSelfReferral).
-  const matched = wouldEarn > 0 ? (sharesIdentity(affiliatePartner, transaction.project.homeowner) ? "homeowner" : sharesIdentity(affiliatePartner, transaction.professional.user) ? "professional" : null) : null;
+  const matched = wouldEarn > 0 ? (sharesIdentity(partner, transaction.project.homeowner) ? "homeowner" : sharesIdentity(partner, proUser) ? "professional" : null) : null;
   const share = matched ? 0 : wouldEarn;
+  const claimedPartnerId = partnerId;
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const claimed = await tx.project.updateMany({
-      where: { id: transaction.projectId, affiliatePartnerId, affiliatePayoutAmount: null },
-      data: { affiliatePayoutAmount: share },
+      where: { id: transaction.projectId, affiliatePartnerId: attachToProject ? null : claimedPartnerId, affiliatePayoutAmount: null },
+      data: attachToProject
+        ? { affiliatePartnerId: claimedPartnerId, affiliateSource: source, affiliatePayoutAmount: share }
+        : { affiliatePayoutAmount: share },
     });
     if (claimed.count === 0) return null; // a concurrent delivery got there first
     if (matched) {
@@ -136,23 +200,76 @@ export async function creditAffiliateForTransaction(transactionId: string): Prom
         data: {
           type: "affiliate_self_referral_blocked",
           projectId: transaction.projectId,
-          metadata: { transactionId, partnerId: affiliatePartnerId, matched, wouldHaveEarnedPence: wouldEarn },
+          metadata: { transactionId, partnerId: claimedPartnerId, matched, source, wouldHaveEarnedPence: wouldEarn },
         },
       });
       return 0;
     }
     if (share > 0) {
-      await tx.affiliatePartner.update({ where: { id: affiliatePartnerId }, data: { totalEarningsPence: { increment: share } } });
+      await tx.affiliatePartner.update({ where: { id: claimedPartnerId }, data: { totalEarningsPence: { increment: share } } });
     }
     await tx.activityLog.create({
       data: {
         type: "affiliate_earning_credited",
         projectId: transaction.projectId,
-        metadata: { transactionId, partnerId: affiliatePartnerId, feeAmount: transaction.feeAmount, sharePence: share },
+        metadata: { transactionId, partnerId: claimedPartnerId, source, feeAmount: transaction.feeAmount, sharePence: share },
       },
     });
+    // A job from the partner's link with no fee at all (the professional was on
+    // a free introductory job): there is nothing to share. Record it so the
+    // partner is told why, instead of seeing a job that earned nothing.
+    if (transaction.feeAmount === 0) {
+      await tx.activityLog.create({
+        data: { type: "affiliate_no_fee_job", projectId: transaction.projectId, metadata: { transactionId, partnerId: claimedPartnerId, source } },
+      });
+    }
     return share;
   });
+
+  if (result !== null && transaction.feeAmount === 0) {
+    try {
+      await notifyPartnerNoFeeJob({ email: partner.email, contactName: partner.contactName, source, dashboardLink: `${APP_URL}/partner/dashboard` });
+    } catch (err) {
+      console.error("[affiliate] no-fee notice email failed:", err);
+    }
+  }
+  return result;
+}
+
+/**
+ * Called when a professional is selected for a job. A free introductory job is
+ * recorded straight away as a £0 PAID fee (src/lib/actions/quotes.ts), and no
+ * webhook or admin click ever follows it, so it has to be settled here for the
+ * partner credit logic (and the "no fee on this job" notice) to see it. A job
+ * with a fee to pay is left alone: it is credited when the fee is paid. Never
+ * throws, because a partner-side problem must not break choosing a professional.
+ */
+export async function settleFreeJobForAffiliate(quoteRequestId: string): Promise<void> {
+  try {
+    const transaction = await prisma.transaction.findUnique({ where: { quoteRequestId }, select: { id: true, status: true, feeAmount: true } });
+    if (transaction && transaction.status === TransactionStatus.PAID && transaction.feeAmount === 0) await creditAffiliateForTransaction(transaction.id);
+  } catch (err) {
+    console.error("[affiliate] free-job settlement failed:", err);
+  }
+}
+
+export type PartnerNotice = { id: string; source: "HOMEOWNER" | "PROFESSIONAL"; createdAt: Date; unseen: boolean };
+
+/** The partner's recent "no fee on this job" notices, newest first, with whether each is newer than the last time they dismissed the pop-up. */
+export async function getPartnerNotices(partnerId: string, seenAt: Date | null): Promise<PartnerNotice[]> {
+  const logs = await prisma.activityLog.findMany({
+    where: { type: "affiliate_no_fee_job", metadata: { path: ["partnerId"], equals: partnerId } },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  return logs.map((l) => {
+    const m = l.metadata as { source?: "HOMEOWNER" | "PROFESSIONAL" } | null;
+    return { id: l.id, source: m?.source === "PROFESSIONAL" ? "PROFESSIONAL" : "HOMEOWNER", createdAt: l.createdAt, unseen: !seenAt || l.createdAt.getTime() > seenAt.getTime() };
+  });
+}
+
+export async function markPartnerNoticesSeen(partnerId: string): Promise<void> {
+  await prisma.affiliatePartner.update({ where: { id: partnerId }, data: { noticesSeenAt: new Date() } });
 }
 
 /**
@@ -211,8 +328,12 @@ export type AffiliateRow = {
   qrSlug: string;
   revenueShareRate: number;
   clickCount: number;
-  /** Homeowner projects started through this partner. */
+  /** Homeowner projects started through this partner's link. */
   projects: number;
+  /** Professionals who signed up through this partner's tradespeople link. */
+  professionalsReferred: number;
+  /** Jobs won by those professionals whose fee has been paid (the jobs that earned, or were held back). */
+  referredProJobs: number;
   /** Projects where the homeowner picked a professional — the real "conversion". */
   conversions: number;
   /** Total value of the accepted quotes on those jobs (pence). */
@@ -227,6 +348,7 @@ export type AffiliateRow = {
 
 const PROJECT_STATS_SELECT = {
   affiliatePartnerId: true,
+  affiliateSource: true,
   quoteRequests: {
     where: { selected: true },
     select: { quoteAmount: true, transaction: { select: { status: true, feeAmount: true } } },
@@ -235,19 +357,26 @@ const PROJECT_STATS_SELECT = {
 
 /** Funnel and money totals per partner, no authorisation — callers (admin overview, a partner's own dashboard) decide who may see what. Aggregated in code: partner programs are tens of rows, not millions. */
 async function computeAffiliateRows(onlyPartnerId?: string): Promise<AffiliateRow[]> {
-  const [partners, projects] = await Promise.all([
+  const [partners, projects, referred] = await Promise.all([
     prisma.affiliatePartner.findMany({ where: onlyPartnerId ? { id: onlyPartnerId } : undefined, orderBy: { createdAt: "desc" } }),
     prisma.project.findMany({
       where: onlyPartnerId ? { affiliatePartnerId: onlyPartnerId } : { affiliatePartnerId: { not: null } },
       select: PROJECT_STATS_SELECT,
     }),
+    prisma.user.groupBy({
+      by: ["affiliatePartnerId"],
+      where: { role: UserRole.PROFESSIONAL, affiliatePartnerId: onlyPartnerId ?? { not: null } },
+      _count: { _all: true },
+    }),
   ]);
+  const referredCounts = new Map(referred.map((r) => [r.affiliatePartnerId!, r._count._all]));
 
-  const stats = new Map<string, { projects: number; conversions: number; gmv: number; profit: number }>();
+  const stats = new Map<string, { projects: number; proJobs: number; conversions: number; gmv: number; profit: number }>();
   for (const project of projects) {
     const key = project.affiliatePartnerId!;
-    const s = stats.get(key) ?? { projects: 0, conversions: 0, gmv: 0, profit: 0 };
-    s.projects += 1;
+    const s = stats.get(key) ?? { projects: 0, proJobs: 0, conversions: 0, gmv: 0, profit: 0 };
+    if (project.affiliateSource === AffiliateSource.PROFESSIONAL) s.proJobs += 1;
+    else s.projects += 1;
     for (const qr of project.quoteRequests) {
       s.conversions += 1;
       s.gmv += qr.quoteAmount ?? 0;
@@ -257,7 +386,7 @@ async function computeAffiliateRows(onlyPartnerId?: string): Promise<AffiliateRo
   }
 
   return partners.map((p) => {
-    const s = stats.get(p.id) ?? { projects: 0, conversions: 0, gmv: 0, profit: 0 };
+    const s = stats.get(p.id) ?? { projects: 0, proJobs: 0, conversions: 0, gmv: 0, profit: 0 };
     return {
       id: p.id,
       businessName: p.businessName,
@@ -272,6 +401,8 @@ async function computeAffiliateRows(onlyPartnerId?: string): Promise<AffiliateRo
       revenueShareRate: p.revenueShareRate.toNumber(),
       clickCount: p.clickCount,
       projects: s.projects,
+      professionalsReferred: referredCounts.get(p.id) ?? 0,
+      referredProJobs: s.proJobs,
       conversions: s.conversions,
       gmvPence: s.gmv,
       glowuppProfitPence: s.profit,
@@ -433,6 +564,10 @@ export type PartnerDashboard = {
   projects: number;
   /** Jobs where the homeowner went on to pick a professional. */
   conversions: number;
+  /** Professionals who signed up through the partner's tradespeople link. */
+  professionalsReferred: number;
+  /** Paid jobs won by those professionals. */
+  referredProJobs: number;
   /** False until an admin has checked the account; payouts wait for it. */
   verified: boolean;
   totalEarningsPence: number;
@@ -460,6 +595,8 @@ export async function getPartnerDashboard(partnerId: string): Promise<PartnerDas
     clickCount: row.clickCount,
     projects: row.projects,
     conversions: row.conversions,
+    professionalsReferred: row.professionalsReferred,
+    referredProJobs: row.referredProJobs,
     totalEarningsPence: row.totalEarningsPence,
     paidEarningsPence: row.paidEarningsPence,
     balancePence: row.balancePence,

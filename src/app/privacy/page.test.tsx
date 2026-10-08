@@ -27,5 +27,6 @@ describe("privacy policy cookie section", () => {
     expect(text).toMatch(/Partner details/);
     expect(text).toMatch(/Referral information/);
     expect(text).toMatch(/run our partner programme/i);
+    expect(text).toMatch(/if you sign up as a professional/i);
   });
 });

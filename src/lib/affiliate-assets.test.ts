@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASSET_KINDS, ASSET_SPECS, assetFileName, buildAssetSvg, escapeXml, estimateTextWidth, fitLineSize, fitText, wrapText, type AssetContent } from "./affiliate-assets";
+import { ASSET_KINDS, ASSET_SPECS, assetFileName, AUDIENCE_COPY, buildAssetSvg, defaultHeadline, escapeXml, estimateTextWidth, fitLineSize, fitText, wrapText, type AssetContent } from "./affiliate-assets";
 
 const QR = { viewBox: "0 0 41 41", content: '<path fill="#ffffff" d="M0,0h41v41H0z"/><path fill="#000000" d="M4,4h7v7H4z"/>' };
 
@@ -94,5 +94,45 @@ describe("buildAssetSvg", () => {
 describe("assetFileName", () => {
   it("names downloads after the partner and the asset", () => {
     expect(assetFileName("the-daily-grind-ab2c", "sticker", "pdf")).toBe("glowupp-the-daily-grind-ab2c-counter-card.pdf");
+  });
+});
+
+describe("tradespeople assets", () => {
+  it.each(ASSET_KINDS)("%s: carries the trades call to action and none of the homeowner wording", (kind) => {
+    const svg = buildAssetSvg(kind, { ...content({ headline: defaultHeadline(kind, "", "professional"), subline: AUDIENCE_COPY.professional.subline, link: "https://www.glowupp.co.uk/a/the-daily-grind-ab2c/pro" }), audience: "professional" });
+    const words = readable(svg);
+    expect(words).toContain("Scan to join free");
+    expect(words).toContain("glowupp.co.uk/a/the-daily-grind-ab2c/pro");
+    expect(words).not.toContain("Scan to try it");
+    expect(words).not.toMatch(/dream living room|redesign your home/i);
+  });
+
+  it("the poster's three steps speak to a tradesperson", () => {
+    const words = readable(buildAssetSvg("poster", { ...content({ headline: defaultHeadline("poster", "", "professional") }), audience: "professional" }));
+    for (const step of AUDIENCE_COPY.professional.steps) expect(words).toContain(step.replace(/'/g, "&apos;"));
+    expect(words).not.toContain("Meet local pros");
+  });
+
+  it("homeowner assets are unchanged when no audience is given", () => {
+    expect(readable(buildAssetSvg("poster", content()))).toContain("Meet local pros");
+    expect(defaultHeadline("sticker", "Cafe headline")).toBe("Cafe headline");
+    expect(defaultHeadline("sticker", "ignored", "professional")).toBe(AUDIENCE_COPY.professional.stickerHeadline);
+    expect(defaultHeadline("poster", "x", "professional")).toBe(AUDIENCE_COPY.professional.headline);
+  });
+});
+
+describe("poster steps never run off the page", () => {
+  it("shrinks a long step (the trades wording) so it fits inside the poster, and leaves short homeowner steps at full size", () => {
+    const trades = buildAssetSvg("poster", { ...content({ headline: "Show clients the redesign before you quote" }), audience: "professional" });
+    const home = buildAssetSvg("poster", content());
+    const stepSizes = (svg: string) => [...svg.matchAll(/font-size="(\d+)" font-weight="600" fill="#132a4d">([^<]*)<\/text>/g)].map((m) => ({ size: Number(m[1]), text: m[2] }));
+    const t = stepSizes(trades).filter((s) => AUDIENCE_COPY.professional.steps.some((x) => s.text === x.replace(/'/g, "&apos;")));
+    expect(t).toHaveLength(3);
+    for (const s of t) {
+      expect(s.size).toBeLessThan(104); // shrunk
+      expect(390 + s.text.length * s.size * 0.56).toBeLessThan(ASSET_SPECS.poster.width); // inside the page
+    }
+    expect(new Set(t.map((s) => s.size)).size).toBe(1); // one size for all three steps
+    expect(stepSizes(home).filter((s) => AUDIENCE_COPY.homeowner.steps.includes(s.text)).every((s) => s.size === 104)).toBe(true);
   });
 });

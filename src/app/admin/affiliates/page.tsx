@@ -54,13 +54,14 @@ export default async function AdminAffiliatesPage() {
             <p className="text-zinc-600">No partners yet. Create the first one above.</p>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
-              <table className="w-full min-w-[60rem] border-collapse">
+              <table className="w-full min-w-[66rem] border-collapse">
                 <thead className="border-b border-zinc-200 bg-zinc-50">
                   <tr>
                     <th className={TH}>Partner</th>
                     <th className={`${TH} text-right`}>Clicks</th>
                     <th className={`${TH} text-right`}>Projects</th>
                     <th className={`${TH} text-right`}>Conversions</th>
+                    <th className={`${TH} text-right`}>Pros referred</th>
                     <th className={`${TH} text-right`}>Job value</th>
                     <th className={`${TH} text-right`}>GlowUpp profit</th>
                     <th className={`${TH} text-right`}>Partner share</th>
@@ -85,6 +86,10 @@ export default async function AdminAffiliatesPage() {
                       <td className={`${TD} text-right tabular-nums`}>{p.clickCount}</td>
                       <td className={`${TD} text-right tabular-nums`}>{p.projects}</td>
                       <td className={`${TD} text-right tabular-nums`}>{p.conversions}</td>
+                      <td className={`${TD} text-right tabular-nums`}>
+                        {p.professionalsReferred}
+                        {p.referredProJobs > 0 && <p className="text-xs text-zinc-500">{p.referredProJobs} paid {p.referredProJobs === 1 ? "job" : "jobs"}</p>}
+                      </td>
                       <td className={`${TD} text-right tabular-nums`}>{formatPenceExact(p.gmvPence)}</td>
                       <td className={`${TD} text-right tabular-nums`}>{formatPenceExact(p.glowuppProfitPence)}</td>
                       <td className={`${TD} text-right tabular-nums`}>
@@ -102,7 +107,7 @@ export default async function AdminAffiliatesPage() {
             </div>
           )}
           <p className="text-xs text-zinc-500">
-            Clicks are raw link opens (bots and repeat scans included). Conversions are jobs where the homeowner picked a professional. Partner share is credited when the
+            Clicks are raw link opens (bots and repeat scans included). Conversions are jobs where the homeowner picked a professional. Pros referred are tradespeople who signed up through the partner&apos;s tradespeople link. Partner share is credited when the
             professional&apos;s lead fee is paid, and withdrawn if that fee is later reversed. First partner a homeowner opens wins, for 30 days.
           </p>
         </section>
