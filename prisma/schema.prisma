@@ -45,6 +45,7 @@ model User {
   activity          ActivityLog[]  @relation("ActivityActor")
   messagesSent      Message[]
   privatePipelineSessions PrivatePipelineSession[]
+  affiliatePayoutsMade    AffiliatePayout[] @relation("AffiliatePayoutAdmin")
 
   @@map("users")
 }
@@ -97,6 +98,16 @@ model Project {
   // submitOpenMarketQuote and getOpenMarketProjects, not just hidden in
   // the UI. Always set together with a PrivatePipelineSession row.
   isPrivatePipeline   Boolean       @default(false) @map("is_private_pipeline")
+  // B2B Affiliate & Partner Program (src/lib/data/affiliates.ts): the
+  // partner whose link/QR brought this homeowner in, stamped when the
+  // project is created — NOT read from a cookie at payment time, because
+  // the Stripe webhook that clears a fee has no browser cookies. The
+  // payout is the partner's share of the lead fee GlowUpp actually
+  // collected (pence), set once when the fee is PAID and cleared if the
+  // fee is later un-paid. Null until then.
+  affiliatePartnerId    String?           @map("affiliate_partner_id") @db.Uuid
+  affiliatePartner      AffiliatePartner? @relation(fields: [affiliatePartnerId], references: [id], onDelete: SetNull)
+  affiliatePayoutAmount Int?              @map("affiliate_payout_amount")
 
   photos            ProjectPhoto[]
   requirements      ProjectRequirements?
@@ -110,6 +121,7 @@ model Project {
   @@index([homeownerId])
   @@index([status])
   @@index([projectType])
+  @@index([affiliatePartnerId])
   @@map("projects")
 }
 
@@ -544,4 +556,101 @@ model WaitlistSignup {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("waitlist_signups")
+}
+
+enum AffiliateCategory {
+  CAFE
+  GYM
+  GARDEN_CENTER
+  SALON
+  TRADE_SUPPLIER
+  INFLUENCER
+  OTHER
+}
+
+enum AffiliateStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+// A local business or influencer who promotes GlowUpp to homeowners
+// through a personal link/QR (/a/[code]) and earns revenueShareRate (50%
+// by default) of the lead fee GlowUpp collects on jobs those homeowners
+// book. Not a User: partners never log in — admins run the whole program
+// from /admin/affiliates. Money is in pence, like everywhere else.
+model AffiliatePartner {
+  id               String            @id @default(uuid()) @db.Uuid
+  businessName     String            @map("business_name")
+  contactName      String            @map("contact_name")
+  // Stored lowercase and unique: one partner account per business email
+  // (self-service sign-up at /partner/join relies on it).
+  email            String            @unique
+  phone            String?
+  category         AffiliateCategory
+  status           AffiliateStatus   @default(ACTIVE)
+  // 8-char code from the same alphabet as professionals' referral codes
+  // (src/lib/referral.ts) and a human-friendly slug. /a/[code] accepts
+  // either; the printed QR uses the slug so the visible URL is readable.
+  referralCode     String            @unique @map("referral_code")
+  qrSlug           String            @unique @map("qr_slug")
+  // Fraction of GlowUpp's collected fee the partner earns. 0.5000 = 50%.
+  revenueShareRate Decimal           @default(0.5000) @map("revenue_share_rate") @db.Decimal(5, 4)
+  // Lifetime earned and lifetime paid out; the balance still owed is
+  // total - paid (derived in code, so the three can never disagree).
+  // A reversed fee after payout can push the balance negative: a clawback.
+  totalEarningsPence Int             @default(0) @map("total_earnings_pence")
+  paidEarningsPence  Int             @default(0) @map("paid_earnings_pence")
+  // Raw hits on /a/[code]. Includes bots and repeat scans, so treat as an
+  // upper bound; "projects" and "conversions" are the real signal.
+  clickCount       Int               @default(0) @map("click_count")
+  // True when the business signed itself up at /partner/join rather than an
+  // admin creating it — shown in the admin table so payouts to
+  // self-registered partners can be vetted first. termsAcceptedAt records
+  // the partner-terms checkbox.
+  selfRegistered   Boolean           @default(false) @map("self_registered")
+  termsAcceptedAt  DateTime?         @map("terms_accepted_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  projects Project[]
+  payouts  AffiliatePayout[]
+  loginTokens AffiliateLoginToken[]
+
+  @@index([status])
+  @@map("affiliate_partners")
+}
+
+// Append-only log of money actually sent to a partner (bank transfer etc.
+// done outside this system), so the "paid" figure always has a paper trail.
+model AffiliatePayout {
+  id          String           @id @default(uuid()) @db.Uuid
+  partnerId   String           @map("partner_id") @db.Uuid
+  partner     AffiliatePartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  amountPence Int              @map("amount_pence")
+  note        String?
+  paidById    String?          @map("paid_by_id") @db.Uuid
+  paidBy      User?            @relation("AffiliatePayoutAdmin", fields: [paidById], references: [id], onDelete: SetNull)
+  paidAt      DateTime         @default(now()) @map("paid_at")
+
+  @@index([partnerId])
+  @@map("affiliate_payouts")
+}
+
+// A sign-in link for the partner dashboard (/partner/dashboard?token=…),
+// emailed to the partner and then kept by their browser in an httpOnly
+// cookie. Only the SHA-256 of the random token is stored, so a database
+// leak does not leak working logins. A partner can hold several at once
+// (phone and laptop), and asking for another never signs the others out —
+// otherwise anyone who typed a partner's email into the public form could
+// keep logging them out.
+model AffiliateLoginToken {
+  id        String           @id @default(uuid()) @db.Uuid
+  partnerId String           @map("partner_id") @db.Uuid
+  partner   AffiliatePartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  tokenHash String           @unique @map("token_hash")
+  expiresAt DateTime         @map("expires_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([partnerId])
+  @@map("affiliate_login_tokens")
 }

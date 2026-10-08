@@ -307,3 +307,53 @@ export async function notifyPrivateQuoteSubmitted(input: PrivateQuoteSubmittedIn
     ),
   });
 }
+
+interface PartnerWelcomeInput {
+  email: string;
+  contactName: string;
+  businessName: string;
+  /** The partner's personal link/QR address. */
+  trackingLink: string;
+  /** Magic login link for the partner dashboard (contains the one-time-shown token). */
+  dashboardLink: string;
+  sharePercent: number;
+}
+
+/** Sent once when a business signs itself up at /partner/join: confirms the share, and carries the tracking link and the magic dashboard link (where the printable PDFs/PNGs are downloaded — they are rendered in the browser, not attached). */
+export async function notifyPartnerWelcome(input: PartnerWelcomeInput): Promise<void> {
+  const materials = `${input.dashboardLink}#materials`;
+  await sendBestEffort({
+    to: input.email,
+    subject: `You're in — your GlowUpp partner link for ${input.businessName}`,
+    text: `Hi ${input.contactName},\n\nWelcome to the GlowUpp partner programme — ${input.businessName} is all set up.\n\nOur agreement in short: you earn ${input.sharePercent}% of the lead fee GlowUpp collects on jobs booked by homeowners who start through your link or QR code. We'll be in touch to arrange payment of anything you've earned.\n\nYour personal link (this is what your QR code opens):\n${input.trackingLink}\n\nDownload your poster, coaster and social graphic:\n${materials}\n\nYour live earnings dashboard:\n${input.dashboardLink}\n\nKeep this email: the dashboard link signs you in, so please don't forward it. If you lose it you can ask for a new one at ${APP_URL}/partner/login.\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.contactName)},</p>` +
+        `<p>Welcome to the GlowUpp partner programme — <strong>${escapeHtml(input.businessName)}</strong> is all set up.</p>` +
+        `<p><strong>Our agreement in short:</strong> you earn ${input.sharePercent}% of the lead fee GlowUpp collects on jobs booked by homeowners who start through your link or QR code. We'll be in touch to arrange payment of anything you've earned.</p>` +
+        `<p>Your personal link (this is what your QR code opens):<br><a href="${escapeHtml(input.trackingLink)}">${escapeHtml(input.trackingLink)}</a></p>` +
+        `<p><a href="${escapeHtml(materials)}" style="display:inline-block;background:#3a6694;color:#ffffff;padding:10px 18px;border-radius:999px;text-decoration:none;">Download your poster, coaster &amp; social graphic</a></p>` +
+        `<p><a href="${escapeHtml(input.dashboardLink)}">Open your live earnings dashboard</a></p>` +
+        `<p style="color:#71717a;font-size:13px;">Keep this email: the dashboard link signs you in, so please don't forward it. If you lose it you can ask for a new one at <a href="${APP_URL}/partner/login">${APP_URL}/partner/login</a>.</p>`
+    ),
+  });
+}
+
+interface PartnerLoginLinkInput {
+  email: string;
+  contactName: string;
+  dashboardLink: string;
+}
+
+/** Sent when a partner asks for a new sign-in link (or re-submits the join form with an email that already has an account). */
+export async function notifyPartnerLoginLink(input: PartnerLoginLinkInput): Promise<void> {
+  await sendBestEffort({
+    to: input.email,
+    subject: "Your GlowUpp partner sign-in link",
+    text: `Hi ${input.contactName},\n\nHere is your sign-in link for the GlowUpp partner dashboard:\n${input.dashboardLink}\n\nPlease don't forward it — anyone with it can see your dashboard. If you didn't ask for this, you can ignore this email.\n\n— GlowUpp`,
+    html: emailWrapper(
+      `<p>Hi ${escapeHtml(input.contactName)},</p><p>Here is your sign-in link for the GlowUpp partner dashboard:</p>` +
+        `<p><a href="${escapeHtml(input.dashboardLink)}" style="display:inline-block;background:#3a6694;color:#ffffff;padding:10px 18px;border-radius:999px;text-decoration:none;">Open my dashboard</a></p>` +
+        `<p style="color:#71717a;font-size:13px;">Please don't forward it — anyone with it can see your dashboard. If you didn't ask for this, you can ignore this email.</p>`
+    ),
+  });
+}

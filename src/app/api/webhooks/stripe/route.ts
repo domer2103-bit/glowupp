@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { TransactionStatus } from "@/generated/prisma/client";
 import { notifyLeadFeePaid } from "@/lib/notifications";
+import { creditAffiliateForTransaction } from "@/lib/data/affiliates";
 
 /**
  * Stripe webhook — the only source of truth for a Transaction moving to
@@ -67,6 +68,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           metadata: { transactionId: transaction.id, feeAmount: transaction.feeAmount },
         },
       });
+
+      // B2B affiliate partner's share of this fee, if the homeowner came
+      // via a partner link. Must not fail the webhook: the fee is already
+      // recorded as paid, and Stripe would retry a 500 forever.
+      try {
+        await creditAffiliateForTransaction(transaction.id);
+      } catch (err) {
+        console.error("[stripe webhook] affiliate credit failed for transaction", transaction.id, err);
+      }
 
       await notifyLeadFeePaid({
         professionalEmail: transaction.professional.user.email,

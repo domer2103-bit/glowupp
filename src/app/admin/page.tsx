@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { getAllProfessionals, getAllTransactions, getAllWaitlistSignups } from "@/lib/data/admin";
+import { getAffiliateOverview } from "@/lib/data/affiliates";
 import { UserRole, VerificationStatus, TransactionStatus } from "@/generated/prisma/client";
 
 const CARD_CLASS =
@@ -9,11 +10,13 @@ const CARD_CLASS =
 export default async function AdminHubPage() {
   await requireRole(UserRole.ADMIN);
 
-  const [professionals, transactions, waitlistSignups] = await Promise.all([
+  const [professionals, transactions, waitlistSignups, affiliates] = await Promise.all([
     getAllProfessionals(),
     getAllTransactions(),
     getAllWaitlistSignups(),
+    getAffiliateOverview(),
   ]);
+  const owedToPartners = affiliates.filter((a) => a.balancePence > 0).length;
   const unverifiedCount = professionals.filter((p) => p.verificationStatus === VerificationStatus.UNVERIFIED).length;
   const pendingFeesCount = transactions.filter((t) => t.status === TransactionStatus.PENDING).length;
 
@@ -37,6 +40,12 @@ export default async function AdminHubPage() {
           <Link href="/admin/transactions" className={CARD_CLASS}>
             <span className="font-medium">Lead fees</span>
             <span className="text-sm text-zinc-500">{pendingFeesCount} pending</span>
+          </Link>
+          <Link href="/admin/affiliates" className={CARD_CLASS}>
+            <span className="font-medium">Partner program</span>
+            <span className="text-sm text-zinc-500">
+              {affiliates.length} partners{owedToPartners > 0 ? ` · ${owedToPartners} to pay` : ""}
+            </span>
           </Link>
           <Link href="/admin/waitlist" className={CARD_CLASS}>
             <span className="font-medium">Launch waitlist</span>
