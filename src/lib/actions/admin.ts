@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
 import { UserRole, VerificationStatus, TransactionStatus } from "@/generated/prisma/client";
+import { creditAffiliateForTransaction, reverseAffiliateForTransaction } from "@/lib/data/affiliates";
 
 const VerificationStatusSchema = z.enum([
   VerificationStatus.UNVERIFIED,
@@ -67,5 +68,11 @@ export async function updateTransactionStatus(transactionId: string, status: str
     },
   });
 
+  // Keep a B2B affiliate partner's earnings in step with the fee: credit
+  // when it becomes PAID, withdraw when a PAID fee is moved back.
+  if (parsed.data === TransactionStatus.PAID) await creditAffiliateForTransaction(transactionId);
+  else if (transaction.status === TransactionStatus.PAID) await reverseAffiliateForTransaction(transactionId);
+
   revalidatePath("/admin/transactions");
+  revalidatePath("/admin/affiliates");
 }

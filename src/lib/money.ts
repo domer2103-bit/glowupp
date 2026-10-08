@@ -12,3 +12,8 @@ export function formatPence(pence: number): string {
     penceToPounds(pence)
   );
 }
+
+/** Like formatPence but always shows pence (£12.50) — for small amounts such as affiliate shares where rounding to whole pounds would hide the figure. */
+export function formatPenceExact(pence: number): string {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(penceToPounds(pence));
+}

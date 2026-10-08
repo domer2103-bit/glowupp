@@ -6,6 +6,7 @@ import { failStaleConcepts } from "@/lib/design-stale";
 import { requireUser, getCurrentUser } from "@/lib/auth";
 import { getOrCreateGuestUser } from "@/lib/guest";
 import { lockProjectToReferrer } from "@/lib/data/private-pipeline";
+import { stampProjectWithAffiliate } from "@/lib/data/affiliates";
 import { UserRole } from "@/generated/prisma/client";
 
 /**
@@ -142,6 +143,7 @@ export async function getOrCreateDraftProject(homeownerId: string, projectType: 
   });
   if (existing) {
     const locked = await lockProjectToReferrer(existing.id, homeownerId);
+    await stampProjectWithAffiliate(existing.id, homeownerId);
     return locked ? { ...existing, isPrivatePipeline: true } : existing;
   }
 
@@ -151,6 +153,9 @@ export async function getOrCreateDraftProject(homeownerId: string, projectType: 
   // A visitor who arrived via a contractor's link/QR gets this project
   // locked to that contractor (Private Client Pipeline).
   const locked = await lockProjectToReferrer(created.id, homeownerId);
+  // A visitor who arrived via a B2B partner's link/QR (/a/[code]) gets this
+  // project credited to that partner (src/lib/data/affiliates.ts).
+  await stampProjectWithAffiliate(created.id, homeownerId);
   return { ...created, isPrivatePipeline: locked, photos: [], requirements: null };
 }
 
