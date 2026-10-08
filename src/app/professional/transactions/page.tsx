@@ -21,6 +21,18 @@ export default async function ProfessionalTransactionsPage() {
             GlowUpp&apos;s fee for a project you&apos;ve won — not a payment to the homeowner, and not something they see. 5% of the
             accepted quote, capped at £250. Paying unlocks the homeowner&apos;s full address on the opportunity.
           </p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Early-bird offer: if your GlowUpp account was created before Black Friday 2026 (27 November), your first 2 marketplace
+            jobs have no commission at all.
+          </p>
+          <p className="mt-1 text-sm text-zinc-500">
+            Clients who came through your own referral link or QR code: your first 3 jobs are free, then 1% of the accepted quote
+            (also capped at £250).
+          </p>
+          <p className="mt-1 text-sm text-zinc-500">
+            If a job falls through after you&apos;ve paid a fee, email{" "}
+            <a href="mailto:hello@glowupp.co.uk" className="underline">hello@glowupp.co.uk</a> and we&apos;ll look into it.
+          </p>
         </div>
 
         {totalOwed > 0 && <p className="text-sm font-medium">Outstanding: £{penceToPounds(totalOwed)}</p>}
@@ -39,7 +51,7 @@ export default async function ProfessionalTransactionsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="font-medium">£{penceToPounds(t.feeAmount)}</p>
+                    <p className="font-medium">{t.feeAmount === 0 ? "No commission on this job" : `£${penceToPounds(t.feeAmount)}`}</p>
                     <p className="text-xs text-zinc-500">{t.status}</p>
                   </div>
                   {t.status === "PENDING" && (

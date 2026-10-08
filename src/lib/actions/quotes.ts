@@ -10,9 +10,9 @@ import { evaluateMatch } from "@/lib/matching";
 import { isAtOrPastStatus } from "@/lib/project-status";
 import { poundsToPence } from "@/lib/money";
 import { notifyProfessionalSelected, notifyOpenMarketProject, notifyQuoteSubmitted } from "@/lib/notifications";
-import { calculateLeadFee } from "@/lib/fees";
+import { calculateMarketplaceFee, calculatePrivateLinkFee } from "@/lib/fees";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { assertNotPrivate } from "@/lib/data/private-pipeline";
+import { assertNotPrivate, countPriorMarketplaceJobs, countPriorPrivateLinkJobs } from "@/lib/data/private-pipeline";
 import { ProjectStatus, QuoteRequestStatus, TransactionStatus, UserRole } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string } | undefined;
@@ -197,23 +197,69 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
   // check against that invariant, not an expected runtime path.
   if (quoteRequest.quoteAmount === null) return;
 
-  // Private-pipeline jobs are the contractor's own client: no lead fee, no
-  // Transaction row — just record the selection. (Reverse this by removing
-  // the branch if private jobs should also be charged.)
+  // Private-pipeline jobs are the contractor's own client, so they're priced
+  // differently from marketplace leads: a contractor's first
+  // PRIVATE_LINK_FREE_JOBS are free (recorded as a £0 PAID Transaction, which
+  // also unlocks the full address and counts towards the three), after that
+  // 1% of the quote through the same pay-to-unlock + Stripe flow as any
+  // other lead fee.
   if (project.isPrivatePipeline) {
+    const priorJobs = await countPriorPrivateLinkJobs(quoteRequest.professionalId, quoteRequestId);
+    const privateFee = calculatePrivateLinkFee(quoteRequest.quoteAmount, priorJobs);
+    const free = privateFee === 0;
     await prisma.$transaction([
       prisma.quoteRequest.updateMany({ where: { projectId }, data: { selected: false } }),
       prisma.quoteRequest.update({ where: { id: quoteRequestId }, data: { selected: true } }),
+      prisma.transaction.upsert({
+        where: { quoteRequestId },
+        create: {
+          quoteRequestId,
+          professionalId: quoteRequest.professionalId,
+          projectId,
+          feeAmount: privateFee,
+          status: free ? TransactionStatus.PAID : TransactionStatus.PENDING,
+          paidAt: free ? new Date() : null,
+        },
+        update: {
+          feeAmount: privateFee,
+          status: free ? TransactionStatus.PAID : TransactionStatus.PENDING,
+          createdAt: new Date(),
+          paidAt: free ? new Date() : null,
+          feeFinalNoticeSentAt: null,
+          stripeCheckoutSessionId: null,
+          stripePaymentIntentId: null,
+        },
+      }),
       prisma.project.update({ where: { id: projectId }, data: { status: ProjectStatus.PROFESSIONAL_SELECTED } }),
-      prisma.activityLog.create({ data: { type: "professional_selected", actorId: project.homeownerId, projectId, metadata: { quoteRequestId, privatePipeline: true } } }),
+      prisma.activityLog.create({
+        data: { type: "professional_selected", actorId: project.homeownerId, projectId, metadata: { quoteRequestId, privatePipeline: true, priorPrivateJobs: priorJobs, feeAmount: privateFee } },
+      }),
     ]);
+    if (!free) {
+      const selectedPro = await prisma.professional.findUnique({ where: { id: quoteRequest.professionalId }, include: { user: true } });
+      if (selectedPro) {
+        await notifyProfessionalSelected({
+          professionalEmail: selectedPro.user.email,
+          professionalName: selectedPro.user.name,
+          projectTitle: project.title,
+          selected: true,
+        });
+      }
+    }
     revalidatePath(`/projects/${projectId}`);
     revalidatePath(`/projects/${projectId}/quotes`);
     revalidatePath("/professional/pipeline");
+    revalidatePath("/professional/transactions");
     return;
   }
 
-  const feeAmount = calculateLeadFee(quoteRequest.quoteAmount);
+  // Early-bird offer: a professional who signed up before Black Friday 2026
+  // pays no commission on their first two marketplace jobs — recorded as a £0,
+  // already-PAID Transaction (which unlocks the address and counts towards the two).
+  const proAccount = await prisma.professional.findUniqueOrThrow({ where: { id: quoteRequest.professionalId }, include: { user: { select: { createdAt: true } } } });
+  const priorMarketplaceJobs = await countPriorMarketplaceJobs(quoteRequest.professionalId, quoteRequestId);
+  const feeAmount = calculateMarketplaceFee(quoteRequest.quoteAmount, priorMarketplaceJobs, proAccount.user.createdAt);
+  const freeJob = feeAmount === 0;
 
   await prisma.$transaction([
     prisma.quoteRequest.updateMany({ where: { projectId }, data: { selected: false } }),
@@ -225,12 +271,12 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
     // of colliding with the cancelled one.
     prisma.transaction.upsert({
       where: { quoteRequestId },
-      create: { quoteRequestId, professionalId: quoteRequest.professionalId, projectId, feeAmount },
+      create: { quoteRequestId, professionalId: quoteRequest.professionalId, projectId, feeAmount, status: freeJob ? TransactionStatus.PAID : TransactionStatus.PENDING, paidAt: freeJob ? new Date() : null },
       update: {
         feeAmount,
-        status: TransactionStatus.PENDING,
+        status: freeJob ? TransactionStatus.PAID : TransactionStatus.PENDING,
         createdAt: new Date(),
-        paidAt: null,
+        paidAt: freeJob ? new Date() : null,
         feeFinalNoticeSentAt: null,
         stripeCheckoutSessionId: null,
         stripePaymentIntentId: null,

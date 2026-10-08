@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SignupForm } from "./SignupForm";
 import { getHomepageCategory } from "@/lib/homepage-categories";
+import { EarlyBirdCountdown } from "@/components/EarlyBirdCountdown";
 
 export default async function SignupPage(props: PageProps<"/signup">) {
   const params = await props.searchParams;
@@ -31,6 +32,7 @@ export default async function SignupPage(props: PageProps<"/signup">) {
             )
           )}
         </div>
+        {defaultRole === "PROFESSIONAL" && !fromPortal && <EarlyBirdCountdown />}
         <SignupForm projectType={category?.key} next={next} defaultRole={defaultRole} lockRole={fromPortal} />
         <p className="text-center text-sm text-zinc-600">
           Already have an account?{" "}

@@ -3,6 +3,7 @@ import { HOMEPAGE_CATEGORIES } from "@/lib/homepage-categories";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@/generated/prisma/client";
+import { EarlyBirdCountdown } from "@/components/EarlyBirdCountdown";
 
 export default async function ProfessionalsPage() {
   // This is the recruitment page — someone already signed up as a professional has nothing to "get started" with, so send them to their dashboard instead.
@@ -25,6 +26,7 @@ export default async function ProfessionalsPage() {
           Homeowners upload a photo, see an AI redesign, and come to GlowUpp ready to hire. Get discovered by the ones
           looking for exactly what you do.
         </p>
+        {!isProfessional && <EarlyBirdCountdown className="mt-2 max-w-md" />}
         <Link
           href={ctaHref}
           className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]"

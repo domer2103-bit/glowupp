@@ -66,6 +66,10 @@ export default async function PipelinePage(props: PageProps<"/professional/pipel
             <p className="text-xs text-zinc-500">
               Until a client sends you their render for an estimate you only see their designs — no name, contact details or full address.
             </p>
+            <p className="text-xs text-zinc-500">
+              Your first 3 jobs from your own link are free. After that GlowUpp charges 1% of the accepted quote (max £250), and paying unlocks
+              the client&apos;s full address.
+            </p>
           </>
         ) : (
           <QrLinkTool shortLink={links.shortLink} vanLink={links.vanLink} businessName={professional.businessName} fileSlug={vanQrSlug} />
