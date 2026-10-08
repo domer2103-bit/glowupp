@@ -88,6 +88,13 @@ export default function TermsOfServicePage() {
                 and then take the relationship off-platform specifically to avoid this — it&rsquo;s
                 how we keep the service running and free for homeowners.
               </li>
+              <li>
+                For professionals, the fee is 5% of the quote the homeowner accepts, capped at £250 (professionals whose account is created before Black Friday 2026, 27 November, pay no commission on their first two such jobs),
+                payable once you&rsquo;re selected; paying unlocks the homeowner&rsquo;s full address. Clients
+                you bring through your own GlowUpp referral link or QR code are free for your first three
+                jobs, then 1% of the accepted quote (also capped at £250). If a job falls through after a
+                fee has been paid, email hello@glowupp.co.uk and we&rsquo;ll review it.
+              </li>
             </ul>
           </section>
 

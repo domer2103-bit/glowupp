@@ -83,9 +83,11 @@ export async function getProfessionalQuotes() {
   });
 
   for (const r of requests) {
-    // A private-pipeline job has no lead fee (the contractor brought the
-    // client), so selection alone reveals the full postcode.
-    const feeCleared = r.transaction?.status === TransactionStatus.PAID || (r.selected && r.project.isPrivatePipeline);
+    // The full postcode unlocks once the fee is PAID — which includes a £0
+    // "free private-link job" row. A private job selected before fee rows
+    // existed for them has no Transaction at all and keeps its old
+    // behaviour: selection alone reveals the postcode.
+    const feeCleared = r.transaction?.status === TransactionStatus.PAID || (r.selected && r.project.isPrivatePipeline && !r.transaction);
     if (!r.selected || !feeCleared) {
       r.project.postcode = getOutwardCode(r.project.postcode);
     }

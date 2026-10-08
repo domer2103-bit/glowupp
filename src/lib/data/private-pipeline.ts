@@ -8,7 +8,7 @@ import { getSignedPhotoUrl } from "@/lib/storage";
 import { conceptsToShow } from "@/lib/design-selection";
 import { PRO_REF_COOKIE } from "@/lib/private-pipeline-cookie";
 import { generateReferralCode, generateVanSlug, isValidVanSlug, normalizeReferralCode } from "@/lib/referral";
-import { DesignConceptStatus, PipelineLockStatus, ProjectStatus, VerificationStatus, type Prisma } from "@/generated/prisma/client";
+import { DesignConceptStatus, PipelineLockStatus, ProjectStatus, TransactionStatus, VerificationStatus, type Prisma } from "@/generated/prisma/client";
 
 /**
  * Private Client Pipeline — a contractor hands a client their link/QR; a
@@ -208,4 +208,46 @@ export async function listPrivateLeads(professionalId: string) {
 
 export async function countPrivateLeads(professionalId: string): Promise<number> {
   return prisma.privatePipelineSession.count({ where: { professionalId, ...activeLockWhere() } });
+}
+
+/**
+ * How many private-link jobs this professional has already been selected
+ * for, not counting `excludeQuoteRequestId` (the selection being priced)
+ * or any whose fee auto-cancelled unpaid. Drives "first 3 free, then 1%"
+ * (src/lib/fees.ts::calculatePrivateLinkFee). Selections made before fee
+ * rows existed for private jobs have no Transaction, so they're counted
+ * from the still-selected quote requests too — otherwise a contractor who
+ * already did private jobs would get three free ones all over again.
+ */
+export async function countPriorPrivateLinkJobs(professionalId: string, excludeQuoteRequestId: string): Promise<number> {
+  const [withFeeRow, legacySelected] = await Promise.all([
+    prisma.transaction.count({
+      where: {
+        professionalId,
+        quoteRequestId: { not: excludeQuoteRequestId },
+        status: { not: TransactionStatus.CANCELLED },
+        project: { isPrivatePipeline: true },
+      },
+    }),
+    prisma.quoteRequest.count({
+      where: { professionalId, id: { not: excludeQuoteRequestId }, selected: true, transaction: { is: null }, project: { isPrivatePipeline: true } },
+    }),
+  ]);
+  return withFeeRow + legacySelected;
+}
+
+/**
+ * How many marketplace (non-private) jobs this professional has already
+ * been selected for — cancelled-unpaid fees excluded, free early-bird ones
+ * included. Drives the early-bird offer (src/lib/fees.ts::calculateMarketplaceFee).
+ */
+export async function countPriorMarketplaceJobs(professionalId: string, excludeQuoteRequestId: string): Promise<number> {
+  return prisma.transaction.count({
+    where: {
+      professionalId,
+      quoteRequestId: { not: excludeQuoteRequestId },
+      status: { not: TransactionStatus.CANCELLED },
+      project: { isPrivatePipeline: false },
+    },
+  });
 }
