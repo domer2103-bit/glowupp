@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
-import { getAffiliatePartner } from "@/lib/data/affiliates";
+import { getAffiliatePartner, getBlockedSelfReferrals } from "@/lib/data/affiliates";
+import { releaseSelfReferral } from "@/lib/actions/affiliates";
 import { APP_URL } from "@/lib/notifications";
-import { AFFILIATE_CATEGORY_LABELS, AFFILIATE_DEFAULT_HEADLINES, buildAffiliateLink } from "@/lib/affiliate";
+import { AFFILIATE_CATEGORY_LABELS, AFFILIATE_DEFAULT_HEADLINES, AFFILIATE_MIN_PAYOUT_PENCE, buildAffiliateLink } from "@/lib/affiliate";
 import { formatPenceExact } from "@/lib/money";
 import { AffiliateStatus, UserRole } from "@/generated/prisma/client";
 import { AffiliateAssetCanvas } from "@/components/AffiliateAssetCanvas";
@@ -17,6 +18,7 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
   if (!data) notFound();
   const { partner, row } = data;
   const link = buildAffiliateLink(APP_URL, partner.qrSlug);
+  const blocked = await getBlockedSelfReferrals(partner.id);
 
   const stats: [string, string][] = [
     ["Clicks", String(row.clickCount)],
@@ -46,12 +48,19 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
           </p>
         </div>
 
-        {partner.selfRegistered && (
-          <p className="rounded-2xl bg-amber-50 px-5 py-3 text-sm text-amber-800">
-            Signed up by itself at /partner/join on {new Date(partner.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-            {partner.termsAcceptedAt ? `, partner terms accepted ${new Date(partner.termsAcceptedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ""}. Check the
-            business is genuine and collect payment details before the first payout.
-          </p>
+        {!row.verified && (
+          <div className="rounded-2xl bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            <p className="font-medium">
+              Not verified yet — nothing can be paid to this partner.
+              {partner.selfRegistered
+                ? ` Signed up by itself on ${new Date(partner.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}${partner.termsAcceptedAt ? `, partner terms ${partner.termsVersion ?? ""} accepted`.replace("  ", " ") : ""}.`
+                : ""}
+            </p>
+            <p className="mt-1">
+              Payout rule: verify the partner (business is genuine, you hold their bank details), then they are paid once at least {formatPenceExact(AFFILIATE_MIN_PAYOUT_PENCE)} is waiting. Shares are only
+              ever credited on fees GlowUpp has actually received.
+            </p>
+          </div>
         )}
 
         <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -74,7 +83,7 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
 
         <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">Payouts</h2>
-          <PartnerControls partnerId={partner.id} status={partner.status} balancePence={row.balancePence} />
+          <PartnerControls partnerId={partner.id} status={partner.status} balancePence={row.balancePence} verified={row.verified} />
           {partner.payouts.length === 0 ? (
             <p className="text-sm text-zinc-500">Nothing paid out yet.</p>
           ) : (
@@ -92,6 +101,29 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
             </ul>
           )}
         </section>
+
+        {blocked.length > 0 && (
+          <section className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-red-900">Held back as possible self-referral ({blocked.length})</h2>
+            <p className="text-sm text-red-900">
+              On these jobs the {"homeowner or the professional"} has the same email or phone number as this partner, so no share was credited. If it is a false alarm, credit it.
+            </p>
+            <ul className="divide-y divide-red-100 text-sm">
+              {blocked.map((b) => (
+                <li key={b.projectId} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span>
+                    {b.projectTitle} · matched the {b.matched} · would have earned {formatPenceExact(b.wouldHaveEarnedPence)}
+                  </span>
+                  <form action={releaseSelfReferral.bind(null, partner.id, b.projectId)}>
+                    <button type="submit" className="rounded-full border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-800 hover:bg-red-100">
+                      Credit anyway
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">Marketing assets</h2>

@@ -11,7 +11,7 @@ export const PUBLIC_CATEGORY_OPTIONS: { value: string; label: string; category: 
   { value: "influencer_other", label: "Influencer or other", category: "INFLUENCER" },
 ];
 
-export const PARTNER_TERMS_VERSION = "2026-10-08";
+export const PARTNER_TERMS_VERSION = "2026-10-08.3";
 
 const trimmed = (max: number, tooLong: string) => z.string().trim().max(max, tooLong);
 

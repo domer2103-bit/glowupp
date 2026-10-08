@@ -6,7 +6,7 @@ import { AffiliateStatus, TransactionStatus, UserRole } from "@/generated/prisma
 import type { AffiliateCategory, Prisma } from "@/generated/prisma/client";
 import { AFFILIATE_COOKIE } from "@/lib/affiliate-cookie";
 import { cache } from "react";
-import { affiliateBalancePence, calculateAffiliateShare, classifyAffiliateCode, generateAffiliateIdentifiers } from "@/lib/affiliate";
+import { affiliateBalancePence, calculateAffiliateShare, classifyAffiliateCode, generateAffiliateIdentifiers, payoutBlock, sharesIdentity } from "@/lib/affiliate";
 import { PARTNER_COOKIE, generateLoginToken, hashLoginToken, isPlausibleLoginToken, loginTokenExpiry } from "@/lib/partner-session";
 
 /**
@@ -98,11 +98,13 @@ export async function creditAffiliateForTransaction(transactionId: string): Prom
       status: true,
       feeAmount: true,
       projectId: true,
+      professional: { select: { user: { select: { email: true, phone: true } } } },
       project: {
         select: {
           affiliatePartnerId: true,
           affiliatePayoutAmount: true,
-          affiliatePartner: { select: { status: true, revenueShareRate: true } },
+          homeowner: { select: { email: true, phone: true } },
+          affiliatePartner: { select: { status: true, revenueShareRate: true, email: true, phone: true } },
         },
       },
     },
@@ -113,7 +115,15 @@ export async function creditAffiliateForTransaction(transactionId: string): Prom
   if (!affiliatePartnerId || !affiliatePartner || affiliatePartner.status !== AffiliateStatus.ACTIVE) return null;
   if (affiliatePayoutAmount !== null) return null;
 
-  const share = calculateAffiliateShare(transaction.feeAmount, affiliatePartner.revenueShareRate.toNumber());
+  const wouldEarn = calculateAffiliateShare(transaction.feeAmount, affiliatePartner.revenueShareRate.toNumber());
+
+  // Self-referral guard: a job whose homeowner or professional is the partner
+  // themselves (same email or phone number) earns nothing. The project is
+  // still marked processed (payout 0) so it is not re-examined, and the
+  // block is logged so an admin can review it and release it if it was a
+  // false alarm (releaseBlockedSelfReferral).
+  const matched = wouldEarn > 0 ? (sharesIdentity(affiliatePartner, transaction.project.homeowner) ? "homeowner" : sharesIdentity(affiliatePartner, transaction.professional.user) ? "professional" : null) : null;
+  const share = matched ? 0 : wouldEarn;
 
   return prisma.$transaction(async (tx) => {
     const claimed = await tx.project.updateMany({
@@ -121,6 +131,16 @@ export async function creditAffiliateForTransaction(transactionId: string): Prom
       data: { affiliatePayoutAmount: share },
     });
     if (claimed.count === 0) return null; // a concurrent delivery got there first
+    if (matched) {
+      await tx.activityLog.create({
+        data: {
+          type: "affiliate_self_referral_blocked",
+          projectId: transaction.projectId,
+          metadata: { transactionId, partnerId: affiliatePartnerId, matched, wouldHaveEarnedPence: wouldEarn },
+        },
+      });
+      return 0;
+    }
     if (share > 0) {
       await tx.affiliatePartner.update({ where: { id: affiliatePartnerId }, data: { totalEarningsPence: { increment: share } } });
     }
@@ -186,6 +206,8 @@ export type AffiliateRow = {
   status: AffiliateStatus;
   /** Signed itself up at /partner/join (as opposed to being created by an admin) — vet before paying. */
   selfRegistered: boolean;
+  /** An admin has checked the business and has its bank details; required before any payout. */
+  verified: boolean;
   qrSlug: string;
   revenueShareRate: number;
   clickCount: number;
@@ -245,6 +267,7 @@ async function computeAffiliateRows(onlyPartnerId?: string): Promise<AffiliateRo
       category: p.category,
       status: p.status,
       selfRegistered: p.selfRegistered,
+      verified: p.verifiedAt !== null,
       qrSlug: p.qrSlug,
       revenueShareRate: p.revenueShareRate.toNumber(),
       clickCount: p.clickCount,
@@ -315,7 +338,8 @@ async function createPartnerRow(input: NewAffiliateInput, extra: Partial<Prisma.
 
 /** Admin-created partner with a fresh code/slug; throws AffiliateEmailTakenError for a duplicate email. */
 export async function createAffiliatePartner(input: NewAffiliateInput) {
-  return createPartnerRow(input, {});
+  // An admin typing the partner in has vetted them by definition.
+  return createPartnerRow(input, { verifiedAt: new Date() });
 }
 
 /**
@@ -326,7 +350,7 @@ export async function createAffiliatePartner(input: NewAffiliateInput) {
  * public form — only email the real owner a fresh link.
  */
 export async function registerSelfServePartner(
-  input: NewAffiliateInput & { termsAcceptedAt: Date }
+  input: NewAffiliateInput & { termsAcceptedAt: Date; termsVersion: string }
 ): Promise<{ kind: "created"; partner: Awaited<ReturnType<typeof createPartnerRow>>; token: string } | { kind: "exists"; partnerId: string }> {
   const email = input.email.trim().toLowerCase();
   const existing = await prisma.affiliatePartner.findUnique({ where: { email }, select: { id: true } });
@@ -409,6 +433,8 @@ export type PartnerDashboard = {
   projects: number;
   /** Jobs where the homeowner went on to pick a professional. */
   conversions: number;
+  /** False until an admin has checked the account; payouts wait for it. */
+  verified: boolean;
   totalEarningsPence: number;
   paidEarningsPence: number;
   balancePence: number;
@@ -437,6 +463,7 @@ export async function getPartnerDashboard(partnerId: string): Promise<PartnerDas
     totalEarningsPence: row.totalEarningsPence,
     paidEarningsPence: row.paidEarningsPence,
     balancePence: row.balancePence,
+    verified: row.verified,
     revenueSharePercent: Math.round(row.revenueShareRate * 100),
     payouts,
   };
@@ -445,7 +472,8 @@ export async function getPartnerDashboard(partnerId: string): Promise<PartnerDas
 /**
  * Logs a payout of exactly `expectedPence` (what the admin saw on screen)
  * and moves it from owed to paid. Refuses — returning false — if the
- * balance changed in the meantime, so a stale page can never pay the wrong
+ * partner is not verified or the balance is under the minimum payout
+ * (payoutBlock), or if the balance changed in the meantime, so a stale page can never pay the wrong
  * amount or pay twice (the paid counter is compare-and-set).
  */
 export async function recordAffiliatePayout(partnerId: string, expectedPence: number, adminId: string, note: string | null): Promise<boolean> {
@@ -453,6 +481,7 @@ export async function recordAffiliatePayout(partnerId: string, expectedPence: nu
   return prisma.$transaction(async (tx) => {
     const partner = await tx.affiliatePartner.findUnique({ where: { id: partnerId } });
     if (!partner || affiliateBalancePence(partner) !== expectedPence) return false;
+    if (payoutBlock({ verifiedAt: partner.verifiedAt, balancePence: expectedPence })) return false; // not verified, or below the minimum
     const claimed = await tx.affiliatePartner.updateMany({
       where: { id: partnerId, paidEarningsPence: partner.paidEarningsPence, totalEarningsPence: partner.totalEarningsPence },
       data: { paidEarningsPence: { increment: expectedPence } },
@@ -463,5 +492,65 @@ export async function recordAffiliatePayout(partnerId: string, expectedPence: nu
       data: { type: "affiliate_payout_recorded", actorId: adminId, metadata: { partnerId, amountPence: expectedPence } },
     });
     return true;
+  });
+}
+
+/** An admin has checked the business is genuine and has its bank details: from now on it can be paid (once over the minimum). Idempotent. */
+export async function verifyAffiliatePartner(partnerId: string, adminId: string): Promise<boolean> {
+  const { count } = await prisma.affiliatePartner.updateMany({ where: { id: partnerId, verifiedAt: null }, data: { verifiedAt: new Date() } });
+  if (count === 1) await prisma.activityLog.create({ data: { type: "affiliate_partner_verified", actorId: adminId, metadata: { partnerId } } });
+  return count === 1;
+}
+
+export type BlockedSelfReferral = { projectId: string; projectTitle: string; matched: "homeowner" | "professional"; wouldHaveEarnedPence: number; blockedAt: Date };
+
+/** Jobs held back as possible self-referrals (the partner is, or shares an email/phone with, the homeowner or the professional) and not yet released — admin only. */
+export async function getBlockedSelfReferrals(partnerId: string): Promise<BlockedSelfReferral[]> {
+  await requireRole(UserRole.ADMIN);
+  const logs = await prisma.activityLog.findMany({
+    where: { type: "affiliate_self_referral_blocked", projectId: { not: null }, metadata: { path: ["partnerId"], equals: partnerId } },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+  const projects = await prisma.project.findMany({
+    where: { id: { in: logs.map((l) => l.projectId!) }, affiliatePartnerId: partnerId, affiliatePayoutAmount: 0 },
+    select: { id: true, title: true },
+  });
+  const titles = new Map(projects.map((p) => [p.id, p.title]));
+  return logs
+    .filter((l) => titles.has(l.projectId!))
+    .map((l) => {
+      const m = l.metadata as { matched?: "homeowner" | "professional"; wouldHaveEarnedPence?: number } | null;
+      return { projectId: l.projectId!, projectTitle: titles.get(l.projectId!)!, matched: m?.matched ?? "homeowner", wouldHaveEarnedPence: m?.wouldHaveEarnedPence ?? 0, blockedAt: l.createdAt };
+    });
+}
+
+/**
+ * Admin override for a false alarm: credits the partner the share that was
+ * held back. Only for a job that was actually blocked, whose fee is still
+ * PAID, and only once (compare-and-set on the payout column).
+ */
+export async function releaseBlockedSelfReferral(projectId: string, adminId: string): Promise<number | null> {
+  const blocked = await prisma.activityLog.findFirst({ where: { type: "affiliate_self_referral_blocked", projectId } });
+  if (!blocked) return null;
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      affiliatePartnerId: true,
+      affiliatePayoutAmount: true,
+      affiliatePartner: { select: { revenueShareRate: true } },
+      transactions: { where: { status: TransactionStatus.PAID }, select: { feeAmount: true }, take: 1 },
+    },
+  });
+  if (!project?.affiliatePartnerId || !project.affiliatePartner || project.affiliatePayoutAmount !== 0 || project.transactions.length === 0) return null;
+
+  const share = calculateAffiliateShare(project.transactions[0].feeAmount, project.affiliatePartner.revenueShareRate.toNumber());
+  const partnerId = project.affiliatePartnerId;
+  return prisma.$transaction(async (tx) => {
+    const claimed = await tx.project.updateMany({ where: { id: projectId, affiliatePartnerId: partnerId, affiliatePayoutAmount: 0 }, data: { affiliatePayoutAmount: share } });
+    if (claimed.count === 0) return null;
+    if (share > 0) await tx.affiliatePartner.update({ where: { id: partnerId }, data: { totalEarningsPence: { increment: share } } });
+    await tx.activityLog.create({ data: { type: "affiliate_self_referral_released", actorId: adminId, projectId, metadata: { partnerId, sharePence: share } } });
+    return share;
   });
 }

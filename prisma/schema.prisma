@@ -609,6 +609,13 @@ model AffiliatePartner {
   // the partner-terms checkbox.
   selfRegistered   Boolean           @default(false) @map("self_registered")
   termsAcceptedAt  DateTime?         @map("terms_accepted_at")
+  // Which version of the partner terms (PARTNER_TERMS_VERSION) was accepted.
+  termsVersion     String?           @map("terms_version")
+  // Set once an admin has checked the business is genuine and has its bank
+  // details. Nobody can be paid out before this (recordAffiliatePayout). A
+  // partner an admin creates by hand is verified at creation; one that
+  // signed itself up stays null until an admin verifies it.
+  verifiedAt       DateTime?         @map("verified_at")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 

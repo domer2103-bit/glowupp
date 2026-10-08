@@ -26,7 +26,7 @@ export default function TermsOfServicePage() {
               GlowUpp (glowupp.co.uk) is operated by Dominik Wierzchowski, trading as GlowUpp, a
               sole trader based at 65 Sandway Crescent, Liverpool, L11 2SW, United Kingdom
               (&ldquo;GlowUpp&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). Contact:{" "}
-              <a href="mailto:domer2103@gmail.com" className="underline">domer2103@gmail.com</a>.
+              <a href="mailto:hello@glowupp.co.uk" className="underline">hello@glowupp.co.uk</a>.
               By creating an account or using GlowUpp, you agree to these terms.
             </p>
           </section>
