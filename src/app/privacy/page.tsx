@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
         <h1 className="mt-6 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Privacy Policy
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 20 September 2026</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 8 October 2026</p>
 
         <div className="mt-10 space-y-10 text-zinc-700 dark:text-zinc-300">
           <section className="space-y-3">
@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
               GlowUpp (glowupp.co.uk) is operated by Dominik Wierzchowski, trading as GlowUpp, a
               sole trader based at 65 Sandway Crescent, Liverpool, L11 2SW, United Kingdom. For
               any question about this policy or your data, contact{" "}
-              <a href="mailto:domer2103@gmail.com" className="underline">domer2103@gmail.com</a>.
+              <a href="mailto:hello@glowupp.co.uk" className="underline">hello@glowupp.co.uk</a>.
             </p>
             <p>
               We are the &ldquo;data controller&rdquo; for the personal data described below, for
@@ -41,6 +41,8 @@ export default function PrivacyPolicyPage() {
               <li><strong>Project information</strong> — photos of your space, your postcode/address, design preferences, and any AI-generated visualisations created from these.</li>
               <li><strong>Messages</strong> — content you send through GlowUpp&rsquo;s messaging feature, including to our AI design assistant and to professionals once you choose to request quotes.</li>
               <li><strong>Quote and matching data</strong> — details of quote requests, professional responses, and which professional (if any) you select.</li>
+              <li><strong>Referral information</strong> — if you arrive through a contractor&rsquo;s or a GlowUpp partner&rsquo;s link or QR code, we note which one, and attach it to your project so the right person is credited. A partner never sees who you are — only how many people used their link.</li>
+              <li><strong>Partner details</strong> — if you join the GlowUpp partner programme: your business name, your name, email address, phone number, the kind of business, the terms you accepted and when, and records of what you have earned and been paid.</li>
               <li><strong>Technical data</strong> — basic server logs (IP address, timestamps, error logs) kept for security and debugging.</li>
             </ul>
           </section>
@@ -52,6 +54,7 @@ export default function PrivacyPolicyPage() {
               <li>To generate AI-assisted design visualisations from photos and descriptions you provide.</li>
               <li>To connect you with independent professionals when — and only when — you choose to request quotes, and to let professionals respond.</li>
               <li>To send transactional emails (e.g. account confirmations, new-message notifications, quote-reminder emails) — never marketing emails you haven&rsquo;t asked for.</li>
+              <li>To run our partner programme: to credit and pay partners and to tell them how many people used their link.</li>
               <li>To keep the service secure and working properly.</li>
             </ul>
             <p>
@@ -81,8 +84,22 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">5. Cookies and analytics</h2>
             <p>
-              GlowUpp does not currently use any analytics or advertising cookies. We only use
-              strictly necessary cookies to keep you signed in.
+              GlowUpp does not use advertising cookies, and does not use analytics cookies or third-party tracking. We set a few cookies of our own, listed here, and nothing else.
+            </p>
+            <p className="font-medium text-zinc-900 dark:text-zinc-50">Needed to run the service</p>
+            <ul className="list-disc space-y-2 pl-5">
+              <li><strong>Sign-in session</strong> (set by Supabase, names starting <code>sb-</code>) — keeps you signed in. Lasts until you sign out or the session expires.</li>
+              <li><strong><code>glowupp_guest_id</code></strong> — lets you try the redesign tool without an account, and keeps your work together. A random number, not your name. Lasts 30 days.</li>
+              <li><strong><code>glowupp_partner</code></strong> — keeps a GlowUpp partner signed in to their dashboard. Only set if you are a partner. Lasts 30 days, or until you sign out.</li>
+            </ul>
+            <p className="font-medium text-zinc-900 dark:text-zinc-50">Referral cookies (only if you open a referral link or QR code)</p>
+            <ul className="list-disc space-y-2 pl-5">
+              <li><strong><code>glowupp_pro_ref</code></strong> — remembers which contractor&rsquo;s link or QR code you opened, so your project goes privately to that contractor. Lasts 30 days.</li>
+              <li><strong><code>glowupp_affiliate</code></strong> — remembers which GlowUpp partner&rsquo;s link or QR code you opened, so we can credit that partner if you go on to book a professional through GlowUpp. Lasts 30 days.</li>
+            </ul>
+            <p>
+              You can block or delete cookies in your browser settings at any time. GlowUpp will still work, but the sign-in cookies will need to be allowed to stay signed in, and a contractor or
+              partner link you opened will not be remembered.
             </p>
           </section>
 
@@ -109,7 +126,7 @@ export default function PrivacyPolicyPage() {
             </ul>
             <p>
               To exercise any of these, email{" "}
-              <a href="mailto:domer2103@gmail.com" className="underline">domer2103@gmail.com</a>.
+              <a href="mailto:hello@glowupp.co.uk" className="underline">hello@glowupp.co.uk</a>.
             </p>
           </section>
 

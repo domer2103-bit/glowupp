@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { buildAffiliateLink } from "@/lib/affiliate";
 import { PARTNER_COOKIE, PARTNER_SESSION_MAX_AGE_SECONDS, buildDashboardLink } from "@/lib/partner-session";
-import { PartnerSignupSchema, isSameOrigin, parseCheckbox, publicCategoryToDb } from "@/lib/partner-signup";
+import { PARTNER_TERMS_VERSION, PartnerSignupSchema, isSameOrigin, parseCheckbox, publicCategoryToDb } from "@/lib/partner-signup";
 import { issuePartnerLoginToken, registerSelfServePartner } from "@/lib/data/affiliates";
 import { APP_URL, notifyPartnerLoginLink, notifyPartnerWelcome } from "@/lib/notifications";
 
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     phone: input.phone,
     category: publicCategoryToDb(input.category),
     termsAcceptedAt: new Date(),
+    termsVersion: PARTNER_TERMS_VERSION,
   });
 
   if (result.kind === "exists") {

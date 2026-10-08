@@ -77,3 +77,61 @@ export function classifyAffiliateCode(input: string | null | undefined): { kind:
 export function affiliateLandingPath(qrSlug: string): string {
   return `/?utm_source=affiliate&utm_medium=qr&utm_campaign=${encodeURIComponent(qrSlug)}#categories`;
 }
+
+// ---------------------------------------------------------------------------
+// Payout rules
+// ---------------------------------------------------------------------------
+
+/** Smallest balance worth a bank transfer: below this a partner keeps accruing and is paid once they pass it (£25, in pence). */
+export const AFFILIATE_MIN_PAYOUT_PENCE = 2_500;
+
+export type PayoutBlock = { reason: "UNVERIFIED" } | { reason: "BELOW_MINIMUM"; shortByPence: number };
+
+/**
+ * Why a partner cannot be paid right now, or null if they can. The rule:
+ * an admin has verified the business (and collected bank details), and the
+ * balance is at least the minimum. GlowUpp having actually received the
+ * fee is built in, since a share is only ever credited on a PAID fee.
+ * Used by both the admin UI and recordAffiliatePayout, so the screen and
+ * the server cannot disagree.
+ */
+export function payoutBlock(partner: { verifiedAt: Date | null; balancePence: number }): PayoutBlock | null {
+  if (!partner.verifiedAt) return { reason: "UNVERIFIED" };
+  if (partner.balancePence < AFFILIATE_MIN_PAYOUT_PENCE) return { reason: "BELOW_MINIMUM", shortByPence: AFFILIATE_MIN_PAYOUT_PENCE - Math.max(0, partner.balancePence) };
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Self-referral detection
+// ---------------------------------------------------------------------------
+
+/** Email reduced to what identifies the mailbox: lowercase, "+tag" dropped, and for Gmail the dots in the name ignored (gmail and googlemail are the same mailbox). null if it is not an email. */
+export function normalizeEmail(input: string | null | undefined): string | null {
+  const raw = (input ?? "").trim().toLowerCase();
+  const at = raw.lastIndexOf("@");
+  if (at < 1 || at === raw.length - 1) return null;
+  let local = raw.slice(0, at).split("+")[0];
+  let domain = raw.slice(at + 1);
+  if (domain === "googlemail.com") domain = "gmail.com";
+  if (domain === "gmail.com") local = local.replace(/\./g, "");
+  return local ? `${local}@${domain}` : null;
+}
+
+/** UK-style phone number reduced to its national digits, so 07700 900123, +44 7700 900123 and 0044 (0)7700 900123 compare equal. null if too short to identify anyone. */
+export function normalizePhone(input: string | null | undefined): string | null {
+  let digits = (input ?? "").replace(/\(0\)/g, "").replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("44")) digits = digits.slice(2);
+  digits = digits.replace(/^0+/, "");
+  return digits.length >= 9 ? digits : null;
+}
+
+/** True if two contact records could be the same person or household: same mailbox or same phone number. */
+export function sharesIdentity(a: { email?: string | null; phone?: string | null }, b: { email?: string | null; phone?: string | null }): boolean {
+  const ea = normalizeEmail(a.email);
+  const eb = normalizeEmail(b.email);
+  if (ea && eb && ea === eb) return true;
+  const pa = normalizePhone(a.phone);
+  const pb = normalizePhone(b.phone);
+  return !!pa && !!pb && pa === pb;
+}

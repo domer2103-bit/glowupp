@@ -67,6 +67,7 @@ vi.mock("@/lib/notifications", () => ({
 import { prisma } from "@/lib/prisma";
 import { notifyPartnerLoginLink, notifyPartnerWelcome } from "@/lib/notifications";
 import { hashLoginToken, PARTNER_COOKIE } from "@/lib/partner-session";
+import { PARTNER_TERMS_VERSION } from "@/lib/partner-signup";
 import { POST as selfRegister } from "@/app/api/affiliates/self-register/route";
 import { GET as enterPartner } from "@/app/partner/enter/route";
 import PartnerDashboardPage from "@/app/partner/dashboard/page";
@@ -147,6 +148,8 @@ run("B2B partner self-onboarding", () => {
       expect(partner.referralCode).toMatch(/^[2-9A-HJ-NP-Z]{8}$/);
       expect(partner.qrSlug).toMatch(/^kite-coffee-[a-z2-9]{4}$/);
       expect(partner.termsAcceptedAt).toBeInstanceOf(Date);
+      expect(partner.termsVersion).toBe(PARTNER_TERMS_VERSION);
+      expect(partner.verifiedAt).toBeNull(); // self-registered partners start unverified: no payout until an admin checks them
 
       // Signed in by an httpOnly cookie; only the token's hash is in the database.
       expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
@@ -377,10 +380,16 @@ run("B2B partner self-onboarding", () => {
       const tx = await prisma.transaction.create({ data: { quoteRequestId: quote.id, professionalId: pro.id, projectId: project.id, feeAmount: 24690, status: TransactionStatus.PAID } });
       await creditAffiliateForTransaction(tx.id); // 50% of £246.90 = £123.45
       const admin = await prisma.user.create({ data: { id: randomUUID(), role: UserRole.ADMIN, name: "Admin", email: `${randomUUID()}@a.test` } });
-      await recordAffiliatePayout(mine.partner.id, 12345, admin.id, "secret bank ref");
-
+      expect(await recordAffiliatePayout(mine.partner.id, 12345, admin.id, "secret bank ref")).toBe(false); // self-registered, so not verified yet
       state.jar.set(PARTNER_COOKIE, mine.token);
+      const unverified = md(await PartnerDashboardPage(pageProps()));
+      expect(unverified).toContain("We&#x27;re checking your account");
+      expect(unverified).toContain("at least £25.00 is waiting");
+
+      await prisma.affiliatePartner.update({ where: { id: mine.partner.id }, data: { verifiedAt: new Date() } });
+      expect(await recordAffiliatePayout(mine.partner.id, 12345, admin.id, "secret bank ref")).toBe(true);
       const html = md(await PartnerDashboardPage(pageProps()));
+      expect(html).not.toContain("We&#x27;re checking your account");
       expect(html).toContain("My Cafe");
       expect(html).toContain("£123.45"); // earned
       expect(html).toContain("Your 50% share earned");
@@ -393,7 +402,7 @@ run("B2B partner self-onboarding", () => {
 
       const data = await getPartnerDashboard(mine.partner.id);
       expect(Object.keys(data!).sort()).toEqual(
-        ["balancePence", "businessName", "clickCount", "contactName", "conversions", "paidEarningsPence", "payouts", "projects", "qrSlug", "revenueSharePercent", "status", "totalEarningsPence"].sort()
+        ["balancePence", "businessName", "clickCount", "contactName", "conversions", "paidEarningsPence", "payouts", "projects", "qrSlug", "revenueSharePercent", "status", "totalEarningsPence", "verified"].sort()
       );
       expect(data).toMatchObject({ conversions: 1, projects: 1, totalEarningsPence: 12345, paidEarningsPence: 12345, balancePence: 0 });
     });
@@ -410,7 +419,10 @@ run("B2B partner self-onboarding", () => {
     it("flags self-registered partners for vetting, and an admin cannot create a second partner with the same email", async () => {
       const { partner } = await registerOk({ business_name: "Vet Me Cafe" });
       state.currentUser = await prisma.user.create({ data: { id: randomUUID(), role: UserRole.ADMIN, name: "Admin", email: `${randomUUID()}@a.test` } });
-      expect(md(await AdminAffiliatesPage())).toContain("Self-registered — vet before paying");
+      const adminHtml = md(await AdminAffiliatesPage());
+      expect(adminHtml).toContain("Self-registered");
+      expect(adminHtml).toContain("Unverified");
+      expect(adminHtml).toContain("Mark as verified");
 
       const fd = new FormData();
       fd.set("businessName", "Duplicate Cafe");

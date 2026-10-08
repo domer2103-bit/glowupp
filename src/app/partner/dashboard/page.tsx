@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getCurrentPartner, getPartnerDashboard } from "@/lib/data/affiliates";
 import { APP_URL } from "@/lib/notifications";
-import { AFFILIATE_DEFAULT_HEADLINES, buildAffiliateLink } from "@/lib/affiliate";
+import { AFFILIATE_DEFAULT_HEADLINES, AFFILIATE_MIN_PAYOUT_PENCE, buildAffiliateLink } from "@/lib/affiliate";
 import { SUPPORT_EMAIL } from "@/lib/partner-terms";
 import { formatPenceExact } from "@/lib/money";
 import { partnerSignOut } from "@/lib/actions/partner";
@@ -69,8 +69,13 @@ export default async function PartnerDashboardPage(props: PageProps<"/partner/da
         </section>
         <p className="text-xs text-zinc-500">
           You earn {dashboard.revenueSharePercent}% of the lead fee GlowUpp collects on jobs booked by homeowners who started through your link. A share appears once the
-          professional has paid their fee. We&apos;ll be in touch to arrange payment of what you&apos;re owed.
+          professional has paid their fee. We pay by bank transfer once your account has been checked and at least {formatPenceExact(AFFILIATE_MIN_PAYOUT_PENCE)} is waiting for you.
         </p>
+        {!dashboard.verified && (
+          <p className="rounded-2xl bg-blue-50 px-5 py-4 text-sm text-[#132a4d]">
+            We&apos;re checking your account. We&apos;ll email you if we need your bank details — nothing is lost while we do, your earnings keep adding up.
+          </p>
+        )}
 
         <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">Your link</h2>

@@ -62,3 +62,13 @@ describe("helpers", () => {
     expect(isSameOrigin("http://localhost:3000", ["glowupp.test", null, "localhost:3000"])).toBe(true);
   });
 });
+
+describe("partner terms", () => {
+  it("require paid promotion to be labelled as an ad, and carry a version", async () => {
+    const { PARTNER_TERMS } = await import("./partner-terms");
+    const { PARTNER_TERMS_VERSION } = await import("./partner-signup");
+    expect(PARTNER_TERMS.some((t) => t.includes('"#ad"') && /advert/i.test(t))).toBe(true);
+    expect(PARTNER_TERMS.some((t) => t.includes("£25"))).toBe(true);
+    expect(PARTNER_TERMS_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}(\.\d+)?$/);
+  });
+});

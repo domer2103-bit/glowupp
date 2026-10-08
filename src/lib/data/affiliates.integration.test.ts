@@ -65,12 +65,13 @@ import { prisma } from "@/lib/prisma";
 import { AFFILIATE_COOKIE } from "@/lib/affiliate-cookie";
 import { GET as affiliateLink } from "@/app/a/[code]/route";
 import { POST as stripeWebhook } from "@/app/api/webhooks/stripe/route";
-import { createAffiliate, markAffiliatePaid, setAffiliateStatus } from "@/lib/actions/affiliates";
+import { createAffiliate, markAffiliatePaid, releaseSelfReferral, setAffiliateStatus, verifyAffiliate } from "@/lib/actions/affiliates";
 import { updateTransactionStatus } from "@/lib/actions/admin";
 import {
   createAffiliatePartner,
   creditAffiliateForTransaction,
   getAffiliateOverview,
+  getBlockedSelfReferrals,
   recordAffiliatePayout,
   reverseAffiliateForTransaction,
 } from "@/lib/data/affiliates";
@@ -290,34 +291,160 @@ run("B2B Affiliate & Partner Program", () => {
     it("records exactly the balance the admin saw, once, and keeps a log", async () => {
       const partner = await makePartner();
       const admin = await makeUser(UserRole.ADMIN, "Admin Ann");
-      const job = await jobWithFee({ partnerId: partner.id, feePence: 2500, status: TransactionStatus.PAID });
-      await creditAffiliateForTransaction(job.transaction.id);
+      const job = await jobWithFee({ partnerId: partner.id, feePence: 6000, status: TransactionStatus.PAID });
+      await creditAffiliateForTransaction(job.transaction.id); // £30.00
 
       expect(await recordAffiliatePayout(partner.id, 999, admin.id, null)).toBe(false); // stale / wrong amount
       expect(await recordAffiliatePayout(partner.id, 0, admin.id, null)).toBe(false);
-      expect(await recordAffiliatePayout(partner.id, 1250, admin.id, "BACS ref 42")).toBe(true);
-      expect(await recordAffiliatePayout(partner.id, 1250, admin.id, null)).toBe(false); // already paid
+      expect(await recordAffiliatePayout(partner.id, 3000, admin.id, "BACS ref 42")).toBe(true);
+      expect(await recordAffiliatePayout(partner.id, 3000, admin.id, null)).toBe(false); // already paid
 
       const after = await partnerNow(partner.id);
-      expect(after).toMatchObject({ totalEarningsPence: 1250, paidEarningsPence: 1250 });
+      expect(after).toMatchObject({ totalEarningsPence: 3000, paidEarningsPence: 3000 });
       const payouts = await prisma.affiliatePayout.findMany({ where: { partnerId: partner.id } });
       expect(payouts).toHaveLength(1);
-      expect(payouts[0]).toMatchObject({ amountPence: 1250, note: "BACS ref 42", paidById: admin.id });
+      expect(payouts[0]).toMatchObject({ amountPence: 3000, note: "BACS ref 42", paidById: admin.id });
     });
 
     it("a fee reversed after payout leaves a negative balance to settle by hand", async () => {
       const partner = await makePartner();
       const admin = await makeUser(UserRole.ADMIN);
-      const job = await jobWithFee({ partnerId: partner.id, feePence: 2500, status: TransactionStatus.PAID });
+      const job = await jobWithFee({ partnerId: partner.id, feePence: 6000, status: TransactionStatus.PAID });
       await creditAffiliateForTransaction(job.transaction.id);
-      await recordAffiliatePayout(partner.id, 1250, admin.id, null);
+      await recordAffiliatePayout(partner.id, 3000, admin.id, null);
       await prisma.transaction.update({ where: { id: job.transaction.id }, data: { status: TransactionStatus.CANCELLED } });
       await reverseAffiliateForTransaction(job.transaction.id);
       const row = (await (async () => {
         state.currentUser = admin;
         return getAffiliateOverview();
       })()).find((r) => r.id === partner.id)!;
-      expect(row).toMatchObject({ totalEarningsPence: 0, paidEarningsPence: 1250, balancePence: -1250 });
+      expect(row).toMatchObject({ totalEarningsPence: 0, paidEarningsPence: 3000, balancePence: -3000 });
+    });
+  });
+
+  describe("payout rules (verified partner, at least £25 waiting)", () => {
+    async function partnerWithBalance(feePence: number, opts: { verified: boolean }) {
+      const partner = await makePartner();
+      await prisma.affiliatePartner.update({ where: { id: partner.id }, data: { selfRegistered: !opts.verified, verifiedAt: opts.verified ? new Date() : null } });
+      const job = await jobWithFee({ partnerId: partner.id, feePence, status: TransactionStatus.PAID });
+      await creditAffiliateForTransaction(job.transaction.id);
+      return partner;
+    }
+
+    it("refuses to pay an unverified partner however much is owed, and pays once an admin verifies them", async () => {
+      const admin = await makeUser(UserRole.ADMIN);
+      const partner = await partnerWithBalance(20000, { verified: false }); // £100 owed
+      expect(await recordAffiliatePayout(partner.id, 10000, admin.id, null)).toBe(false);
+      expect(await prisma.affiliatePayout.count({ where: { partnerId: partner.id } })).toBe(0);
+      expect((await partnerNow(partner.id)).paidEarningsPence).toBe(0);
+
+      state.currentUser = admin;
+      await verifyAffiliate(partner.id);
+      await verifyAffiliate(partner.id); // idempotent
+      expect((await partnerNow(partner.id)).verifiedAt).toBeInstanceOf(Date);
+      expect(await prisma.activityLog.count({ where: { type: "affiliate_partner_verified", metadata: { path: ["partnerId"], equals: partner.id } } })).toBe(1);
+
+      await markAffiliatePaid(partner.id, 10000, new FormData());
+      expect((await partnerNow(partner.id)).paidEarningsPence).toBe(10000);
+    });
+
+    it("refuses a payout under £25 even for a verified partner, then allows it once the balance reaches £25", async () => {
+      const admin = await makeUser(UserRole.ADMIN);
+      const partner = await partnerWithBalance(4998, { verified: true }); // 50% = £24.99
+      expect(await recordAffiliatePayout(partner.id, 2499, admin.id, null)).toBe(false);
+      const second = await jobWithFee({ partnerId: partner.id, feePence: 2, status: TransactionStatus.PAID });
+      await creditAffiliateForTransaction(second.transaction.id); // +£0.01 -> exactly £25.00
+      expect(await recordAffiliatePayout(partner.id, 2500, admin.id, null)).toBe(true);
+    });
+
+    it("only an admin can verify a partner", async () => {
+      const partner = await partnerWithBalance(6000, { verified: false });
+      state.currentUser = await makeUser(UserRole.HOMEOWNER);
+      await expect(verifyAffiliate(partner.id)).rejects.toThrow("NEXT_REDIRECT:/dashboard");
+      expect((await partnerNow(partner.id)).verifiedAt).toBeNull();
+    });
+  });
+
+  describe("self-referral guard", () => {
+    async function selfJob(opts: { partnerEmail?: string; partnerPhone?: string | null; homeownerEmail?: string; homeownerPhone?: string | null; proEmail?: string; proPhone?: string | null; feePence?: number }) {
+      const partner = await createAffiliatePartner({
+        businessName: "Self Cafe",
+        contactName: "Sam",
+        email: opts.partnerEmail ?? `${randomUUID()}@self.test`,
+        phone: opts.partnerPhone ?? null,
+        category: "CAFE",
+      });
+      const homeowner = await prisma.user.create({ data: { id: randomUUID(), role: UserRole.HOMEOWNER, name: "H", email: opts.homeownerEmail ?? `${randomUUID()}@h.test`, phone: opts.homeownerPhone ?? null } });
+      const proUser = await prisma.user.create({ data: { id: randomUUID(), role: UserRole.PROFESSIONAL, name: "P", email: opts.proEmail ?? `${randomUUID()}@p.test`, phone: opts.proPhone ?? null } });
+      const pro = await prisma.professional.create({ data: { userId: proUser.id, businessName: "Pro Ltd", postcode: "L1 2AB", serviceAreaPrefixes: ["L"] } });
+      const project = await prisma.project.create({ data: { homeownerId: homeowner.id, projectType: "kitchen", title: "Own kitchen", postcode: "L1 2AB", affiliatePartnerId: partner.id } });
+      const quote = await prisma.quoteRequest.create({ data: { projectId: project.id, homeownerId: homeowner.id, professionalId: pro.id, selected: true, quoteAmount: 100000 } });
+      const transaction = await prisma.transaction.create({ data: { quoteRequestId: quote.id, professionalId: pro.id, projectId: project.id, feeAmount: opts.feePence ?? 5000, status: TransactionStatus.PAID } });
+      return { partner, project, transaction };
+    }
+
+    it("credits nothing when the homeowner is the partner (same email, written differently), and logs why", async () => {
+      const tag = randomUUID().slice(0, 8);
+      const { partner, project, transaction } = await selfJob({ partnerEmail: `Sam.Tay.lor${tag}@Gmail.com`, homeownerEmail: `samtaylor${tag}+kitchen@googlemail.com` });
+      expect(await creditAffiliateForTransaction(transaction.id)).toBe(0);
+      expect((await partnerNow(partner.id)).totalEarningsPence).toBe(0);
+      expect((await projectNow(project.id)).affiliatePayoutAmount).toBe(0); // processed, so never re-examined
+      const log = await prisma.activityLog.findFirstOrThrow({ where: { type: "affiliate_self_referral_blocked", projectId: project.id } });
+      expect(log.metadata).toMatchObject({ partnerId: partner.id, matched: "homeowner", wouldHaveEarnedPence: 2500 });
+      expect(await creditAffiliateForTransaction(transaction.id)).toBeNull(); // and a repeat does nothing
+    });
+
+    it("credits nothing when the professional is the partner (same phone number in a different format)", async () => {
+      const { partner, transaction } = await selfJob({ partnerPhone: "07700 900123", proPhone: "+44 7700 900123" });
+      expect(await creditAffiliateForTransaction(transaction.id)).toBe(0);
+      expect((await partnerNow(partner.id)).totalEarningsPence).toBe(0);
+      expect((await prisma.activityLog.findFirstOrThrow({ where: { type: "affiliate_self_referral_blocked", metadata: { path: ["partnerId"], equals: partner.id } } })).metadata).toMatchObject({ matched: "professional" });
+    });
+
+    it("does not touch a genuine job: different people, missing phone numbers never match, and a free job logs no block", async () => {
+      const genuine = await selfJob({ partnerPhone: null, homeownerPhone: null, proPhone: null });
+      expect(await creditAffiliateForTransaction(genuine.transaction.id)).toBe(2500);
+
+      const same = `sam-${randomUUID().slice(0, 8)}@kite.test`;
+      const free = await selfJob({ partnerEmail: same, homeownerEmail: same, feePence: 0 });
+      expect(await creditAffiliateForTransaction(free.transaction.id)).toBe(0);
+      expect(await prisma.activityLog.count({ where: { type: "affiliate_self_referral_blocked", projectId: free.project.id } })).toBe(0);
+    });
+
+    it("an admin sees the held-back job and can credit it if it was a false alarm — once", async () => {
+      const same = `a-${randomUUID().slice(0, 8)}@same.test`;
+      const { partner, project, transaction } = await selfJob({ partnerEmail: same, homeownerEmail: same });
+      await creditAffiliateForTransaction(transaction.id);
+      state.currentUser = await makeUser(UserRole.ADMIN);
+
+      const held = await getBlockedSelfReferrals(partner.id);
+      expect(held).toHaveLength(1);
+      expect(held[0]).toMatchObject({ projectId: project.id, projectTitle: "Own kitchen", matched: "homeowner", wouldHaveEarnedPence: 2500 });
+      const page = renderToStaticMarkup(await AdminAffiliatePartnerPage({ params: Promise.resolve({ id: partner.id }) } as never));
+      expect(page).toContain("Held back as possible self-referral (1)");
+      expect(page).toContain("Credit anyway");
+
+      await releaseSelfReferral(partner.id, project.id);
+      await releaseSelfReferral(partner.id, project.id); // second click does nothing
+      expect((await partnerNow(partner.id)).totalEarningsPence).toBe(2500);
+      expect((await projectNow(project.id)).affiliatePayoutAmount).toBe(2500);
+      expect(await getBlockedSelfReferrals(partner.id)).toHaveLength(0);
+      expect(await prisma.activityLog.count({ where: { type: "affiliate_self_referral_released", projectId: project.id } })).toBe(1);
+    });
+
+    it("only an admin can release a held-back job, and a job that was never blocked cannot be 'released'", async () => {
+      const sameB = `b-${randomUUID().slice(0, 8)}@same.test`;
+      const blocked = await selfJob({ partnerEmail: sameB, homeownerEmail: sameB });
+      await creditAffiliateForTransaction(blocked.transaction.id);
+      state.currentUser = await makeUser(UserRole.HOMEOWNER);
+      await expect(releaseSelfReferral(blocked.partner.id, blocked.project.id)).rejects.toThrow("NEXT_REDIRECT:/dashboard");
+      expect((await partnerNow(blocked.partner.id)).totalEarningsPence).toBe(0);
+
+      const genuine = await selfJob({});
+      await creditAffiliateForTransaction(genuine.transaction.id);
+      state.currentUser = await makeUser(UserRole.ADMIN);
+      await releaseSelfReferral(genuine.partner.id, genuine.project.id);
+      expect((await partnerNow(genuine.partner.id)).totalEarningsPence).toBe(2500); // unchanged: nothing extra was credited
     });
   });
 
@@ -353,7 +480,8 @@ run("B2B Affiliate & Partner Program", () => {
       const redirect = await createAffiliate(undefined, bad).catch((e: Error) => e.message);
       expect(redirect).toMatch(/^NEXT_REDIRECT:\/admin\/affiliates\/[0-9a-f-]{36}$/);
       const created = await prisma.affiliatePartner.findFirstOrThrow({ where: { email: `sam-${unique}@pilates.test` } });
-      expect(created).toMatchObject({ email: `sam-${unique}@pilates.test`, phone: "07700 900123", category: "GYM", status: "ACTIVE", totalEarningsPence: 0 });
+      expect(created).toMatchObject({ email: `sam-${unique}@pilates.test`, phone: "07700 900123", category: "GYM", status: "ACTIVE", totalEarningsPence: 0, selfRegistered: false });
+      expect(created.verifiedAt).toBeInstanceOf(Date); // an admin typing a partner in has vetted them
       expect(created.revenueShareRate.toNumber()).toBe(0.5);
       expect(created.referralCode).toMatch(/^[2-9A-HJ-NP-Z]{8}$/);
       expect(created.qrSlug).toMatch(/^pilates-pod-[a-z2-9]{4}$/);
@@ -401,7 +529,7 @@ run("B2B Affiliate & Partner Program", () => {
     it("the hub, the overview table and a partner page show real numbers and the right controls", async () => {
       state.currentUser = await makeUser(UserRole.ADMIN);
       const partner = await makePartner("Render Test Cafe");
-      const paid = await jobWithFee({ partnerId: partner.id, feePence: 2500, quotePence: 50000, status: TransactionStatus.PAID });
+      const paid = await jobWithFee({ partnerId: partner.id, feePence: 6000, quotePence: 120000, status: TransactionStatus.PAID });
       await creditAffiliateForTransaction(paid.transaction.id);
 
       const hub = renderToStaticMarkup(await AdminHubPage());
@@ -411,8 +539,8 @@ run("B2B Affiliate & Partner Program", () => {
       const overview = renderToStaticMarkup(await AdminAffiliatesPage());
       expect(overview).toContain("Create new B2B partner");
       expect(overview).toContain("Render Test Cafe");
-      expect(overview).toContain("£12.50"); // partner share and owed balance
-      expect(overview).toContain("Mark £12.50 paid");
+      expect(overview).toContain("£30.00"); // partner share and owed balance
+      expect(overview).toContain("Mark £30.00 paid");
       expect(overview).toContain("Suspend");
 
       const detail = renderToStaticMarkup(await AdminAffiliatePartnerPage({ params: Promise.resolve({ id: partner.id }) } as never));
@@ -420,7 +548,7 @@ run("B2B Affiliate & Partner Program", () => {
       expect(detail).toContain(`https://glowupp.test/a/${partner.qrSlug}`);
       expect(detail).toContain("Download high-res PNG");
       expect(detail).toContain("Export PDF");
-      expect(detail).toContain("Mark £12.50 paid");
+      expect(detail).toContain("Mark £30.00 paid");
 
       await expect(AdminAffiliatePartnerPage({ params: Promise.resolve({ id: randomUUID() }) } as never)).rejects.toThrow("NEXT_NOT_FOUND");
       await expect(AdminAffiliatePartnerPage({ params: Promise.resolve({ id: "not-a-uuid" }) } as never)).rejects.toThrow("NEXT_NOT_FOUND");

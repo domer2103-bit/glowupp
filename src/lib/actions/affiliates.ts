@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
 import { AffiliateStatus, UserRole } from "@/generated/prisma/client";
 import { AFFILIATE_CATEGORIES } from "@/lib/affiliate";
-import { AffiliateEmailTakenError, createAffiliatePartner, recordAffiliatePayout } from "@/lib/data/affiliates";
+import { AffiliateEmailTakenError, createAffiliatePartner, recordAffiliatePayout, releaseBlockedSelfReferral, verifyAffiliatePartner } from "@/lib/data/affiliates";
 
 export type AffiliateActionState = { error?: string } | undefined;
 
@@ -83,6 +83,26 @@ export async function markAffiliatePaid(partnerId: string, expectedPence: number
 
   await recordAffiliatePayout(partnerId, expectedPence, admin.id, note);
 
+  revalidatePath("/admin/affiliates");
+  revalidatePath(`/admin/affiliates/${partnerId}`);
+}
+
+/**
+ * Admin-only: confirms the business is genuine and that you hold its bank
+ * details. Until this, nothing can be paid to the partner (the payout button
+ * stays hidden and the server refuses).
+ */
+export async function verifyAffiliate(partnerId: string): Promise<void> {
+  const admin = await requireRole(UserRole.ADMIN);
+  await verifyAffiliatePartner(partnerId, admin.id);
+  revalidatePath("/admin/affiliates");
+  revalidatePath(`/admin/affiliates/${partnerId}`);
+}
+
+/** Admin-only: a job held back as a possible self-referral turned out to be genuine — credit the partner the share that was withheld. */
+export async function releaseSelfReferral(partnerId: string, projectId: string): Promise<void> {
+  const admin = await requireRole(UserRole.ADMIN);
+  await releaseBlockedSelfReferral(projectId, admin.id);
   revalidatePath("/admin/affiliates");
   revalidatePath(`/admin/affiliates/${partnerId}`);
 }

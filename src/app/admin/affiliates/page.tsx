@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { getAffiliateOverview } from "@/lib/data/affiliates";
-import { AFFILIATE_CATEGORY_LABELS } from "@/lib/affiliate";
+import { AFFILIATE_CATEGORY_LABELS, AFFILIATE_MIN_PAYOUT_PENCE } from "@/lib/affiliate";
 import { formatPenceExact } from "@/lib/money";
 import { AffiliateStatus, UserRole } from "@/generated/prisma/client";
 import { NewAffiliateForm } from "./NewAffiliateForm";
@@ -31,7 +31,7 @@ export default async function AdminAffiliatesPage() {
           <h1 className="mt-2 text-2xl font-semibold">Partner program</h1>
           <p className="mt-1 max-w-3xl text-sm text-zinc-500">
             Local businesses and influencers who share GlowUpp. A partner earns half of the lead fee GlowUpp actually collects on jobs from homeowners who came through their
-            link or QR. Payouts are made outside this system (bank transfer) — record them here once sent.
+            link or QR. Payouts are made outside this system (bank transfer) — record them here once sent. A partner can be paid once you have verified them and they have at least {formatPenceExact(AFFILIATE_MIN_PAYOUT_PENCE)} waiting.
           </p>
         </div>
 
@@ -78,7 +78,8 @@ export default async function AdminAffiliatesPage() {
                         <p className="text-xs text-zinc-500">
                           {AFFILIATE_CATEGORY_LABELS[p.category]} · {p.contactName} ·{" "}
                           {p.status === AffiliateStatus.ACTIVE ? "Active" : <span className="font-medium text-red-600">Suspended</span>}
-                          {p.selfRegistered && <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">Self-registered — vet before paying</span>}
+                          {p.selfRegistered && <span className="ml-1 rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600">Self-registered</span>}
+                          {!p.verified && <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">Unverified — can&apos;t be paid yet</span>}
                         </p>
                       </td>
                       <td className={`${TD} text-right tabular-nums`}>{p.clickCount}</td>
@@ -92,7 +93,7 @@ export default async function AdminAffiliatesPage() {
                       </td>
                       <td className={`${TD} text-right font-medium tabular-nums ${p.balancePence < 0 ? "text-red-600" : ""}`}>{formatPenceExact(p.balancePence)}</td>
                       <td className={TD}>
-                        <PartnerControls partnerId={p.id} status={p.status} balancePence={p.balancePence} />
+                        <PartnerControls partnerId={p.id} status={p.status} balancePence={p.balancePence} verified={p.verified} />
                       </td>
                     </tr>
                   ))}
