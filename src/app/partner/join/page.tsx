@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { JoinForm } from "./JoinForm";
 
@@ -29,6 +30,12 @@ export default async function PartnerJoinPage(props: PageProps<"/partner/join">)
           <li className="rounded-xl bg-blue-50 px-2 py-3">Live earnings</li>
         </ul>
         <JoinForm redirectError={error} />
+        <p className="text-center text-sm text-zinc-600">
+          Want the details first?{" "}
+          <Link href="/partners" className="font-medium text-[#3a6694] underline">
+            How the partner programme works
+          </Link>
+        </p>
       </div>
     </div>
   );
