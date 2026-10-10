@@ -73,3 +73,17 @@ describe("validateRequirementsData", () => {
     expect(() => validateRequirementsData("spaceship", {})).toThrow("Unknown project type");
   });
 });
+
+describe("required fields for the open market", () => {
+  it("never asks for 'Must-have features': it is a nice-to-have, not something to block quotes on", () => {
+    for (const key of PROJECT_TYPE_KEYS) {
+      const field = getProjectTypeDefinition(key)!.fields.find((f) => f.key === "mustHaveFeatures");
+      expect(field?.required ?? false).toBe(false);
+    }
+  });
+
+  it("a kitchen needs only its style before it can be sent for quotes", () => {
+    const required = getProjectTypeDefinition("kitchen")!.fields.filter((f) => f.required).map((f) => f.key);
+    expect(required).toEqual(["desiredStyle"]);
+  });
+});
