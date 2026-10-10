@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { uploadRedesignPhoto, submitRedesignBrief, type ActionState } from "@/lib/actions/redesign-wizard";
 import { useShrunkUpload } from "@/components/useShrunkUpload";
 import { withNetworkGuard } from "@/lib/upload-guard";
+import { WIZARD_STEPS, canAdvance, canGenerate as canGenerateDesign, clampStep, startingStep, stepLabel } from "@/lib/wizard-steps";
 
 export interface ChangeOption {
   key: string;
@@ -119,17 +120,33 @@ export function RedesignWizard({
   const [colours, setColours] = useState<string[]>(initialColours);
   const [budgetPreset, setBudgetPreset] = useState(initialBudgetPreset);
   const [notes, setNotes] = useState(initialNotes);
+  const [step, setStep] = useState(() => startingStep({ photoCount: photos.length, style: initialStyle }));
 
   const boundUpload = uploadRedesignPhoto.bind(null, projectId, redesignPath);
   const [uploadState, uploadAction, uploadPending] = useActionState<ActionState, FormData>(withNetworkGuard(boundUpload), undefined);
   const { onSubmit: onUploadSubmit, preparing: uploadPreparing } = useShrunkUpload(uploadAction, ["file"], { clearFiles: true });
 
+  // The design is made from ONE photo: the most recent one. (More photos can be added on the project page once a style is chosen.)
   const latestPhoto = photos[photos.length - 1];
   const boundSubmit = submitRedesignBrief.bind(null, projectId, latestPhoto?.id ?? "");
   const [submitState, submitAction, submitPending] = useActionState<ActionState, FormData>(boundSubmit, undefined);
 
-  const stepsDone = [photos.length > 0, style.length > 0, changes.length > 0 || colours.length > 0, budgetPreset.length > 0].filter(Boolean).length;
-  const canGenerate = photos.length > 0 && style.length > 0 && !submitPending;
+  const progress = { photoCount: photos.length, style };
+  const current = WIZARD_STEPS[clampStep(step)];
+  const isLast = clampStep(step) === WIZARD_STEPS.length - 1;
+  const ready = canGenerateDesign(progress) && !submitPending;
+
+  // On a phone, bring the new question to the top of the screen when the step changes.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    heading.current?.focus();
+    heading.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [step]);
 
   const hiddenFields = useMemo(
     () => (
@@ -148,120 +165,210 @@ export function RedesignWizard({
     [style, changes, colours, notes, budgetPreset]
   );
 
+  const toggle = (list: string[], value: string) => (list.includes(value) ? list.filter((c) => c !== value) : [...list, value]);
+  const advanceable = canAdvance(current.key, progress);
+
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-      <div className="flex flex-col gap-5 rounded-[28px] border border-zinc-200 bg-white/70 p-6 shadow-sm sm:p-8">
+      <div className="flex flex-col gap-5 rounded-[28px] border border-zinc-200 bg-white/70 p-5 shadow-sm sm:p-8">
         <div>
-          <h1 className="text-3xl font-bold text-[#132a4d] sm:text-4xl">Let&apos;s redesign your {categoryLabel.toLowerCase()}.</h1>
-          <p className="mt-2 text-sm text-zinc-600">I&apos;ll ask you a few questions so the design feels right for your space.</p>
-        </div>
-
-        <AssistantBubble>First, show me the space you&apos;d like to transform.</AssistantBubble>
-        <div className="ml-11 flex flex-wrap items-center gap-3">
-          {photos.map((photo) => (
-            <div key={photo.id} className="h-20 w-28 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
-              {photo.url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={photo.url} alt={`Uploaded ${categoryLabel.toLowerCase()}`} className="h-full w-full object-cover" />
-              )}
+          <h1 className="text-2xl font-bold text-[#132a4d] sm:text-4xl">Let&apos;s redesign your {categoryLabel.toLowerCase()}.</h1>
+          <div className="mt-3" aria-live="polite">
+            <div className="flex items-center justify-between text-xs font-medium text-zinc-500">
+              <span>{stepLabel(step)}</span>
+              <span>{current.label}</span>
             </div>
-          ))}
-          <form onSubmit={onUploadSubmit}>
-            <label className="flex h-20 w-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-zinc-300 text-center text-[11px] text-zinc-500 hover:border-[#3a6694] hover:text-[#3a6694]">
-              <span>{uploadPreparing ? "Preparing…" : uploadPending ? "Uploading…" : "↑ Upload photo"}</span>
-              <input
-                type="file"
-                name="file"
-                accept="image/jpeg,image/png,image/webp,image/heic"
-                className="hidden"
-                onChange={(e) => e.currentTarget.form?.requestSubmit()}
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100" role="progressbar" aria-valuemin={1} aria-valuemax={WIZARD_STEPS.length} aria-valuenow={clampStep(step) + 1}>
+              <div className="h-full rounded-full bg-[#3a6694] transition-all" style={{ width: `${((clampStep(step) + 1) / WIZARD_STEPS.length) * 100}%` }} />
+            </div>
+          </div>
+        </div>
+
+        {current.key === "photo" && (
+          <>
+            <AssistantBubble>
+              <h2 ref={heading} tabIndex={-1} className="font-semibold outline-none">
+                First, show me the space you&apos;d like to transform.
+              </h2>
+            </AssistantBubble>
+            <p className="ml-11 text-sm text-zinc-600">
+              Upload <strong>one photo</strong> — your design is created from it. Once you&apos;ve chosen a style you can add more photos of the space.
+            </p>
+            <div className="ml-11 flex flex-col gap-3">
+              {latestPhoto?.url && (
+                <div className="w-full max-w-sm overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={latestPhoto.url} alt={`Your ${categoryLabel.toLowerCase()}`} className="aspect-[4/3] w-full object-cover" />
+                </div>
+              )}
+              <form onSubmit={onUploadSubmit}>
+                <label
+                  className={`inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full px-6 py-3 text-sm font-medium transition ${
+                    latestPhoto ? "border border-[#3a6694] text-[#3a6694] hover:bg-blue-50" : "bg-[#3a6694] text-white hover:bg-[#2c5075]"
+                  }`}
+                >
+                  {uploadPreparing ? "Preparing…" : uploadPending ? "Uploading…" : latestPhoto ? "Use a different photo" : "↑ Upload photo"}
+                  <input
+                    type="file"
+                    name="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic"
+                    className="hidden"
+                    onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                  />
+                </label>
+              </form>
+              {uploadState?.error && <p className="text-xs text-red-600">{uploadState.error}</p>}
+            </div>
+          </>
+        )}
+
+        {current.key === "changes" && (
+          <>
+            <AssistantBubble>
+              <h2 ref={heading} tabIndex={-1} className="font-semibold outline-none">
+                What would you like to change?
+              </h2>
+            </AssistantBubble>
+            <div className="ml-11 flex flex-wrap gap-2">
+              {changeOptions.map((opt) => (
+                <Chip key={opt.key} label={opt.label} selected={changes.includes(opt.key)} onClick={() => setChanges((prev) => toggle(prev, opt.key))} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {current.key === "style" && (
+          <>
+            <AssistantBubble>
+              <h2 ref={heading} tabIndex={-1} className="font-semibold outline-none">
+                What style are you imagining?
+              </h2>
+            </AssistantBubble>
+            <div className="ml-11 grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {STYLE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setStyle(opt.key)}
+                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-1.5 transition ${
+                    style === opt.key ? "border-[#3a6694] ring-2 ring-[#3a6694]/40" : "border-zinc-200 hover:border-[#3a6694]"
+                  }`}
+                >
+                  <span className={`h-12 w-full rounded-lg bg-gradient-to-br ${opt.gradient}`} />
+                  <span className="text-xs text-[#132a4d]">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {current.key === "colours" && (
+          <>
+            <AssistantBubble>
+              <h2 ref={heading} tabIndex={-1} className="font-semibold outline-none">
+                What colours do you prefer?
+              </h2>
+            </AssistantBubble>
+            <div className="ml-11 flex flex-wrap gap-2">
+              {COLOUR_OPTIONS.map((opt) => (
+                <Chip key={opt.key} label={opt.label} selected={colours.includes(opt.key)} onClick={() => setColours((prev) => toggle(prev, opt.key))} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {current.key === "budget" && (
+          <>
+            <AssistantBubble>
+              <h2 ref={heading} tabIndex={-1} className="font-semibold outline-none">
+                What is your approximate budget?
+              </h2>
+            </AssistantBubble>
+            <div className="ml-11 flex flex-wrap gap-2">
+              {BUDGET_OPTIONS.map((opt) => (
+                <Chip key={opt.key} label={opt.label} selected={budgetPreset === opt.key} onClick={() => setBudgetPreset(opt.key)} />
+              ))}
+            </div>
+            <AssistantBubble>Anything else you&apos;d like me to know?</AssistantBubble>
+            <div className="ml-11">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add your text here… (optional)"
+                rows={2}
+                className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-base text-[#132a4d] placeholder:text-zinc-400 focus:border-[#3a6694] focus:outline-none sm:text-sm"
               />
-            </label>
-          </form>
-        </div>
-        {uploadState?.error && <p className="ml-11 text-xs text-red-600">{uploadState.error}</p>}
+            </div>
+          </>
+        )}
 
-        <AssistantBubble>What would you like to change?</AssistantBubble>
-        <div className="ml-11 flex flex-wrap gap-2">
-          {changeOptions.map((opt) => (
-            <Chip
-              key={opt.key}
-              label={opt.label}
-              selected={changes.includes(opt.key)}
-              onClick={() => setChanges((prev) => (prev.includes(opt.key) ? prev.filter((c) => c !== opt.key) : [...prev, opt.key]))}
-            />
-          ))}
-        </div>
-
-        <AssistantBubble>What style are you imagining?</AssistantBubble>
-        <div className="ml-11 grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {STYLE_OPTIONS.map((opt) => (
+        {/* Back / Next. The last screen's button generates the design. */}
+        <form action={submitAction} className="ml-11 mt-2 flex flex-wrap items-center gap-3">
+          {hiddenFields}
+          {step > 0 && (
             <button
-              key={opt.key}
               type="button"
-              onClick={() => setStyle(opt.key)}
-              className={`flex flex-col items-center gap-1.5 rounded-xl border p-1.5 transition ${
-                style === opt.key ? "border-[#3a6694] ring-2 ring-[#3a6694]/40" : "border-zinc-200 hover:border-[#3a6694]"
-              }`}
+              onClick={() => setStep((s) => clampStep(s - 1))}
+              className="min-h-12 rounded-full border border-zinc-300 px-6 py-3 text-sm font-medium text-[#132a4d] transition hover:border-[#3a6694]"
             >
-              <span className={`h-12 w-full rounded-lg bg-gradient-to-br ${opt.gradient}`} />
-              <span className="text-xs text-[#132a4d]">{opt.label}</span>
+              Back
             </button>
-          ))}
-        </div>
-
-        <AssistantBubble>What colours do you prefer?</AssistantBubble>
-        <div className="ml-11 flex flex-wrap gap-2">
-          {COLOUR_OPTIONS.map((opt) => (
-            <Chip
-              key={opt.key}
-              label={opt.label}
-              selected={colours.includes(opt.key)}
-              onClick={() => setColours((prev) => (prev.includes(opt.key) ? prev.filter((c) => c !== opt.key) : [...prev, opt.key]))}
-            />
-          ))}
-        </div>
-
-        <AssistantBubble>What is your approximate budget?</AssistantBubble>
-        <div className="ml-11 flex flex-wrap gap-2">
-          {BUDGET_OPTIONS.map((opt) => (
-            <Chip key={opt.key} label={opt.label} selected={budgetPreset === opt.key} onClick={() => setBudgetPreset(opt.key)} />
-          ))}
-        </div>
-
-        <AssistantBubble>Anything else you&apos;d like me to know?</AssistantBubble>
-        <div className="ml-11">
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add your text here… (optional)"
-            rows={2}
-            className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm text-[#132a4d] placeholder:text-zinc-400 focus:border-[#3a6694] focus:outline-none"
-          />
-        </div>
+          )}
+          {!isLast ? (
+            <>
+              <button
+                type="button"
+                disabled={!advanceable}
+                onClick={() => setStep((s) => clampStep(s + 1))}
+                className="min-h-12 rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#2c5075] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next →
+              </button>
+              {current.optional && (
+                <button type="button" onClick={() => setStep((s) => clampStep(s + 1))} className="text-sm font-medium text-zinc-500 underline">
+                  Skip
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              type="submit"
+              disabled={!ready}
+              className="min-h-12 rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#2c5075] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {submitPending ? "Generating…" : "Generate My Design →"}
+            </button>
+          )}
+          {!advanceable && current.key === "photo" && <p className="w-full text-xs text-zinc-500">Add a photo to continue.</p>}
+          {!advanceable && current.key === "style" && <p className="w-full text-xs text-zinc-500">Pick a style to continue (&ldquo;I&apos;m not sure&rdquo; is fine).</p>}
+          {isLast && !canGenerateDesign(progress) && <p className="w-full text-xs text-zinc-500">Go back to add a photo and choose a style first.</p>}
+          {submitState?.error && <p className="w-full text-xs text-red-600">{submitState.error}</p>}
+        </form>
+        {isLast && <p className="ml-11 text-xs text-zinc-500">Estimated generation time: about 2 minutes.</p>}
       </div>
 
-      <aside className="h-fit rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm lg:sticky lg:top-8">
+      {/* The running summary is a desktop extra; on a phone it would only add clutter. */}
+      <aside className="hidden h-fit rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm lg:sticky lg:top-8 lg:block">
         <h2 className="text-lg font-bold text-[#132a4d]">Your Design Brief</h2>
         <p className="text-sm text-zinc-500">Your {categoryLabel}</p>
         <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#3a6694]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#3a6694]" />
-          {canGenerate ? "Ready to generate" : "Almost ready"}
+          {canGenerateDesign(progress) ? "Ready to generate" : "Almost ready"}
         </span>
 
         <ul className="mt-5 flex flex-col gap-3">
-          <CheckRow label="Photos" value={photos.length > 0 ? `${photos.length} photo${photos.length > 1 ? "s" : ""} uploaded` : undefined} done={photos.length > 0} />
+          <CheckRow label="Photo" value={photos.length > 0 ? "Uploaded" : undefined} done={photos.length > 0} />
           <CheckRow label="Space" value={categoryLabel} done />
           <CheckRow label="Style" value={style || undefined} done={style.length > 0} />
-          <CheckRow
-            label="Colours"
-            value={colours.length > 0 ? colours.map((c) => COLOUR_OPTIONS.find((o) => o.key === c)?.label).join(", ") : undefined}
-            done={colours.length > 0}
-          />
           <CheckRow
             label="Changes"
             value={changes.length > 0 ? changes.map((c) => changeOptions.find((o) => o.key === c)?.label).join(", ") : undefined}
             done={changes.length > 0}
+          />
+          <CheckRow
+            label="Colours"
+            value={colours.length > 0 ? colours.map((c) => COLOUR_OPTIONS.find((o) => o.key === c)?.label).join(", ") : undefined}
+            done={colours.length > 0}
           />
           <CheckRow label="Budget" value={BUDGET_OPTIONS.find((o) => o.key === budgetPreset)?.label} done={budgetPreset.length > 0} />
         </ul>
@@ -270,26 +377,6 @@ export function RedesignWizard({
           GlowUpp will use your original photo as the foundation and redesign the same space while keeping the existing
           structure and perspective realistic.
         </p>
-
-        <form action={submitAction} className="mt-5">
-          {hiddenFields}
-          <button
-            type="submit"
-            disabled={!canGenerate}
-            className="w-full rounded-full bg-[#3a6694] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#2c5075] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {submitPending ? "Generating…" : "Generate My Design →"}
-          </button>
-          {submitState?.error && <p className="mt-2 text-xs text-red-600">{submitState.error}</p>}
-        </form>
-
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-          <div className="h-full rounded-full bg-[#3a6694] transition-all" style={{ width: `${(stepsDone / 4) * 100}%` }} />
-        </div>
-        <div className="mt-2 flex items-center justify-between text-[11px] text-zinc-500">
-          <span>Step {stepsDone} of 4</span>
-          <span>Estimated generation time: ~2 minutes</span>
-        </div>
       </aside>
     </div>
   );

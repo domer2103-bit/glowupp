@@ -80,7 +80,7 @@ const KITCHEN: ProjectTypeDefinition = {
     { key: "flooring", label: "Flooring", type: "text" },
     { key: "lighting", label: "Lighting", type: "text" },
     { key: "storage", label: "Storage", type: "textarea" },
-    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea", required: true },
+    { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
 
