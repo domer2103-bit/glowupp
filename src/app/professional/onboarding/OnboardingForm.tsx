@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useShrunkUpload } from "@/components/useShrunkUpload";
+import { withNetworkGuard } from "@/lib/upload-guard";
 import { createProfessionalProfile, type ActionState } from "@/lib/actions/auth";
 import { HOMEPAGE_CATEGORIES } from "@/lib/homepage-categories";
 import { CategoryIcon } from "@/components/CategoryIcon";
@@ -20,13 +22,14 @@ function inputClass(extra = "") {
 }
 
 export function OnboardingForm({ userName, userEmail }: { userName: string; userEmail: string }) {
-  const [state, action, pending] = useActionState<ActionState, FormData>(createProfessionalProfile, undefined);
+  const [state, action, pending] = useActionState<ActionState, FormData>(withNetworkGuard(createProfessionalProfile), undefined);
 
   const [postcode, setPostcode] = useState("");
   const [areaChips, setAreaChips] = useState<string[]>([]);
   const [areaInput, setAreaInput] = useState("");
   const [radiusMiles, setRadiusMiles] = useState<number | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
+  const { onSubmit: onProfileSubmit, preparing: preparingPhotos } = useShrunkUpload(action, ["photos"]);
 
   function addAreaChip(raw: string) {
     const value = raw.trim().toUpperCase();
@@ -66,7 +69,7 @@ export function OnboardingForm({ userName, userEmail }: { userName: string; user
         ))}
       </nav>
 
-      <form action={action} className="mt-6 flex flex-col gap-10">
+      <form onSubmit={onProfileSubmit} className="mt-6 flex flex-col gap-10">
         <section id="trade" className="scroll-mt-6">
           <h3 className="mb-1 font-semibold text-[#132a4d]">What do you do?</h3>
           <p className="mb-4 text-sm text-zinc-500">Pick every trade you offer — homeowners search by category.</p>
@@ -233,10 +236,10 @@ export function OnboardingForm({ userName, userEmail }: { userName: string; user
 
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || preparingPhotos}
           className="w-full rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075] disabled:opacity-50"
         >
-          {pending ? "Creating your profile…" : "Create My Profile"}
+          {preparingPhotos ? "Preparing your photos…" : pending ? "Creating your profile…" : "Create My Profile"}
         </button>
         <p className="-mt-6 text-center text-xs text-zinc-500">You can update your profile and service area anytime.</p>
       </form>

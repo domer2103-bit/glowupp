@@ -2,6 +2,8 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { uploadRedesignPhoto, submitRedesignBrief, type ActionState } from "@/lib/actions/redesign-wizard";
+import { useShrunkUpload } from "@/components/useShrunkUpload";
+import { withNetworkGuard } from "@/lib/upload-guard";
 
 export interface ChangeOption {
   key: string;
@@ -119,7 +121,8 @@ export function RedesignWizard({
   const [notes, setNotes] = useState(initialNotes);
 
   const boundUpload = uploadRedesignPhoto.bind(null, projectId, redesignPath);
-  const [uploadState, uploadAction, uploadPending] = useActionState<ActionState, FormData>(boundUpload, undefined);
+  const [uploadState, uploadAction, uploadPending] = useActionState<ActionState, FormData>(withNetworkGuard(boundUpload), undefined);
+  const { onSubmit: onUploadSubmit, preparing: uploadPreparing } = useShrunkUpload(uploadAction, ["file"], { clearFiles: true });
 
   const latestPhoto = photos[photos.length - 1];
   const boundSubmit = submitRedesignBrief.bind(null, projectId, latestPhoto?.id ?? "");
@@ -163,9 +166,9 @@ export function RedesignWizard({
               )}
             </div>
           ))}
-          <form action={uploadAction}>
+          <form onSubmit={onUploadSubmit}>
             <label className="flex h-20 w-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-zinc-300 text-center text-[11px] text-zinc-500 hover:border-[#3a6694] hover:text-[#3a6694]">
-              <span>{uploadPending ? "Uploading…" : "↑ Upload photo"}</span>
+              <span>{uploadPreparing ? "Preparing…" : uploadPending ? "Uploading…" : "↑ Upload photo"}</span>
               <input
                 type="file"
                 name="file"
