@@ -73,7 +73,9 @@ describe("partner terms", () => {
     expect(PARTNER_TERMS.some((t) => /tradespeople who create a GlowUpp professional account/.test(t))).toBe(true);
     expect(PARTNER_TERMS.some((t) => /free introductory jobs/.test(t) && /earn no share/.test(t))).toBe(true);
     expect(PARTNER_TERMS.some((t) => /at most/.test(t))).toBe(true);
-    expect(PARTNER_TERMS.some((t) => /first 12 months after they sign up/.test(t))).toBe(true); // follows PRO_REFERRAL_EARNING_MONTHS
+    expect(PARTNER_TERMS.some((t) => /first 12 months after they sign up/.test(t))).toBe(true);
+    // Own-client jobs: 1% fee after 3 free jobs, so the partner's share is 0.5% of the quote, and nothing on the free ones.
+    expect(PARTNER_TERMS.some((t) => /own private link/.test(t) && /1% instead of 5%/.test(t) && /first 3 such jobs/.test(t) && /0\.5% of the quote/.test(t) && /free jobs it is nothing/.test(t))).toBe(true); // follows PRO_REFERRAL_EARNING_MONTHS
     expect(PARTNER_TERMS_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}(\.\d+)?$/);
   });
 });

@@ -78,6 +78,10 @@ import { notifyPartnerNoFeeJob } from "@/lib/notifications";
 import { getOrCreateDraftProject } from "@/lib/data/projects";
 import { selectProfessional } from "@/lib/actions/quotes";
 import { dismissPartnerNotices } from "@/lib/actions/partner";
+import { requestPrivateEstimate, submitPrivateQuote } from "@/lib/actions/private-pipeline";
+import { ensureReferralCodes } from "@/lib/data/private-pipeline";
+import { PRO_REF_COOKIE } from "@/lib/private-pipeline-cookie";
+import { getProjectTypeDefinition } from "@/lib/project-types";
 import { GET as proLink } from "@/app/a/[code]/pro/route";
 import { GET as homeLink } from "@/app/a/[code]/route";
 import { signup } from "@/lib/actions/auth";
@@ -450,6 +454,67 @@ run("Partner credit for professionals they bring", () => {
 
     it("dismissing needs a signed-in partner", async () => {
       await expect(dismissPartnerNotices()).rejects.toThrow("NEXT_REDIRECT:/partner/login");
+    });
+  });
+
+  describe("own-client (private link) jobs of a referred professional", () => {
+    function form(entries: [string, string][]) {
+      const fd = new FormData();
+      for (const [k, v] of entries) fd.append(k, v);
+      return fd;
+    }
+
+    it("first 3 are free and earn nothing (the partner is told); after that a 1% fee, so the partner earns 0.5% of the quote", async () => {
+      const partner = await makePartner();
+      const { user, pro } = await makePro({ partnerId: partner.id });
+      const { referralCode } = await ensureReferralCodes(await prisma.professional.findUniqueOrThrow({ where: { id: pro.id } }));
+
+      async function privateJob(n: number, amountPounds: string) {
+        const home = await makeUser(UserRole.HOMEOWNER);
+        state.jar.set(PRO_REF_COOKIE, referralCode);
+        const project = await getOrCreateDraftProject(home.id, "kitchen", `Own client kitchen ${n}`);
+        state.jar.clear();
+        const def = getProjectTypeDefinition("kitchen")!;
+        const data = Object.fromEntries(def.fields.filter((f) => f.required).map((f) => [f.key, "x"]));
+        await prisma.projectRequirements.upsert({ where: { projectId: project.id }, create: { projectId: project.id, data }, update: { data } });
+        await prisma.project.update({ where: { id: project.id }, data: { status: ProjectStatus.DESIGN_READY, postcode: "L1 2AB" } });
+        const session = await prisma.privatePipelineSession.findUniqueOrThrow({ where: { projectId: project.id } });
+        state.currentUser = home;
+        await requestPrivateEstimate(project.id);
+        state.currentUser = user;
+        await submitPrivateQuote(session.id, undefined, form([["itemDescription", "Job"], ["itemAmount", amountPounds], ["quoteTimeline", "1 week"]]));
+        const qr = await prisma.quoteRequest.findFirstOrThrow({ where: { projectId: project.id } });
+        state.currentUser = home;
+        await selectProfessional(project.id, qr.id);
+        return { project, qr };
+      }
+
+      // Jobs 1-3: free (a £0 PAID fee). The partner earns nothing and is told, each time.
+      for (let n = 1; n <= 3; n++) {
+        const { qr } = await privateJob(n, "2450");
+        expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: qr.id } })).toMatchObject({ feeAmount: 0, status: "PAID" });
+      }
+      expect(noFeeMail).toHaveBeenCalledTimes(3);
+      expect(noFeeMail.mock.calls.every((c) => c[0].source === "PROFESSIONAL")).toBe(true);
+      expect((await partnerNow(partner.id)).totalEarningsPence).toBe(0);
+
+      // Job 4: 1% of £2,450 = £24.50, held until paid. When paid the partner earns half: £12.25 = 0.5% of the quote.
+      const four = await privateJob(4, "2450");
+      const feeTx = await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: four.qr.id } });
+      expect(feeTx).toMatchObject({ feeAmount: 2450, status: "PENDING" });
+      expect(await creditAffiliateForTransaction(feeTx.id)).toBeNull(); // nothing until the fee is paid
+      await prisma.transaction.update({ where: { id: feeTx.id }, data: { status: TransactionStatus.PAID, paidAt: new Date() } });
+      expect(await creditAffiliateForTransaction(feeTx.id)).toBe(1225);
+      expect(1225 / 245000).toBeCloseTo(0.005, 10); // exactly 0.5% of the quote
+      expect((await partnerNow(partner.id)).totalEarningsPence).toBe(1225);
+      expect(noFeeMail).toHaveBeenCalledTimes(3); // a paid fee needs no "no fee" notice
+
+      // Job 5 over £25,000: the fee is capped at £250, so the partner earns £125, not 0.5% of the quote.
+      const five = await privateJob(5, "40000");
+      const capped = await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: five.qr.id } });
+      expect(capped.feeAmount).toBe(25000);
+      await prisma.transaction.update({ where: { id: capped.id }, data: { status: TransactionStatus.PAID, paidAt: new Date() } });
+      expect(await creditAffiliateForTransaction(capped.id)).toBe(12500);
     });
   });
 
