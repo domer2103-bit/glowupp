@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { getProjectTypeDefinition, schemaForProjectType } from "@/lib/project-types";
 import { runAssistantTurn, PROJECT_LEVEL_FIELD_KEYS } from "@/lib/assistant";
+import { applyDesignChange } from "@/lib/design-start";
+import { getChosenConcept } from "@/lib/design-selection";
+import { getDesignStyle } from "@/lib/design-styles";
 import { poundsToPence } from "@/lib/money";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -26,11 +29,15 @@ export async function sendAssistantMessage(projectId: string, _prevState: Action
   const definition = getProjectTypeDefinition(project.projectType);
   if (!definition) return { error: "This project's type is no longer recognized." };
 
-  const [requirements, priorMessages, messageCount] = await Promise.all([
+  const [requirements, priorMessages, messageCount, concepts] = await Promise.all([
     prisma.projectRequirements.findUnique({ where: { projectId } }),
     prisma.assistantMessage.findMany({ where: { projectId }, orderBy: { createdAt: "asc" }, take: 40 }),
     prisma.assistantMessage.count({ where: { projectId } }),
+    prisma.designConcept.findMany({ where: { projectId } }),
   ]);
+  // Once a finished design is chosen the assistant helps change it; before that it just collects the brief.
+  const chosen = getChosenConcept(concepts);
+  const changeable = chosen && chosen.status === "COMPLETE" && chosen.storagePath ? chosen : undefined;
 
   const existingData = (requirements?.data as Record<string, unknown>) ?? {};
 
@@ -55,13 +62,21 @@ export async function sendAssistantMessage(projectId: string, _prevState: Action
       requirementsData: existingData,
       history: priorMessages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       userMessage: message,
+      design: changeable ? { styleLabel: changeable.styleKey ? getDesignStyle(changeable.styleKey)?.label : undefined } : undefined,
     });
   } catch (err) {
     console.error("Assistant turn failed:", err);
     return { error: "The assistant is unavailable right now — please try again in a moment." };
   }
 
-  await prisma.assistantMessage.create({ data: { projectId, role: "assistant", content: result.reply } });
+  // A requested visual change is started before the reply is saved, so if it can't be started the reply says so instead of promising a new version.
+  let reply = result.reply;
+  if (changeable && result.designChange) {
+    const started = await applyDesignChange(project, changeable.id, result.designChange);
+    if (started) reply = `I couldn't make that change just yet. ${started.error}`;
+  }
+
+  await prisma.assistantMessage.create({ data: { projectId, role: "assistant", content: reply } });
 
   // Split the AI's structured update into project-level fields vs. the
   // type-specific requirements JSON, then validate each through the exact

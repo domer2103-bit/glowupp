@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { uploadRedesignPhoto, submitRedesignBrief, type ActionState } from "@/lib/actions/redesign-wizard";
 import { useShrunkUpload } from "@/components/useShrunkUpload";
-import { withNetworkGuard } from "@/lib/upload-guard";
+import { REQUEST_NETWORK_ERROR, withNetworkGuard } from "@/lib/upload-guard";
 import { WIZARD_STEPS, canAdvance, canGenerate as canGenerateDesign, clampStep, startingStep, stepLabel } from "@/lib/wizard-steps";
 
 export interface ChangeOption {
@@ -129,7 +129,7 @@ export function RedesignWizard({
   // The design is made from ONE photo: the most recent one. (More photos can be added on the project page once a style is chosen.)
   const latestPhoto = photos[photos.length - 1];
   const boundSubmit = submitRedesignBrief.bind(null, projectId, latestPhoto?.id ?? "");
-  const [submitState, submitAction, submitPending] = useActionState<ActionState, FormData>(boundSubmit, undefined);
+  const [submitState, submitAction, submitPending] = useActionState<ActionState, FormData>(withNetworkGuard(boundSubmit, REQUEST_NETWORK_ERROR), undefined);
 
   const progress = { photoCount: photos.length, style };
   const current = WIZARD_STEPS[clampStep(step)];

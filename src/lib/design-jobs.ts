@@ -13,6 +13,8 @@ export interface ConceptSpec {
   prompt: string;
   styleKey?: string;
   description?: string;
+  /** When this is a change to the homeowner's chosen design: once it is ready it becomes the chosen design in that one's place (unless they have chosen something else meanwhile). */
+  replacesConceptId?: string;
 }
 
 export interface ReservedConcept {
@@ -71,6 +73,18 @@ export async function reserveConcepts(projectId: string, specs: ConceptSpec[]): 
   }
 }
 
+/** Moves the "chosen" mark from one concept to another, but only if the first still has it. Never throws: the new design is already saved and usable either way. */
+async function takeOverChoice(projectId: string, fromId: string, toId: string): Promise<void> {
+  try {
+    await prisma.$transaction(async (tx) => {
+      const { count } = await tx.designConcept.updateMany({ where: { id: fromId, projectId, selectedByUser: true }, data: { selectedByUser: false } });
+      if (count > 0) await tx.designConcept.update({ where: { id: toId }, data: { selectedByUser: true } });
+    });
+  } catch (err) {
+    console.error("Could not make the changed design the chosen one:", err);
+  }
+}
+
 async function runOne(projectId: string, actorId: string, { id, spec }: ReservedConcept): Promise<void> {
   try {
     const result = await runDesignGeneration({
@@ -85,6 +99,7 @@ async function runOne(projectId: string, actorId: string, { id, spec }: Reserved
       data: { status: DesignConceptStatus.COMPLETE, storagePath: result.storagePath, provider: result.provider, model: result.model },
     });
     await prisma.activityLog.create({ data: { type: "design_generated", actorId, projectId, metadata: { designConceptId: id } } });
+    if (spec.replacesConceptId) await takeOverChoice(projectId, spec.replacesConceptId, id);
   } catch (err) {
     console.error("Design generation failed:", err);
     try {

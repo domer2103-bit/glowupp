@@ -14,6 +14,52 @@ export interface SelectableConcept {
   sourcePhotoId: string;
 }
 
+/** Concepts made by "change this design" start their description with this, so they can be told apart from fresh style options. */
+export const REFINEMENT_PREFIX = "Refinement of";
+
+export function isRefinement(concept: { description?: string | null }): boolean {
+  return (concept.description ?? "").startsWith(REFINEMENT_PREFIX);
+}
+
+/** The photo the style options were made from: the source of the earliest concept. */
+export function batchPhotoId(concepts: { sourcePhotoId: string; version: number }[]): string | undefined {
+  return [...concepts].sort((a, b) => a.version - b.version)[0]?.sourcePhotoId;
+}
+
+type OptionConcept = SelectableConcept & { version: number; description?: string | null };
+
+/**
+ * The style options to pick between: one card per style, made from the first photo.
+ * Refinements and other-angle designs are left out. When a style was made more than once
+ * (a retry after a failure) the newest usable one wins; a style that only ever failed still
+ * shows, so it can be retried. Ordered by when each style was first made.
+ */
+export function styleOptions<T extends OptionConcept>(concepts: T[]): T[] {
+  const photoId = batchPhotoId(concepts);
+  const byStyle = new Map<string, T[]>();
+  for (const c of [...concepts].sort((a, b) => a.version - b.version)) {
+    if (c.sourcePhotoId !== photoId || isRefinement(c)) continue;
+    const key = c.styleKey ?? c.id;
+    byStyle.set(key, [...(byStyle.get(key) ?? []), c]);
+  }
+  return [...byStyle.values()].map((group) => {
+    const usable = group.filter((c) => c.status !== "FAILED");
+    return (usable.length > 0 ? usable : group).at(-1)!;
+  });
+}
+
+/**
+ * Everything that belongs to the chosen design: its earlier versions (same style, same photo, so
+ * "go back to this one" is possible) and the same style applied to the other angles.
+ */
+export function chosenDesignGroup<T extends OptionConcept>(concepts: T[], chosen: T): { versions: T[]; angles: T[] } {
+  const sameStyle = concepts.filter((c) => c.id !== chosen.id && chosen.styleKey !== null && c.styleKey === chosen.styleKey);
+  return {
+    versions: sameStyle.filter((c) => c.sourcePhotoId === chosen.sourcePhotoId && c.status === "COMPLETE"),
+    angles: sameStyle.filter((c) => c.sourcePhotoId !== chosen.sourcePhotoId),
+  };
+}
+
 export function getChosenConcept<T extends SelectableConcept>(concepts: T[]): T | undefined {
   return concepts.find((c) => c.selectedByUser);
 }

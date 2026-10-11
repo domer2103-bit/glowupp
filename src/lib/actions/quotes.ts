@@ -7,6 +7,7 @@ import { requireProjectOwner } from "@/lib/data/projects";
 import { requireRole } from "@/lib/auth";
 import { getProjectTypeDefinition, isFieldValueSet } from "@/lib/project-types";
 import { evaluateMatch } from "@/lib/matching";
+import { normalizePostcode } from "@/lib/postcode";
 import { isAtOrPastStatus } from "@/lib/project-status";
 import { poundsToPence } from "@/lib/money";
 import { notifyProfessionalSelected, notifyOpenMarketProject, notifyQuoteSubmitted } from "@/lib/notifications";
@@ -52,7 +53,7 @@ export async function validateProjectReadyForQuotes(project: { id: string; proje
  * professional until this is clicked. Idempotent — pushing an
  * already-open project again is a harmless no-op, not an error.
  */
-export async function pushToOpenMarket(projectId: string): Promise<ActionState> {
+export async function pushToOpenMarket(projectId: string, _prevState?: ActionState, formData?: FormData): Promise<ActionState> {
   const project = await requireProjectOwner(projectId);
 
   // Private Client Pipeline: a project locked to one contractor must never
@@ -65,10 +66,16 @@ export async function pushToOpenMarket(projectId: string): Promise<ActionState> 
     return undefined;
   }
 
+  // Tradespeople are matched on the project's postcode, and the guided redesign doesn't ask for one, so it is collected here.
+  const postcodeInput = formData?.get("postcode");
+  const postcode = typeof postcodeInput === "string" && postcodeInput.trim() ? normalizePostcode(postcodeInput) : project.postcode;
+  if (postcode === null) return { error: "Enter a valid UK postcode, for example L18 5NF." };
+  if (!postcode) return { error: "Enter your postcode so we can find tradespeople near you." };
+
   const validationError = await validateProjectReadyForQuotes(project);
   if (validationError) return { error: validationError };
 
-  await prisma.project.update({ where: { id: projectId }, data: { status: ProjectStatus.REQUESTING_QUOTES } });
+  await prisma.project.update({ where: { id: projectId }, data: { status: ProjectStatus.REQUESTING_QUOTES, postcode } });
   await prisma.activityLog.create({
     data: { type: "project_pushed_to_market", actorId: project.homeownerId, projectId },
   });
@@ -77,7 +84,7 @@ export async function pushToOpenMarket(projectId: string): Promise<ActionState> 
   const matches = professionals.filter(
     (pro) =>
       evaluateMatch(
-        { projectType: project.projectType, postcode: project.postcode, budgetMin: project.budgetMin, budgetMax: project.budgetMax, targetStartDate: project.targetStartDate },
+        { projectType: project.projectType, postcode, budgetMin: project.budgetMin, budgetMax: project.budgetMax, targetStartDate: project.targetStartDate },
         pro
       ).isMatch
   );
@@ -88,7 +95,7 @@ export async function pushToOpenMarket(projectId: string): Promise<ActionState> 
       professionalName: pro.user.name,
       projectTitle: project.title,
       projectType: project.projectType,
-      postcode: project.postcode,
+      postcode,
     });
   }
 

@@ -41,6 +41,25 @@ export const DESIGN_STYLES: readonly DesignStyle[] = [
     promptModifier:
       "Style direction: bold — a genuine statement look, richer colours or higher-contrast materials than a safe default choice, while staying tasteful and cohesive.",
   },
+  // Held back for "show me different styles": the first three above are the opening batch, these come after.
+  {
+    key: "scandinavian",
+    label: "Scandinavian",
+    promptModifier:
+      "Style direction: Scandinavian — light, airy and calm: pale oak and birch tones, soft whites, natural textures, simple functional shapes.",
+  },
+  {
+    key: "industrial",
+    label: "Industrial",
+    promptModifier:
+      "Style direction: industrial — raw, characterful materials such as dark metal, concrete and exposed brick, with warm accents so it still feels like a home.",
+  },
+  {
+    key: "luxury",
+    label: "Luxury",
+    promptModifier:
+      "Style direction: luxury — a high-end, boutique-hotel feel: rich natural stone, deep tones, brass or similar accents, considered lighting.",
+  },
 ] as const;
 
 export function getDesignStyle(key: string): DesignStyle | undefined {

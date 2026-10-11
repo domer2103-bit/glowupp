@@ -1,43 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireProjectOwnerOrGuest } from "@/lib/data/projects";
 import { getProjectTypeDefinition } from "@/lib/project-types";
 import { buildDesignPrompt } from "@/lib/design-generation";
-import { reserveConcepts, runReservedConcepts, type ConceptSpec } from "@/lib/design-jobs";
+import { startGeneration } from "@/lib/design-start";
+import type { ConceptSpec } from "@/lib/design-jobs";
 import { GENERATION_LIMITS } from "@/lib/generation-limits";
 import { DESIGN_STYLES, getDesignStyle } from "@/lib/design-styles";
 import { isAtOrPastStatus } from "@/lib/project-status";
-import { getChosenConcept, photosNeedingDesign } from "@/lib/design-selection";
+import { batchPhotoId, getChosenConcept, isRefinement, photosNeedingDesign } from "@/lib/design-selection";
 import { getImageProvider } from "@/lib/image-providers";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { DesignConceptStatus, ProjectStatus } from "@/generated/prisma/client";
 
 export type ActionState = { error?: string } | undefined;
-
-/**
- * Shared by every generation path (batch, other photos, regenerate, edit).
- * Reserves the rows first (which is also the duplicate guard — see
- * reserveConcepts), then runs the slow image generation in the background so
- * the request returns immediately instead of holding a connection open for
- * minutes; the project page shows "Generating…" and refreshes itself.
- *
- * Returns false if another request got there first, in which case this one
- * must do nothing.
- */
-async function startGeneration(projectId: string, actorId: string, specs: ConceptSpec[]): Promise<boolean> {
-  const reserved = await reserveConcepts(projectId, specs);
-  if (reserved === null) return false;
-  after(() =>
-    runReservedConcepts(projectId, actorId, reserved).catch((err) => {
-      console.error("Background design generation crashed:", err);
-    })
-  );
-  revalidatePath(`/projects/${projectId}`);
-  return true;
-}
 
 /** Generates one concept per configured style (src/lib/design-styles.ts), up to the initial batch size and whatever room remains under the per-project cap. */
 export async function generateDesignBatch(projectId: string, photoId: string, _prevState: ActionState, _formData: FormData): Promise<ActionState> {
@@ -79,6 +57,55 @@ export async function generateDesignBatch(projectId: string, photoId: string, _p
   }));
 
   // false = a simultaneous request already started these; nothing more to do.
+  await startGeneration(projectId, project.homeownerId, specs);
+  return undefined;
+}
+
+/**
+ * "Show me different styles": the next batch of styles (src/lib/design-styles.ts) that haven't been
+ * made yet for the photo the first batch came from. Refuses while anything is still being made, so
+ * a double tap can't pay for two batches.
+ */
+export async function generateMoreStyles(projectId: string, _prevState: ActionState, _formData: FormData): Promise<ActionState> {
+  const project = await requireProjectOwnerOrGuest(projectId);
+
+  const concepts = await prisma.designConcept.findMany({ where: { projectId }, orderBy: { version: "asc" } });
+  const photoId = batchPhotoId(concepts);
+  if (!photoId) return { error: "Make your first designs before asking for different styles." };
+  if (concepts.some((c) => c.status === DesignConceptStatus.PENDING || c.status === DesignConceptStatus.PROCESSING)) {
+    return { error: "Your designs are still being made — give it a moment." };
+  }
+
+  const remaining = GENERATION_LIMITS.maxPerProject - concepts.length;
+  if (remaining <= 0) return { error: `This project has reached its limit of ${GENERATION_LIMITS.maxPerProject} generated designs.` };
+
+  const photo = await prisma.projectPhoto.findUnique({ where: { id: photoId } });
+  if (!photo) return { error: "That photo could not be found on this project." };
+
+  const definition = getProjectTypeDefinition(project.projectType);
+  if (!definition) return { error: "This project's type is no longer recognized." };
+
+  // Every style already tried for this photo counts, failed ones too — those have their own "try again" button, so "different styles" never repeats them.
+  const made = new Set(concepts.filter((c) => c.sourcePhotoId === photoId && !isRefinement(c)).map((c) => c.styleKey));
+  const stylesToUse = DESIGN_STYLES.filter((s) => !made.has(s.key)).slice(0, Math.min(GENERATION_LIMITS.initialBatchSize, remaining));
+  if (stylesToUse.length === 0) return { error: "You've now seen all of our style directions." };
+
+  const ip = await getClientIp();
+  if (!checkRateLimit(`guest-generate:${ip}`, 8, 60 * 60 * 1000)) {
+    return { error: "You've generated a lot of designs recently — please try again in a while, or sign in to continue." };
+  }
+
+  const requirements = await prisma.projectRequirements.findUnique({ where: { projectId } });
+  const requirementsData = (requirements?.data as Record<string, unknown>) ?? {};
+  const specs: ConceptSpec[] = stylesToUse.map((style) => ({
+    sourcePhotoId: photoId,
+    mode: "generate",
+    sourceStoragePath: photo.storagePath,
+    prompt: buildDesignPrompt(project, definition, requirementsData, { styleModifier: style.promptModifier }),
+    styleKey: style.key,
+    description: style.label,
+  }));
+
   await startGeneration(projectId, project.homeownerId, specs);
   return undefined;
 }
@@ -168,45 +195,6 @@ export async function regenerateDesignConcept(projectId: string, conceptId: stri
       prompt,
       styleKey: source.styleKey ?? undefined,
       description: style?.label ?? source.description ?? undefined,
-    },
-  ]);
-  return undefined;
-}
-
-/** Refines a specific completed concept's own image based on homeowner feedback — an edit of that result, not a fresh attempt from the original photo. */
-export async function requestDesignChanges(projectId: string, conceptId: string, _prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const project = await requireProjectOwnerOrGuest(projectId);
-
-  const changeRequest = (formData.get("changeRequest") as string | null)?.trim();
-  if (!changeRequest) return { error: "Describe the change you'd like first." };
-
-  const source = await prisma.designConcept.findUnique({ where: { id: conceptId } });
-  if (!source || source.projectId !== projectId) return { error: "That design could not be found on this project." };
-  if (source.status !== DesignConceptStatus.COMPLETE || !source.storagePath) {
-    return { error: "That design isn't ready to be refined yet." };
-  }
-
-  const existingCount = await prisma.designConcept.count({ where: { projectId } });
-  if (existingCount >= GENERATION_LIMITS.maxPerProject) {
-    return { error: `This project has reached its limit of ${GENERATION_LIMITS.maxPerProject} generated designs.` };
-  }
-
-  const definition = getProjectTypeDefinition(project.projectType);
-  if (!definition) return { error: "This project's type is no longer recognized." };
-
-  const requirements = await prisma.projectRequirements.findUnique({ where: { projectId } });
-  const requirementsData = (requirements?.data as Record<string, unknown>) ?? {};
-  const style = source.styleKey ? getDesignStyle(source.styleKey) : undefined;
-  const prompt = buildDesignPrompt(project, definition, requirementsData, { styleModifier: style?.promptModifier, changeRequest });
-
-  await startGeneration(projectId, project.homeownerId, [
-    {
-      sourcePhotoId: source.sourcePhotoId,
-      mode: "edit",
-      sourceStoragePath: source.storagePath,
-      prompt,
-      styleKey: source.styleKey ?? undefined,
-      description: `Refinement of v${source.version}: ${changeRequest}`,
     },
   ]);
   return undefined;
