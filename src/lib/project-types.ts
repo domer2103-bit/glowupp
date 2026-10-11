@@ -108,7 +108,7 @@ const DRIVEWAY: ProjectTypeDefinition = {
     { key: "currentSurface", label: "Current surface", type: "text" },
     { key: "desiredMaterial", label: "Desired material", type: "select", options: ["block_paving", "resin", "gravel", "tarmac", "concrete", "natural_stone"] },
     { key: "colour", label: "Colour", type: "text" },
-    { key: "parkingSpaces", label: "Parking spaces", type: "number", required: true },
+    { key: "parkingSpaces", label: "Parking spaces", type: "number" },
     { key: "drainage", label: "Drainage", type: "text" },
     { key: "edging", label: "Edging", type: "text" },
     { key: "gates", label: "Gates", type: "boolean" },
@@ -160,7 +160,7 @@ const EXTERIOR: ProjectTypeDefinition = {
   label: "Exterior / House frontage",
   fields: [
     { key: "currentFinish", label: "Current finish (render, brick, cladding...)", type: "text" },
-    { key: "desiredFinish", label: "Desired finish", type: "text", required: true },
+    { key: "desiredFinish", label: "Desired finish", type: "text" },
     { key: "frontDoor", label: "Front door", type: "text" },
     { key: "windows", label: "Windows", type: "text" },
     { key: "lighting", label: "Lighting", type: "text" },

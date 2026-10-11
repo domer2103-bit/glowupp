@@ -75,15 +75,22 @@ describe("validateRequirementsData", () => {
 });
 
 describe("required fields for the open market", () => {
-  it("never asks for 'Must-have features': it is a nice-to-have, not something to block quotes on", () => {
+  it("the most any project type needs before it can be sent for quotes is its style (the exterior needs nothing)", () => {
     for (const key of PROJECT_TYPE_KEYS) {
-      const field = getProjectTypeDefinition(key)!.fields.find((f) => f.key === "mustHaveFeatures");
-      expect(field?.required ?? false).toBe(false);
+      const required = getProjectTypeDefinition(key)!.fields.filter((f) => f.required).map((f) => f.key);
+      expect(required.every((k) => k === "desiredStyle"), `${key}: ${required.join(", ")}`).toBe(true);
     }
+    expect(getProjectTypeDefinition("kitchen")!.fields.filter((f) => f.required).map((f) => f.key)).toEqual(["desiredStyle"]);
+    expect(getProjectTypeDefinition("exterior")!.fields.filter((f) => f.required)).toEqual([]);
+    expect(getProjectTypeDefinition("driveway")!.fields.filter((f) => f.required).map((f) => f.key)).toEqual(["desiredStyle"]);
   });
 
-  it("a kitchen needs only its style before it can be sent for quotes", () => {
-    const required = getProjectTypeDefinition("kitchen")!.fields.filter((f) => f.required).map((f) => f.key);
-    expect(required).toEqual(["desiredStyle"]);
+  it("never blocks on 'Must-have features', 'Parking spaces' or 'Desired finish': useful to know, not worth stopping a homeowner for", () => {
+    for (const key of PROJECT_TYPE_KEYS) {
+      for (const fieldKey of ["mustHaveFeatures", "parkingSpaces", "desiredFinish"]) {
+        const field = getProjectTypeDefinition(key)!.fields.find((f) => f.key === fieldKey);
+        expect(field?.required ?? false, `${key}.${fieldKey}`).toBe(false);
+      }
+    }
   });
 });
