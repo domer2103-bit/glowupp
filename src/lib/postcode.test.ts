@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getOutwardCode, postcodeMatchesPrefix } from "./postcode";
+import { getOutwardCode, normalizePostcode, postcodeMatchesPrefix } from "./postcode";
 
 describe("getOutwardCode", () => {
   it("extracts the outward code from a spaced postcode", () => {
@@ -44,5 +44,20 @@ describe("postcodeMatchesPrefix", () => {
 
   it("is case-insensitive and trims the prefix", () => {
     expect(postcodeMatchesPrefix("l18 5nf", " l18 ")).toBe(true);
+  });
+});
+
+describe("normalizePostcode", () => {
+  it("tidies case and spacing", () => {
+    expect(normalizePostcode("l185nf")).toBe("L18 5NF");
+    expect(normalizePostcode("  sw1a   1aa ")).toBe("SW1A 1AA");
+    expect(normalizePostcode("M1 1AE")).toBe("M1 1AE");
+  });
+
+  it("rejects things that are not postcodes", () => {
+    expect(normalizePostcode("")).toBeNull();
+    expect(normalizePostcode("hello")).toBeNull();
+    expect(normalizePostcode("12345")).toBeNull();
+    expect(normalizePostcode("L18")).toBeNull();
   });
 });

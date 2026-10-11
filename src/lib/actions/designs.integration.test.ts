@@ -51,7 +51,8 @@ vi.mock("@/lib/design-generation", async (importOriginal) => {
 });
 
 import { prisma } from "@/lib/prisma";
-import { generateDesignBatch, generateRemainingPhotos } from "@/lib/actions/designs";
+import { generateDesignBatch, generateMoreStyles, generateRemainingPhotos } from "@/lib/actions/designs";
+import { applyDesignChange } from "@/lib/design-start";
 import { failStaleConcepts } from "@/lib/design-stale";
 import { DesignConceptStatus, UserRole } from "@/generated/prisma/client";
 
@@ -249,6 +250,125 @@ run("generateDesignBatch", () => {
       [3, "traditional"],
       [4, "bold"],
     ]);
+  });
+});
+
+run("generateMoreStyles", () => {
+  beforeEach(() => {
+    state.generations = [];
+    state.failNext = false;
+    state.pending = [];
+  });
+
+  async function seedBatch(statuses: DesignConceptStatus[]) {
+    const { project, photos } = await seed(1);
+    await prisma.designConcept.deleteMany({ where: { projectId: project.id } });
+    const styles = ["contemporary", "traditional", "bold"];
+    for (const [i, status] of statuses.entries()) {
+      await prisma.designConcept.create({
+        data: { projectId: project.id, sourcePhotoId: photos[0].id, generationPrompt: "x", styleKey: styles[i], version: i + 1, status, storagePath: status === DesignConceptStatus.COMPLETE ? `d/${i}.png` : null, provider: "t", model: "t" },
+      });
+    }
+    return { project, photos };
+  }
+
+  it("makes the styles that come after the opening batch, as far as the per-project cap allows", async () => {
+    const { project } = await seedBatch(["COMPLETE", "COMPLETE", "COMPLETE"] as DesignConceptStatus[]);
+    expect(await generateMoreStyles(project.id, undefined, new FormData())).toBeUndefined();
+    const added = await prisma.designConcept.findMany({ where: { projectId: project.id, version: { gt: 3 } }, orderBy: { version: "asc" } });
+    // the cap in this file is 5, so only two of the next three fit
+    expect(added.map((c) => [c.version, c.styleKey])).toEqual([
+      [4, "scandinavian"],
+      [5, "industrial"],
+    ]);
+    await flush();
+    expect(await prisma.designConcept.count({ where: { projectId: project.id, status: DesignConceptStatus.COMPLETE } })).toBe(5);
+  });
+
+  it("does not repeat a style that already failed — that one has its own retry", async () => {
+    const { project } = await seedBatch(["COMPLETE", "COMPLETE", "FAILED"] as DesignConceptStatus[]);
+    await generateMoreStyles(project.id, undefined, new FormData());
+    const added = await prisma.designConcept.findMany({ where: { projectId: project.id, version: { gt: 3 } }, orderBy: { version: "asc" } });
+    expect(added.map((c) => c.styleKey)).toEqual(["scandinavian", "industrial"]);
+  });
+
+  it("refuses while designs are still being made, so a double tap can't pay for two batches", async () => {
+    const { project } = await seedBatch(["COMPLETE", "PROCESSING"] as DesignConceptStatus[]);
+    expect(await generateMoreStyles(project.id, undefined, new FormData())).toEqual({ error: "Your designs are still being made — give it a moment." });
+    expect(await prisma.designConcept.count({ where: { projectId: project.id } })).toBe(2);
+  });
+
+  it("says so once the project's cap is used up", async () => {
+    const { project, photos } = await seedBatch(["COMPLETE", "COMPLETE", "COMPLETE"] as DesignConceptStatus[]);
+    for (const [i, key] of ["scandinavian", "industrial"].entries()) {
+      await prisma.designConcept.create({ data: { projectId: project.id, sourcePhotoId: photos[0].id, generationPrompt: "x", styleKey: key, version: 4 + i, status: DesignConceptStatus.COMPLETE, storagePath: "d/x.png", provider: "t", model: "t" } });
+    }
+    const result = await generateMoreStyles(project.id, undefined, new FormData());
+    expect(result?.error).toMatch(/limit of 5/);
+  });
+
+  it("needs a first batch to exist", async () => {
+    const { project } = await seed(1);
+    await prisma.designConcept.deleteMany({ where: { projectId: project.id } });
+    expect(await generateMoreStyles(project.id, undefined, new FormData())).toEqual({ error: "Make your first designs before asking for different styles." });
+  });
+});
+
+run("applyDesignChange", () => {
+  beforeEach(() => {
+    state.generations = [];
+    state.failNext = false;
+    state.pending = [];
+  });
+
+  it("makes the edited design the chosen one once it is ready, keeping the earlier version", async () => {
+    const { project } = await seed(1);
+    const chosen = await prisma.designConcept.findFirstOrThrow({ where: { projectId: project.id, selectedByUser: true } });
+    expect(await applyDesignChange(project, chosen.id, "Make the worktop darker")).toBeUndefined();
+
+    // while it is being made the old design is still the chosen one
+    expect((await prisma.designConcept.findUniqueOrThrow({ where: { id: chosen.id } })).selectedByUser).toBe(true);
+    await flush();
+
+    const all = await prisma.designConcept.findMany({ where: { projectId: project.id }, orderBy: { version: "asc" } });
+    const edited = all.at(-1)!;
+    expect(edited.description).toBe(`Refinement of v${chosen.version}: Make the worktop darker`);
+    expect(edited.styleKey).toBe(chosen.styleKey);
+    expect(edited.status).toBe(DesignConceptStatus.COMPLETE);
+    expect(all.filter((c) => c.selectedByUser).map((c) => c.id)).toEqual([edited.id]);
+    expect(state.generations.at(-1)?.prompt).toContain("Make the worktop darker");
+  });
+
+  it("leaves the choice alone if the homeowner picked something else in the meantime", async () => {
+    const { project } = await seed(1);
+    const chosen = await prisma.designConcept.findFirstOrThrow({ where: { projectId: project.id, selectedByUser: true } });
+    await applyDesignChange(project, chosen.id, "Add pendant lights");
+    const other = await prisma.designConcept.findFirstOrThrow({ where: { projectId: project.id, styleKey: "bold" } });
+    await prisma.designConcept.updateMany({ where: { projectId: project.id }, data: { selectedByUser: false } });
+    await prisma.designConcept.update({ where: { id: other.id }, data: { selectedByUser: true } });
+    await flush();
+    expect((await prisma.designConcept.findUniqueOrThrow({ where: { id: other.id } })).selectedByUser).toBe(true);
+    expect(await prisma.designConcept.count({ where: { projectId: project.id, selectedByUser: true } })).toBe(1);
+  });
+
+  it("refuses a second change while one is still being made, and a blank change", async () => {
+    const { project } = await seed(1);
+    const chosen = await prisma.designConcept.findFirstOrThrow({ where: { projectId: project.id, selectedByUser: true } });
+    expect(await applyDesignChange(project, chosen.id, "   ")).toEqual({ error: "Describe the change you'd like first." });
+    await applyDesignChange(project, chosen.id, "Darker worktop");
+    const again = await applyDesignChange(project, chosen.id, "Warmer lights");
+    expect(again?.error).toMatch(/still being updated/);
+    await flush();
+  });
+
+  it("keeps a failed change from disturbing the chosen design", async () => {
+    const { project } = await seed(1);
+    const chosen = await prisma.designConcept.findFirstOrThrow({ where: { projectId: project.id, selectedByUser: true } });
+    state.failNext = true;
+    await applyDesignChange(project, chosen.id, "Darker worktop");
+    await flush();
+    expect((await prisma.designConcept.findUniqueOrThrow({ where: { id: chosen.id } })).selectedByUser).toBe(true);
+    expect(await prisma.designConcept.count({ where: { projectId: project.id, status: DesignConceptStatus.FAILED } })).toBe(1);
   });
 });
 

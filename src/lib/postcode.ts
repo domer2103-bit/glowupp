@@ -15,3 +15,9 @@ export function getOutwardCode(postcode: string): string {
 export function postcodeMatchesPrefix(postcode: string, prefix: string): boolean {
   return getOutwardCode(postcode).startsWith(prefix.trim().toUpperCase());
 }
+
+/** "l185nf" -> "L18 5NF". Returns null if it doesn't look like a UK postcode (shape only — it is not checked against a real postcode list). */
+export function normalizePostcode(input: string): string | null {
+  const match = input.trim().toUpperCase().match(/^([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})$/);
+  return match ? `${match[1]} ${match[2]}` : null;
+}

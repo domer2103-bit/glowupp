@@ -62,7 +62,10 @@ function fieldToJsonSchemaProperty(field: FieldDefinition): Record<string, unkno
   }
 }
 
-function buildTool(definition: ProjectTypeDefinition): Anthropic.Tool {
+/** Present in the tool only once the homeowner has a chosen design: a short instruction for the image editor, set only when they ask to change how the design looks. */
+export const DESIGN_CHANGE_KEY = "designChange";
+
+export function buildTool(definition: ProjectTypeDefinition, opts: { canChangeDesign?: boolean } = {}): Anthropic.Tool {
   const properties: Record<string, unknown> = {
     reply: {
       type: "string",
@@ -72,6 +75,13 @@ function buildTool(definition: ProjectTypeDefinition): Anthropic.Tool {
   };
   for (const field of definition.fields) properties[field.key] = fieldToJsonSchemaProperty(field);
   for (const field of PROJECT_LEVEL_FIELDS) properties[field.key] = fieldToJsonSchemaProperty(field);
+  if (opts.canChangeDesign) {
+    properties[DESIGN_CHANGE_KEY] = {
+      type: "string",
+      description:
+        "ONLY when the homeowner asks to change how their chosen design looks: one clear instruction for an image editor, describing just the change(s) they asked for (e.g. \"Change the worktop to dark grey stone and add pendant lights over the island\"). Leave out entirely for questions, unclear requests, or anything that is not a visual change.",
+    };
+  }
 
   return {
     name: "respond_and_update_profile",
@@ -119,9 +129,27 @@ ${missing}
 Project so far: "${project.title}" — ${project.description ?? "no description yet"}. Postcode ${project.postcode}. Budget: ${budget}. Target start date: ${project.targetStartDate ? project.targetStartDate.toISOString().slice(0, 10) : "not set"}.`;
 }
 
+/** The prompt once the homeowner has a chosen design: the job is now helping them change it, not collecting a brief. */
+export function buildDesignChangePrompt(project: ProjectContext, definition: ProjectTypeDefinition, status: ProfileStatus, styleLabel?: string): string {
+  const known = status.knownFields.map((f) => `- ${f.label}`).join("\n") || "(nothing)";
+  return `You are the GlowUpp design assistant. The homeowner has chosen an AI-generated design${styleLabel ? ` (${styleLabel} style)` : ""} for their ${definition.label.toLowerCase()} project "${project.title}" and may now ask you to change it. You are not a general-purpose chatbot and don't discuss anything unrelated to this project.
+
+How to respond:
+- If they ask to change how the design looks (colours, materials, fittings, lighting, furniture, finishes, layout of items), set ${DESIGN_CHANGE_KEY} to one clear instruction covering exactly what they asked for — nothing extra — and reply in one or two friendly sentences saying what you are changing and that the new version appears on their page in about a minute or two.
+- If they ask a question, their request is unclear, or it is not about the design, reply briefly (ask at most one short question) and leave ${DESIGN_CHANGE_KEY} out.
+- Never promise prices, timescales or particular tradespeople.
+- Never invent a fact they haven't told you. Only fill in a brief field when you are confident from what was actually said.
+- You must always call the respond_and_update_profile tool.
+
+Details already recorded for this project:
+${known}`;
+}
+
 export interface AssistantTurnResult {
   reply: string;
   updates: Record<string, unknown>;
+  /** Set only in design mode, when the homeowner asked for a visual change. */
+  designChange?: string;
 }
 
 export async function runAssistantTurn(params: {
@@ -130,10 +158,14 @@ export async function runAssistantTurn(params: {
   requirementsData: Record<string, unknown>;
   history: { role: "user" | "assistant"; content: string }[];
   userMessage: string;
+  /** Set once a design is chosen: switches to helping change that design. */
+  design?: { styleLabel?: string };
 }): Promise<AssistantTurnResult> {
   const status = computeProfileStatus(params.definition, params.requirementsData);
-  const system = buildSystemPrompt(params.project, params.definition, status);
-  const tool = buildTool(params.definition);
+  const system = params.design
+    ? buildDesignChangePrompt(params.project, params.definition, status, params.design.styleLabel)
+    : buildSystemPrompt(params.project, params.definition, status);
+  const tool = buildTool(params.definition, { canChangeDesign: !!params.design });
   const trimmedHistory = params.history.slice(-MAX_HISTORY_MESSAGES);
 
   const response = await anthropic.messages.create({
@@ -152,8 +184,9 @@ export async function runAssistantTurn(params: {
   if (!toolUse) throw new Error("Assistant did not return a structured response.");
 
   const input = toolUse.input as Record<string, unknown>;
-  const { reply, ...updates } = input;
+  const { reply, [DESIGN_CHANGE_KEY]: rawChange, ...updates } = input;
   if (typeof reply !== "string") throw new Error("Assistant response was missing reply text.");
+  const designChange = params.design && typeof rawChange === "string" && rawChange.trim() ? rawChange.trim() : undefined;
 
-  return { reply, updates };
+  return { reply, updates, designChange };
 }

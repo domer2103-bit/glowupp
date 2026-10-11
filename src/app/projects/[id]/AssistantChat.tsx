@@ -2,6 +2,7 @@
 
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { sendAssistantMessage } from "@/lib/actions/assistant";
+import { REQUEST_NETWORK_ERROR } from "@/lib/upload-guard";
 
 export interface AssistantMessage {
   id: string;
@@ -19,14 +20,14 @@ export interface AssistantStatus {
 const OPEN_EVENT = "glowupp:open-assistant";
 
 /** The "Chat with GlowUpp assistant" button in the project header — opens the pop-up below without leaving the page. */
-export function OpenAssistantButton() {
+export function OpenAssistantButton({ label = "Chat with GlowUpp assistant" }: { label?: string }) {
   return (
     <button
       type="button"
       onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))}
-      className="inline-block shrink-0 rounded-full bg-[#3a6694] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2c5075]"
+      className="inline-flex min-h-12 shrink-0 items-center rounded-full bg-[#3a6694] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#2c5075]"
     >
-      Chat with GlowUpp assistant
+      {label}
     </button>
   );
 }
@@ -36,16 +37,20 @@ export function OpenAssistantButton() {
  * panel (a corner window on larger screens, full screen on phones) with a
  * Hide button to tuck it away again. Messages and the "details known" bar
  * come from the server; sending a message revalidates the project page, so
- * the Requirements form behind it fills in as the assistant learns things.
+ * the page behind it picks up whatever the assistant changed. With a chosen design (`forDesign`) it is
+ * the place to ask for changes to that design (src/lib/assistant.ts, design mode).
  */
 export function AssistantChat({
   projectId,
   messages,
   status,
+  forDesign = false,
 }: {
   projectId: string;
   messages: AssistantMessage[];
   status: AssistantStatus | null;
+  /** The homeowner has a chosen design: the chat is for asking for changes to it. */
+  forDesign?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -100,7 +105,12 @@ export function AssistantChat({
       addOptimistic(text);
       const fd = new FormData();
       fd.set("message", text);
-      const result = await sendAssistantMessage(projectId, undefined, fd);
+      let result;
+      try {
+        result = await sendAssistantMessage(projectId, undefined, fd);
+      } catch {
+        result = { error: REQUEST_NETWORK_ERROR };
+      }
       if (result?.error) {
         setError(result.error);
         setDraft(text); // let them retry without retyping
@@ -156,8 +166,9 @@ export function AssistantChat({
           <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
             {shown.length === 0 && (
               <p className="text-sm text-zinc-500">
-                Tell it what you&apos;re picturing — GlowUpp will ask what it still needs to know and fill in the project brief as you
-                go.
+                {forDesign
+                  ? "Tell me what you'd like changed about your design — for example \"make the worktop darker\" or \"add warmer lighting\" — and I'll update it for you."
+                  : "Tell it what you're picturing — GlowUpp will ask what it still needs to know and fill in the project brief as you go."}
               </p>
             )}
             {shown.map((m) => (
@@ -188,7 +199,7 @@ export function AssistantChat({
                   }
                 }}
                 rows={2}
-                placeholder="Tell GlowUpp about your project…"
+                placeholder={forDesign ? "What would you like to change?" : "Tell GlowUpp about your project…"}
                 className="min-w-0 flex-1 resize-none rounded-lg border border-zinc-300 px-3 py-2 text-sm text-[#132a4d] outline-none focus:border-[#3a6694]"
               />
               <button

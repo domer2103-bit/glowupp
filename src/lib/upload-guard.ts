@@ -8,14 +8,19 @@
  */
 export const UPLOAD_NETWORK_ERROR = "Upload didn't go through — your connection may have dropped. Please try again.";
 
-export function withNetworkGuard<S extends { error?: string } | undefined>(action: (prev: S, formData: FormData) => Promise<S>): (prev: S, formData: FormData) => Promise<S> {
+export const REQUEST_NETWORK_ERROR = "That didn't go through — your connection may have dropped. Please try again.";
+
+export function withNetworkGuard<S extends { error?: string } | undefined>(
+  action: (prev: S, formData: FormData) => Promise<S>,
+  message: string = UPLOAD_NETWORK_ERROR
+): (prev: S, formData: FormData) => Promise<S> {
   return async (prev, formData) => {
     try {
       return await action(prev, formData);
     } catch (err) {
       const digest = typeof err === "object" && err !== null ? (err as { digest?: unknown }).digest : undefined;
       if (typeof digest === "string" && digest.startsWith("NEXT_")) throw err;
-      return { error: UPLOAD_NETWORK_ERROR } as S;
+      return { error: message } as S;
     }
   };
 }
