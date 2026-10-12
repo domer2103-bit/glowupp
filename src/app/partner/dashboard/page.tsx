@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getCurrentPartner, getPartnerDashboard, getPartnerNotices } from "@/lib/data/affiliates";
+import { getCurrentPartner, getPartnerDashboard, getPartnerNotices, getPartnerReferredPros } from "@/lib/data/affiliates";
 import { APP_URL } from "@/lib/notifications";
 import { AFFILIATE_DEFAULT_HEADLINES, AFFILIATE_MIN_PAYOUT_PENCE, buildAffiliateLink, buildAffiliateProLink, noFeeNoticeMessage } from "@/lib/affiliate";
 import { SUPPORT_EMAIL } from "@/lib/partner-terms";
@@ -26,6 +26,8 @@ export default async function PartnerDashboardPage(props: PageProps<"/partner/da
   const link = buildAffiliateLink(APP_URL, dashboard.qrSlug);
   const proLink = buildAffiliateProLink(APP_URL, dashboard.qrSlug);
   const notices = await getPartnerNotices(partner.id, partner.noticesSeenAt);
+  const referredPros = await getPartnerReferredPros(partner.id);
+  const dateText = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   const unseen = notices.filter((n) => n.unseen);
   // One line per kind of job, with a count when there are several, so a burst of free jobs is one clear message rather than a stack.
   const unseenMessages = (["HOMEOWNER", "PROFESSIONAL"] as const)
@@ -86,6 +88,34 @@ export default async function PartnerDashboardPage(props: PageProps<"/partner/da
           signed up through your tradespeople link. Promotions such as free introductory jobs earn no share, because no fee is collected on them, and on a tradesperson&apos;s own-client jobs (a 1% fee) your share is 0.5% of the quote. A share appears once the
           professional has paid their fee. We pay by bank transfer once your account has been checked and at least {formatPenceExact(AFFILIATE_MIN_PAYOUT_PENCE)} is waiting for you.
         </p>
+        <section id="tradespeople" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <details>
+            <summary className="cursor-pointer text-lg font-semibold">Tradespeople you brought ({referredPros.length})</summary>
+            {referredPros.length === 0 ? (
+              <p className="mt-3 text-sm text-zinc-500">Nobody has signed up through your tradespeople link yet. When they do, they&apos;ll appear here.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-zinc-100 text-sm">
+                {referredPros.map((p, i) => (
+                  <li key={i} className="flex flex-col gap-1 py-3">
+                    <span className="font-medium">{p.name ?? "Name not shared"}</span>
+                    <span className="text-zinc-600">
+                      {p.trades.length > 0 ? p.trades.join(", ") : "Trade not set yet"}
+                      {p.areas.length > 0 ? ` · ${p.areas.join(", ")}` : ""}
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      Joined {dateText(p.joinedAt)} · {p.status}
+                      {p.paidJobs > 0 ? ` · ${p.paidJobs} paid job${p.paidJobs === 1 ? "" : "s"}` : ""}
+                      {p.earningUntil ? (p.earningNow ? ` · earns you a share until ${dateText(p.earningUntil)}` : " · earning period ended") : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-xs text-zinc-500">
+              You see the business name only when the tradesperson chose to share it. We never show phone numbers, emails or details of their jobs.
+            </p>
+          </details>
+        </section>
         <section id="updates" className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">Updates</h2>
           {notices.length === 0 ? (

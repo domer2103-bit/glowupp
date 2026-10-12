@@ -72,6 +72,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Anthropic</strong> (Claude) — processes your project descriptions and messages to power the AI design assistant.</li>
               <li><strong>Kie.ai</strong> — generates the AI design visualisation images from your photos and prompts.</li>
               <li><strong>Resend</strong> — delivers transactional emails on our behalf.</li>
+              <li><strong>The partner who introduced a professional</strong> — if you joined GlowUpp as a professional through a partner&rsquo;s link or QR code, that partner can see your trade, the areas you cover, when you joined and how far you have got (for example &ldquo;profile created&rdquo; or &ldquo;won a job&rdquo;). They can see your business name only if you tick the box to share it, which you can change at any time on your dashboard. They never see your phone number, email or your jobs.</li>
               <li><strong>Professionals you choose</strong> — if you request quotes, we share your project details and, once you accept a quote, your full address, with the professional(s) involved. Before that point, professionals only see your general area, not your exact address.</li>
             </ul>
             <p>

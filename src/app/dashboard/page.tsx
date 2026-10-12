@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/generated/prisma/client";
+import { setShareNameWithPartner } from "@/lib/actions/professional-sharing";
 import { logout } from "@/lib/actions/auth";
 
 const CARD_CLASS =
@@ -38,9 +39,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default async function DashboardPage() {
   const user = await requireUser();
 
+  // A professional who joined through a partner can choose whether that partner sees their business name.
+  let partnerSharing: { partnerName: string; sharing: boolean } | null = null;
   if (user.role === UserRole.PROFESSIONAL) {
     const professional = await prisma.professional.findUnique({ where: { userId: user.id } });
     if (!professional) redirect("/professional/onboarding");
+    if (user.affiliatePartnerId) {
+      const partner = await prisma.affiliatePartner.findUnique({ where: { id: user.affiliatePartnerId }, select: { businessName: true } });
+      if (partner) partnerSharing = { partnerName: partner.businessName, sharing: professional.shareNameWithPartner };
+    }
   }
 
   return (
@@ -84,6 +91,23 @@ export default async function DashboardPage() {
                 <DashboardCard href="/professional/verification" title="Get verified" />
                 <DashboardCard href="/professional/portfolio" title="Portfolio" />
               </Section>
+              {partnerSharing && (
+                <Section title="Who introduced you">
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-sm shadow-sm">
+                    <p>
+                      You joined GlowUpp through <span className="font-medium">{partnerSharing.partnerName}</span>.{" "}
+                      {partnerSharing.sharing
+                        ? "They can see your business name, your trade, your area and when you joined. They never see your phone, email or your jobs."
+                        : "They can see your trade, your area and when you joined, but not your business name."}
+                    </p>
+                    <form action={setShareNameWithPartner.bind(null, !partnerSharing.sharing)} className="mt-3">
+                      <button type="submit" className="rounded-full border border-[#3a6694] px-4 py-2 text-sm font-medium text-[#3a6694] hover:bg-blue-50">
+                        {partnerSharing.sharing ? "Stop sharing my business name" : "Share my business name"}
+                      </button>
+                    </form>
+                  </div>
+                </Section>
+              )}
             </>
           )}
         </div>

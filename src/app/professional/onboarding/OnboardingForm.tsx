@@ -21,7 +21,7 @@ function inputClass(extra = "") {
   return `rounded-lg border border-zinc-300 px-3 py-2 text-sm text-[#132a4d] outline-none focus:border-[#3a6694] ${extra}`;
 }
 
-export function OnboardingForm({ userName, userEmail }: { userName: string; userEmail: string }) {
+export function OnboardingForm({ userName, userEmail, introducedBy }: { userName: string; userEmail: string; /** Business name of the partner whose link this professional joined through, if any. */ introducedBy?: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(withNetworkGuard(createProfessionalProfile), undefined);
 
   const [postcode, setPostcode] = useState("");
@@ -229,6 +229,18 @@ export function OnboardingForm({ userName, userEmail }: { userName: string; user
             </div>
           )}
         </section>
+
+        {introducedBy && (
+          <label className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-[#132a4d]">
+            <input type="checkbox" name="shareNameWithPartner" className="mt-1 h-4 w-4" />
+            <span>
+              <span className="font-medium">Let {introducedBy} see my business name</span>
+              <span className="mt-1 block text-zinc-600">
+                {introducedBy} introduced you to GlowUpp. If you tick this, they can see your business name on their dashboard, so they know you joined. They never see your phone, email or anything about your jobs. Leave it unticked and they only see your trade, area and when you joined. You can change this later on your dashboard.
+              </span>
+            </span>
+          </label>
+        )}
 
         {state?.error && !state.error.toLowerCase().includes("trade") && !state.error.toLowerCase().includes("postcode area") && (
           <p className="text-sm text-red-600">{state.error}</p>

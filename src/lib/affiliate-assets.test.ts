@@ -136,3 +136,44 @@ describe("poster steps never run off the page", () => {
     expect(stepSizes(home).filter((s) => AUDIENCE_COPY.homeowner.steps.includes(s.text)).every((s) => s.size === 104)).toBe(true);
   });
 });
+
+describe("counter card (A6)", () => {
+  const card = (over: Partial<AssetContent> = {}) => buildAssetSvg("sticker", content(over));
+  const baselines = (svg: string) => [...svg.matchAll(/<(?:text|tspan)[^>]* (?:y|dy)="(-?\d+(?:\.\d+)?)"/g)].map((m) => Number(m[1]));
+
+  it("is a clean white card (no gradient fill) with the two-tone name, the headline, the explanation line, the call to action, the business name and the link", () => {
+    const svg = card();
+    expect(svg).toContain('<rect width="1240" height="1748" fill="#ffffff"/>');
+    expect(svg).not.toContain('fill="url(#bg)"');
+    const words = readable(svg);
+    for (const needle of ["Glow", "Upp", "Bored waiting for your latte", "Snap a photo of your room. Scan the code. See it redesigned.", "Scan to try it", "The Daily Grind", "www.glowupp.co.uk/a/the-daily-grind-ab2c"]) {
+      expect(words).toContain(needle);
+    }
+  });
+
+  it("the explanation line is the partner's own editable text, for either audience", () => {
+    expect(readable(card({ subline: "Free to join. Scan the code to create your profile.", audience: "professional" }))).toContain("Free to join. Scan the code to create your profile.");
+  });
+
+  it("gives the QR code a big, centred card", () => {
+    const svg = card();
+    expect(svg).toContain('x="280"'); // (1240 - 680) / 2
+    expect(svg).toContain('width="680" height="680"');
+  });
+
+  it("keeps everything inside the dashed cut line, even with the longest headline, explanation and name", () => {
+    const svg = card({ headline: "word ".repeat(60).trim(), subline: "word ".repeat(60).trim(), businessName: "A very long business name ".repeat(6).trim() });
+    const ys = baselines(svg).filter((y) => y > 100 && y < 5000);
+    // The last drawn line is the link at ~1690; the cut line is at 1708.
+    expect(Math.max(...ys.filter((y) => y < 1748))).toBeLessThanOrEqual(1708);
+  });
+
+  it("does not let a tall headline collide with the QR code", () => {
+    const svg = card({ headline: "word ".repeat(60).trim(), subline: "word ".repeat(60).trim() });
+    const qrTop = Number(/<rect x="280" y="(\d+)" width="680" height="680"/.exec(svg)![1]);
+    const textYs = [...svg.matchAll(/<text x="620" y="(\d+)"/g)].map((m) => Number(m[1]));
+    // every text block that starts above the QR must finish above it
+    expect(qrTop).toBeGreaterThanOrEqual(790);
+    expect(textYs.some((y) => y < qrTop)).toBe(true);
+  });
+});

@@ -237,6 +237,8 @@ export async function createProfessionalProfile(
   const { businessName, phone, postcode, description, yearsExperience, serviceRadiusMiles, services, serviceAreaPrefixes } =
     parsed.data;
   const serviceRadiusKm = serviceRadiusMiles ? Math.round(serviceRadiusMiles * 1.60934) : undefined;
+  // Only offered to (and only honoured for) someone who joined through a partner's link: whether that partner may see the business name.
+  const shareNameWithPartner = user.affiliatePartnerId !== null && formData.get("shareNameWithPartner") === "on";
 
   if (phone) await prisma.user.update({ where: { id: user.id }, data: { phone } });
 
@@ -250,6 +252,7 @@ export async function createProfessionalProfile(
       yearsExperience,
       serviceRadiusKm,
       serviceAreaPrefixes,
+      shareNameWithPartner,
       services: { create: services.map((projectType) => ({ projectType })) },
     },
     update: {
@@ -259,6 +262,7 @@ export async function createProfessionalProfile(
       yearsExperience,
       serviceRadiusKm,
       serviceAreaPrefixes,
+      shareNameWithPartner,
       services: {
         deleteMany: {},
         create: services.map((projectType) => ({ projectType })),

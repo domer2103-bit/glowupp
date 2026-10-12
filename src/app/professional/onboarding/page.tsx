@@ -1,9 +1,11 @@
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@/generated/prisma/client";
 import { OnboardingForm } from "./OnboardingForm";
+import { prisma } from "@/lib/prisma";
 
 export default async function ProfessionalOnboardingPage() {
   const user = await requireRole(UserRole.PROFESSIONAL);
+  const partner = user.affiliatePartnerId ? await prisma.affiliatePartner.findUnique({ where: { id: user.affiliatePartnerId }, select: { businessName: true } }) : null;
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-gradient-to-b from-blue-50 to-white text-[#132a4d]">
@@ -22,7 +24,7 @@ export default async function ProfessionalOnboardingPage() {
           </p>
         </div>
 
-        <OnboardingForm userName={user.name} userEmail={user.email} />
+        <OnboardingForm userName={user.name} userEmail={user.email} introducedBy={partner?.businessName} />
       </section>
     </div>
   );

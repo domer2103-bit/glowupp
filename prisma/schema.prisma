@@ -297,6 +297,11 @@ model Professional {
   verificationDocumentPath String?        @map("verification_document_path")
   verificationSubmittedAt  DateTime?      @map("verification_submitted_at")
   isAvailable        Boolean             @default(true) @map("is_available")
+  // Only meaningful for a professional who joined through a partner's link
+  // (User.affiliatePartnerId). Off by default: the partner then sees their
+  // trade, area and status but not their name. The professional opts in at
+  // sign-up (or later on their dashboard) to show the business name too.
+  shareNameWithPartner Boolean           @default(false) @map("share_name_with_partner")
   // Short code for the contractor's private client link (/q/<code>).
   // Nullable so existing professionals need no backfill — it is minted
   // lazily the first time they open the pipeline page
