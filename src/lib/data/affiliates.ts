@@ -9,6 +9,8 @@ import { cache } from "react";
 import { affiliateBalancePence, calculateAffiliateShare, classifyAffiliateCode, generateAffiliateIdentifiers, payoutBlock, sharesIdentity, withinReferralWindow } from "@/lib/affiliate";
 import { PARTNER_COOKIE, generateLoginToken, hashLoginToken, isPlausibleLoginToken, loginTokenExpiry } from "@/lib/partner-session";
 import { APP_URL, notifyPartnerNoFeeJob } from "@/lib/notifications";
+import { getProjectTypeDefinition } from "@/lib/project-types";
+import { toReferredProRow, type ReferredProRow } from "@/lib/partner-referred-pros";
 
 /**
  * Database side of the B2B Affiliate & Partner Program. Pure maths and
@@ -604,6 +606,64 @@ export async function getPartnerDashboard(partnerId: string): Promise<PartnerDas
     revenueSharePercent: Math.round(row.revenueShareRate * 100),
     payouts,
   };
+}
+
+const REFERRED_PROS_LIMIT = 500;
+
+/** Everyone who signed up as a professional through this partner's link, newest first, with the fields both views need. */
+async function loadReferredPros(partnerId: string) {
+  const users = await prisma.user.findMany({
+    where: { affiliatePartnerId: partnerId, role: UserRole.PROFESSIONAL },
+    orderBy: { createdAt: "desc" },
+    take: REFERRED_PROS_LIMIT,
+    select: {
+      name: true,
+      email: true,
+      phone: true,
+      createdAt: true,
+      professional: {
+        select: {
+          businessName: true,
+          postcode: true,
+          serviceAreaPrefixes: true,
+          verificationStatus: true,
+          shareNameWithPartner: true,
+          services: { select: { projectType: true } },
+          transactions: { where: { status: TransactionStatus.PAID, feeAmount: { gt: 0 } }, select: { id: true } },
+        },
+      },
+    },
+  });
+  return users.map((u) => ({
+    user: { name: u.name, email: u.email, phone: u.phone, createdAt: u.createdAt },
+    profile: u.professional
+      ? {
+          businessName: u.professional.businessName,
+          postcode: u.professional.postcode,
+          shareNameWithPartner: u.professional.shareNameWithPartner,
+          serviceAreaPrefixes: u.professional.serviceAreaPrefixes,
+          tradeLabels: u.professional.services.map((s) => getProjectTypeDefinition(s.projectType)?.label ?? s.projectType),
+          verificationStatus: u.professional.verificationStatus,
+          paidJobs: u.professional.transactions.length,
+        }
+      : null,
+  }));
+}
+
+/**
+ * The partner's own view of the tradespeople they brought: trade, area, join date, status and — only
+ * where the professional opted in — the business name. No emails, phones or ids (see src/lib/partner-referred-pros.ts).
+ */
+export async function getPartnerReferredPros(partnerId: string): Promise<ReferredProRow[]> {
+  const rows = await loadReferredPros(partnerId);
+  return rows.map((r) => toReferredProRow({ joinedAt: r.user.createdAt, profile: r.profile }));
+}
+
+/** The admin's view: everything, including names, emails, phones and whether the professional agreed to share their name. */
+export async function getAdminReferredPros(partnerId: string) {
+  await requireRole(UserRole.ADMIN);
+  const rows = await loadReferredPros(partnerId);
+  return rows.map((r) => ({ ...r, row: toReferredProRow({ joinedAt: r.user.createdAt, profile: r.profile }) }));
 }
 
 /**

@@ -49,7 +49,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Can I see who I sent?",
-    a: "No. Your dashboard shows how many people used your link, how many started a redesign, how many jobs were booked and what you have earned, but never names or details of homeowners or professionals.",
+    a: "Not homeowners: your dashboard shows how many people used your link, how many started a redesign, how many jobs were booked and what you have earned, but never their names or details. For tradespeople you bring, you can open a list showing their trade, area, when they joined and how far they have got. You only see a business name if that tradesperson chose to share it, and never phone numbers, emails or details of their jobs.",
   },
   {
     q: "How does GlowUpp know a customer came from me?",

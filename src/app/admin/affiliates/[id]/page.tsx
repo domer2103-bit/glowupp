@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
-import { getAffiliatePartner, getBlockedSelfReferrals } from "@/lib/data/affiliates";
+import { getAdminReferredPros, getAffiliatePartner, getBlockedSelfReferrals } from "@/lib/data/affiliates";
 import { releaseSelfReferral } from "@/lib/actions/affiliates";
 import { APP_URL } from "@/lib/notifications";
 import { AFFILIATE_CATEGORY_LABELS, AFFILIATE_DEFAULT_HEADLINES, AFFILIATE_MIN_PAYOUT_PENCE, buildAffiliateLink, buildAffiliateProLink } from "@/lib/affiliate";
@@ -20,6 +20,8 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
   const link = buildAffiliateLink(APP_URL, partner.qrSlug);
   const proLink = buildAffiliateProLink(APP_URL, partner.qrSlug);
   const blocked = await getBlockedSelfReferrals(partner.id);
+  const referredPros = await getAdminReferredPros(partner.id);
+  const dateText = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
   const stats: [string, string][] = [
     ["Clicks", String(row.clickCount)],
@@ -72,8 +74,8 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
           <p className="text-sm font-medium">Tradespeople link</p>
           <CopyLink link={proLink} />
           <p className="text-xs text-zinc-500">
-            Also works with the short code <code>{partner.referralCode}</code> (…/a/{partner.referralCode}). Visits show in Plausible as source <code>affiliate</code>, campaign{" "}
-            <code>{partner.qrSlug}</code>.
+            Also works with the short code <code>{partner.referralCode}</code> (…/a/{partner.referralCode}). Visits, redesigns, jobs and tradespeople are counted per partner here; the site has no
+            separate web analytics.
           </p>
         </section>
 
@@ -84,6 +86,41 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
               <p className={`mt-1 text-lg font-semibold tabular-nums ${label === "Owed" && row.balancePence < 0 ? "text-red-600" : ""}`}>{value}</p>
             </div>
           ))}
+        </section>
+
+        <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Tradespeople referred ({referredPros.length})</h2>
+          <p className="text-xs text-zinc-500">
+            Full details, for you only. The partner sees just trade, area, join date and status, plus the business name where the professional ticked &ldquo;share my business name&rdquo;.
+          </p>
+          {referredPros.length === 0 ? (
+            <p className="text-sm text-zinc-500">Nobody has signed up through this partner&apos;s tradespeople link yet.</p>
+          ) : (
+            <ul className="divide-y divide-zinc-100 text-sm">
+              {referredPros.map((r, i) => (
+                <li key={i} className="flex flex-col gap-1 py-3">
+                  <span className="font-medium">
+                    {r.profile ? r.profile.businessName : "(profile not finished)"} · {r.user.name}
+                  </span>
+                  <span className="text-zinc-600">
+                    {r.user.email}
+                    {r.user.phone ? ` · ${r.user.phone}` : ""}
+                  </span>
+                  <span className="text-zinc-600">
+                    {r.row.trades.length > 0 ? r.row.trades.join(", ") : "No trade yet"}
+                    {r.profile ? ` · base ${r.profile.postcode}` : ""}
+                    {r.row.areas.length > 0 ? ` · covers ${r.row.areas.join(", ")}` : ""}
+                  </span>
+                  <span className="text-xs text-zinc-500">
+                    Joined {dateText(r.user.createdAt)} · {r.row.status}
+                    {r.profile ? ` · ${r.profile.verificationStatus.toLowerCase()}` : ""} · {r.row.paidJobs} paid job{r.row.paidJobs === 1 ? "" : "s"}
+                    {r.row.earningUntil ? (r.row.earningNow ? ` · earns the partner a share until ${dateText(r.row.earningUntil)}` : " · earning period ended") : ""}
+                    {r.profile ? ` · name shown to partner: ${r.profile.shareNameWithPartner ? "yes" : "no"}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">

@@ -100,7 +100,11 @@ import {
   getPartnerDashboard,
   reverseAffiliateForTransaction,
   stampProfessionalSignupWithAffiliate,
+  getPartnerReferredPros,
+  getAdminReferredPros,
 } from "@/lib/data/affiliates";
+import { setShareNameWithPartner } from "@/lib/actions/professional-sharing";
+import { createProfessionalProfile } from "@/lib/actions/auth";
 import { AffiliateSource, AffiliateStatus, ProjectStatus, QuoteRequestStatus, TransactionStatus, UserRole } from "@/generated/prisma/client";
 
 const run = process.env.PIPELINE_TEST_DB ? describe : describe.skip;
@@ -564,6 +568,101 @@ run("Partner credit for professionals they bring", () => {
       const detail = md(await AdminAffiliatePartnerPage({ params: Promise.resolve({ id: partner.id }) } as never));
       expect(detail).toContain(`https://glowupp.test/a/${partner.qrSlug}/pro`);
       expect(detail).toContain("Tradespeople referred");
+    });
+  });
+
+  describe("the list of tradespeople a partner brought", () => {
+    async function setUp() {
+      const partner = await makePartner("List Partner");
+      const other = await makePartner("Other Partner");
+      const opted = await makePro({ partnerId: partner.id, email: `${randomUUID()}@opted.test`, phone: "07700 900111" });
+      await prisma.professional.update({ where: { id: opted.pro.id }, data: { businessName: "Opted In Ltd", shareNameWithPartner: true, serviceAreaPrefixes: ["L18", "L25"], verificationStatus: "VERIFIED", services: { create: [{ projectType: "kitchen" }] } } });
+      await job(opted.pro, { feePence: 6000 });
+      const hidden = await makePro({ partnerId: partner.id, email: `${randomUUID()}@hidden.test`, phone: "07700 900222" });
+      await prisma.professional.update({ where: { id: hidden.pro.id }, data: { businessName: "Hidden Ltd" } });
+      const noProfile = await makeUser(UserRole.PROFESSIONAL, { affiliatePartnerId: partner.id, email: `${randomUUID()}@noprofile.test` });
+      const elsewhere = await makePro({ partnerId: other.id });
+      await prisma.professional.update({ where: { id: elsewhere.pro.id }, data: { businessName: "Someone Else Ltd" } });
+      return { partner, opted, hidden, noProfile };
+    }
+
+    it("shows the partner anonymous rows, and a business name only where the professional opted in", async () => {
+      const { partner } = await setUp();
+      const rows = await getPartnerReferredPros(partner.id);
+      expect(rows).toHaveLength(3); // not the other partner's professional
+      const json = JSON.stringify(rows);
+      expect(json).toContain("Opted In Ltd");
+      expect(json).not.toMatch(/Hidden Ltd|Someone Else Ltd|@opted\.test|@hidden\.test|@noprofile\.test|07700/);
+      const byStatus = rows.map((r) => r.status).sort();
+      expect(byStatus).toEqual(["Profile created", "Signed up, profile not finished yet", "Won a job"]);
+      const opted = rows.find((r) => r.name === "Opted In Ltd")!;
+      expect(opted).toMatchObject({ trades: ["Kitchen"], areas: ["L18", "L25"], paidJobs: 1, earningNow: true });
+    });
+
+    it("the partner's dashboard renders the folded list without any hidden name or contact detail", async () => {
+      const { partner } = await setUp();
+      const token = await issuePartnerLoginToken(partner.id);
+      state.jar.set(PARTNER_COOKIE, token);
+      const html = md(await PartnerDashboardPage(pageProps()));
+      expect(html).toContain("Tradespeople you brought (3)");
+      expect(html).toContain("Opted In Ltd");
+      expect(html).toContain("Name not shared");
+      expect(html).not.toMatch(/Hidden Ltd|Someone Else Ltd|@opted\.test|@hidden\.test|07700/);
+    });
+
+    it("the admin sees everything: names, emails, phones, and whether the name is shared", async () => {
+      const { partner } = await setUp();
+      state.currentUser = await makeUser(UserRole.ADMIN);
+      const rows = await getAdminReferredPros(partner.id);
+      expect(rows).toHaveLength(3);
+      const html = md(await AdminAffiliatePartnerPage({ params: Promise.resolve({ id: partner.id }) } as never));
+      for (const needle of ["Opted In Ltd", "Hidden Ltd", "@opted.test", "@hidden.test", "@noprofile.test", "07700 900111", "name shown to partner: yes", "name shown to partner: no", "(profile not finished)"]) {
+        expect(html).toContain(needle);
+      }
+      expect(html).not.toContain("Someone Else Ltd");
+    });
+
+    it("the admin list is for admins only", async () => {
+      const { partner } = await setUp();
+      state.currentUser = await makeUser(UserRole.HOMEOWNER);
+      await expect(getAdminReferredPros(partner.id)).rejects.toThrow(/NEXT_REDIRECT/);
+    });
+
+    it("a referred professional can switch sharing on and off; someone who was not referred cannot", async () => {
+      const partner = await makePartner();
+      const referred = await makePro({ partnerId: partner.id });
+      state.currentUser = referred.user;
+      await setShareNameWithPartner(true);
+      expect((await prisma.professional.findUniqueOrThrow({ where: { id: referred.pro.id } })).shareNameWithPartner).toBe(true);
+      await setShareNameWithPartner(false);
+      expect((await prisma.professional.findUniqueOrThrow({ where: { id: referred.pro.id } })).shareNameWithPartner).toBe(false);
+
+      const plain = await makePro();
+      state.currentUser = plain.user;
+      await setShareNameWithPartner(true);
+      expect((await prisma.professional.findUniqueOrThrow({ where: { id: plain.pro.id } })).shareNameWithPartner).toBe(false);
+    });
+
+    it("the sign-up checkbox is honoured only for someone who joined through a partner", async () => {
+      const partner = await makePartner();
+      const fd = (name: string) => {
+        const f = new FormData();
+        f.set("businessName", name);
+        f.set("postcode", "L18 5NF");
+        f.append("services", "kitchen");
+        f.set("serviceAreaPrefixes", "L18");
+        f.set("shareNameWithPartner", "on");
+        return f;
+      };
+      const create = async (user: { id: string; role: string }, name: string) => {
+        state.currentUser = user;
+        await createProfessionalProfile(undefined, fd(name)).catch(() => undefined); // it redirects when done
+        return prisma.professional.findUniqueOrThrow({ where: { userId: user.id } });
+      };
+      const referredUser = await makeUser(UserRole.PROFESSIONAL, { affiliatePartnerId: partner.id });
+      const plainUser = await makeUser(UserRole.PROFESSIONAL);
+      expect((await create(referredUser, "Referred Co")).shareNameWithPartner).toBe(true);
+      expect((await create(plainUser, "Plain Co")).shareNameWithPartner).toBe(false);
     });
   });
 });

@@ -52,8 +52,10 @@ describe("/partners page", () => {
     expect(html.match(/<details/g)!.length).toBeGreaterThanOrEqual(8);
   });
 
-  it("never names or promises anything about individual homeowners or professionals", () => {
-    expect(text).toMatch(/never names or details of homeowners or professionals/);
+  it("never shows homeowner names, and shows a tradesperson's business name only if they chose to share it", () => {
+    expect(text).toMatch(/but never their names or details/);
+    expect(text).toMatch(/only see a business name if that tradesperson chose to share it/);
+    expect(text).toMatch(/never phone numbers, emails or details of their jobs/);
   });
 });
 

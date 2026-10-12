@@ -207,21 +207,32 @@ function coaster(c: AssetContent): string {
 function counterCard(c: AssetContent): string {
   const cta = AUDIENCE_COPY[c.audience ?? "homeowner"].cta;
   const { width: W, height: H } = ASSET_SPECS.sticker;
-  const head = fitText(c.headline, { maxWidth: 980, maxHeight: 470, startSize: 112, minSize: 60 });
-  const name = fitText(c.businessName, { maxWidth: 980, maxHeight: 60, startSize: 54, minSize: 30 });
+  const head = fitText(c.headline, { maxWidth: 1000, maxHeight: 340, startSize: 100, minSize: 56 });
+  const sub = fitText(c.subline, { maxWidth: 940, maxHeight: 150, startSize: 44, minSize: 30, lineHeight: 1.3 });
+  const name = fitText(c.businessName, { maxWidth: 980, maxHeight: 60, startSize: 48, minSize: 30 });
+  const HEAD_Y = 350;
+  const headLast = HEAD_Y + (head.lines.length - 1) * head.lineHeight;
+  const SUB_Y = headLast + 75;
+  const subLast = SUB_Y + (sub.lines.length - 1) * sub.lineHeight;
+  // The QR is the star of a counter card: as large as the layout allows, never crowding the text above or the call to action below.
+  const QR = 680;
+  const qrY = Math.max(790, Math.round(subLast + 55));
+  const ctaY = qrY + QR + 85;
+  const nameY = ctaY + 52;
+  const linkY = nameY + 44;
   return wrapSvg(
     W,
     H,
+    // Plain white (cheaper and cleaner to print) inside a dashed cut line.
     `<rect width="${W}" height="${H}" fill="#ffffff"/>` +
-      // Fill sits just inside the dashed cut line so a slightly off cut never leaves a white edge.
-      `<rect x="40" y="40" width="${W - 80}" height="${H - 80}" rx="64" fill="url(#bg)"/>` +
       `<rect x="40" y="40" width="${W - 80}" height="${H - 80}" rx="64" fill="none" stroke="#7c8da6" stroke-width="3" stroke-dasharray="22 14"/>` +
-      `<text x="${W / 2}" y="190" text-anchor="middle" font-family="${FONT}" font-size="88" font-weight="800" fill="${NAVY}">GlowUpp</text>` +
-      textBlock(head.lines, W / 2, 330, head.fontSize, head.lineHeight, NAVY, { anchor: "middle" }) +
-      qrCard(c.qr, 260, 750, 720, 36) +
-      `<text x="${W / 2}" y="1565" text-anchor="middle" font-family="${FONT}" font-size="78" font-weight="800" fill="${BLUE}">${escapeXml(cta)}</text>` +
-      textBlock(name.lines, W / 2, 1626, name.fontSize, name.lineHeight, MUTED, { anchor: "middle", weight: 600 }) +
-      `<text x="${W / 2}" y="1672" text-anchor="middle" font-family="${FONT}" font-size="${fitLineSize(shortLink(c.link), 980, 30)}" fill="${MUTED}">${escapeXml(shortLink(c.link))}</text>`
+      `<text x="${W / 2}" y="200" text-anchor="middle" font-family="${FONT}" font-size="92" font-weight="800"><tspan fill="${NAVY}">Glow</tspan><tspan fill="${BLUE}">Upp</tspan></text>` +
+      textBlock(head.lines, W / 2, HEAD_Y, head.fontSize, head.lineHeight, NAVY, { anchor: "middle" }) +
+      textBlock(sub.lines, W / 2, SUB_Y, sub.fontSize, sub.lineHeight, MUTED, { anchor: "middle", weight: 500 }) +
+      qrCard(c.qr, (W - QR) / 2, qrY, QR, 36) +
+      `<text x="${W / 2}" y="${ctaY}" text-anchor="middle" font-family="${FONT}" font-size="74" font-weight="800" fill="${BLUE}">${escapeXml(cta)}</text>` +
+      textBlock(name.lines, W / 2, nameY, name.fontSize, name.lineHeight, MUTED, { anchor: "middle", weight: 600 }) +
+      `<text x="${W / 2}" y="${linkY}" text-anchor="middle" font-family="${FONT}" font-size="${fitLineSize(shortLink(c.link), 980, 30)}" fill="${MUTED}">${escapeXml(shortLink(c.link))}</text>`
   );
 }
 
