@@ -1,15 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { LEAD_FEE_CAP_PENCE, LEAD_FEE_RATE, PRIVATE_LINK_FEE_RATE, PRIVATE_LINK_FREE_JOBS, calculateLeadFee, calculatePrivateLinkFee } from "@/lib/fees";
 import { AFFILIATE_DEFAULT_SHARE_RATE, AFFILIATE_MIN_PAYOUT_PENCE, PRO_REFERRAL_EARNING_MONTHS, calculateAffiliateShare } from "@/lib/affiliate";
 import { formatPence, formatPenceExact } from "@/lib/money";
 import { SUPPORT_EMAIL } from "@/lib/partner-terms";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Partner with GlowUpp — earn when your customers book a pro",
   description:
     "Put a GlowUpp QR code in your café, gym, garden centre, salon or trade counter, or share your link online. Free to join. Earn 50% of the fee GlowUpp collects when the people you send book a professional.",
-};
+  path: "/partners",
+});
 
 const SHARE_PERCENT = Math.round(AFFILIATE_DEFAULT_SHARE_RATE * 100);
 const FEE_PERCENT = Math.round(LEAD_FEE_RATE * 100);

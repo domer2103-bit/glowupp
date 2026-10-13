@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getWizardUser } from "@/lib/guest";
-import { getHomepageCategory } from "@/lib/homepage-categories";
+import { HOMEPAGE_CATEGORIES, getHomepageCategory } from "@/lib/homepage-categories";
+import { isCrawler } from "@/lib/crawler";
+import { breadcrumbJsonLd, categoryFaq, categoryMetadata, categoryPath, faqJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 import { getProjectTypeDefinition } from "@/lib/project-types";
 import { getOrCreateDraftProject } from "@/lib/data/projects";
 import { getSignedPhotoUrl } from "@/lib/storage";
@@ -181,22 +186,31 @@ function budgetToPreset(budgetMin: number | null, budgetMax: number | null): str
   return "";
 }
 
+export async function generateMetadata(props: PageProps<"/redesign/[type]">): Promise<Metadata> {
+  const { type } = await props.params;
+  return categoryMetadata(type) ?? {};
+}
+
 export default async function RedesignCategoryPage(props: PageProps<"/redesign/[type]">) {
   const { type } = await props.params;
   const category = getHomepageCategory(type);
   const definition = getProjectTypeDefinition(type);
   if (!category || !definition) notFound();
 
-  const user = await getCurrentUser();
+  // Search engines and link-preview bots get the marketing landing below, never the wizard: opening
+  // the wizard creates a guest user and a draft project, and a crawler must not do that on every visit.
+  const bot = isCrawler((await headers()).get("user-agent"));
+  const user = bot ? null : await getCurrentUser();
   // Guest or homeowner both drive the wizard with no sign-in required — see
   // src/lib/guest.ts. Only a signed-in PROFESSIONAL/ADMIN falls back to the
   // marketing landing page below (their dashboard, not this wizard, is the
   // right place for them).
-  const wizardUser = await getWizardUser(user);
+  const wizardUser = bot ? null : await getWizardUser(user);
   const showWizard = wizardUser !== null && WIZARD_ENABLED_TYPES.has(type);
 
-  const ctaHref = "/dashboard";
-  const ctaLabel = "Go to dashboard";
+  const ctaHref = bot ? categoryPath(type) : "/dashboard";
+  const ctaLabel = bot ? `Start your ${category.displayName.toLowerCase()} redesign` : "Go to dashboard";
+  const faq = categoryFaq(type);
 
   let wizardProps: {
     projectId: string;
@@ -287,6 +301,35 @@ export default async function RedesignCategoryPage(props: PageProps<"/redesign/[
           </section>
         </>
       )}
+
+      <section className="relative mx-auto w-full max-w-6xl px-6 pb-16">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 font-semibold text-[#132a4d]">Common questions about {category.displayName.toLowerCase()} redesigns</h2>
+          <dl className="flex flex-col gap-4 text-sm">
+            {faq.map((item) => (
+              <div key={item.question}>
+                <dt className="font-medium text-[#132a4d]">{item.question}</dt>
+                <dd className="mt-1 text-zinc-600">{item.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <nav aria-label="Other redesigns" className="relative mx-auto w-full max-w-6xl px-6 pb-16">
+        <h2 className="mb-3 text-sm font-semibold text-[#132a4d]">See more redesign ideas</h2>
+        <ul className="flex flex-wrap gap-2 text-sm">
+          {HOMEPAGE_CATEGORIES.filter((c) => c.key !== category.key).map((c) => (
+            <li key={c.key}>
+              <Link href={categoryPath(c.key)} className="inline-block rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[#3a6694] hover:border-[#3a6694]">
+                {c.displayName}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <JsonLd data={[faqJsonLd(faq), breadcrumbJsonLd([{ name: "GlowUpp", path: "/" }, { name: `${category.displayName} redesign`, path: categoryPath(type) }])]} />
     </div>
   );
 }

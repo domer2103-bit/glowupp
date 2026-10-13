@@ -2,6 +2,10 @@ import Link from "next/link";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { BeforeAfterImage } from "@/components/BeforeAfterImage";
 import { WaitlistForm } from "./WaitlistForm";
+import { pageMetadata } from "@/lib/seo";
+
+// The "launching soon" waitlist is an old campaign page: keep it out of search so it does not outrank the real pages.
+export const metadata = pageMetadata({ title: "Join the GlowUpp waitlist", description: "Join the GlowUpp waitlist.", path: "/launch", noindex: true });
 
 export default async function LaunchPage(props: PageProps<"/launch">) {
   const params = await props.searchParams;

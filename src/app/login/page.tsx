@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { LoginForm } from "./LoginForm";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({ title: "Sign in to GlowUpp", description: "Sign in to your GlowUpp account.", path: "/login", noindex: true });
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;

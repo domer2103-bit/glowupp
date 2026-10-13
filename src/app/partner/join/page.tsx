@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { JoinForm } from "./JoinForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Become a GlowUpp partner",
   description: "Scan, sign up in a minute and get your own GlowUpp link, QR code and printable posters. Earn 50% of the fee when homeowners you send book a pro.",
-};
+  path: "/partner/join",
+});
 
 export default async function PartnerJoinPage(props: PageProps<"/partner/join">) {
   const params = await props.searchParams;

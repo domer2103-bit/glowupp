@@ -5,6 +5,9 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { BeforeAfterImage } from "@/components/BeforeAfterImage";
 import { PrivateWelcomeCard } from "@/components/PrivateWelcomeCard";
 import { UserRole } from "@/generated/prisma/client";
+import { SITE_DESCRIPTION, SITE_TITLE, pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({ title: SITE_TITLE, description: SITE_DESCRIPTION, path: "/" });
 
 const CATEGORY_IMAGES: Record<string, string> = {
   kitchen: "/homepage/kitchen.jpg",

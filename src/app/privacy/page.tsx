@@ -1,10 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy — GlowUpp",
-  description: "How GlowUpp collects, uses, and protects your data.",
-};
+export const metadata: Metadata = pageMetadata({ title: "Privacy Policy — GlowUpp", description: "How GlowUpp collects, uses, and protects your data.", path: "/privacy" });
 
 export default function PrivacyPolicyPage() {
   return (
