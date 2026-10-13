@@ -1,4 +1,11 @@
 import Link from "next/link";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+  title: "How GlowUpp works | AI home redesign, then local pros",
+  description: "Upload a photo, tell us what you want, see your AI redesign, then optionally get quotes from local professionals. No sign-up needed to start.",
+  path: "/how-it-works",
+});
 
 const STEPS = [
   {

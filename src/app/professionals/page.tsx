@@ -4,6 +4,13 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@/generated/prisma/client";
 import { EarlyBirdCountdown } from "@/components/EarlyBirdCountdown";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+  title: "For tradespeople: get discovered by homeowners | GlowUpp",
+  description: "Homeowners upload a photo, see an AI redesign and come ready to hire. Free to create a profile; you pay a fee only if you are selected for a job.",
+  path: "/professionals",
+});
 
 export default async function ProfessionalsPage() {
   // This is the recruitment page — someone already signed up as a professional has nothing to "get started" with, so send them to their dashboard instead.

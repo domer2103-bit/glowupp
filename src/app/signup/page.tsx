@@ -2,6 +2,9 @@ import Link from "next/link";
 import { SignupForm } from "./SignupForm";
 import { getHomepageCategory } from "@/lib/homepage-categories";
 import { EarlyBirdCountdown } from "@/components/EarlyBirdCountdown";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({ title: "Create your GlowUpp account", description: "Create a free GlowUpp account to save your redesigns and get quotes from local professionals.", path: "/signup", noindex: true });
 
 export default async function SignupPage(props: PageProps<"/signup">) {
   const params = await props.searchParams;

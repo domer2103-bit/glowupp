@@ -1,10 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms of Service — GlowUpp",
-  description: "The terms that apply to using GlowUpp.",
-};
+export const metadata: Metadata = pageMetadata({ title: "Terms of Service — GlowUpp", description: "The terms that apply to using GlowUpp.", path: "/terms" });
 
 export default function TermsOfServicePage() {
   return (
