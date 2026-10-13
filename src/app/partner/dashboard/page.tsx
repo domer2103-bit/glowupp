@@ -95,9 +95,12 @@ export default async function PartnerDashboardPage(props: PageProps<"/partner/da
               <p className="mt-3 text-sm text-zinc-500">Nobody has signed up through your tradespeople link yet. When they do, they&apos;ll appear here.</p>
             ) : (
               <ul className="mt-3 divide-y divide-zinc-100 text-sm">
-                {referredPros.map((p, i) => (
-                  <li key={i} className="flex flex-col gap-1 py-3">
-                    <span className="font-medium">{p.name ?? "Name not shared"}</span>
+                {referredPros.map((p) => (
+                  <li key={p.signUpNumber} className="flex flex-col gap-1 py-3">
+                    <span className="font-medium">
+                      Sign-up {p.signUpNumber}
+                      {p.name ? ` · ${p.name}` : ""}
+                    </span>
                     <span className="text-zinc-600">
                       {p.trades.length > 0 ? p.trades.join(", ") : "Trade not set yet"}
                       {p.areas.length > 0 ? ` · ${p.areas.join(", ")}` : ""}
@@ -112,7 +115,7 @@ export default async function PartnerDashboardPage(props: PageProps<"/partner/da
               </ul>
             )}
             <p className="mt-3 text-xs text-zinc-500">
-              You see the business name only when the tradesperson chose to share it. We never show phone numbers, emails or details of their jobs.
+              Sign-ups are numbered in the order they joined. You see the business name next to the number only when the tradesperson chose to share it. We never show phone numbers, emails or details of their jobs.
             </p>
           </details>
         </section>

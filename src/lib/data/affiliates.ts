@@ -10,7 +10,7 @@ import { affiliateBalancePence, calculateAffiliateShare, classifyAffiliateCode, 
 import { PARTNER_COOKIE, generateLoginToken, hashLoginToken, isPlausibleLoginToken, loginTokenExpiry } from "@/lib/partner-session";
 import { APP_URL, notifyPartnerNoFeeJob } from "@/lib/notifications";
 import { getProjectTypeDefinition } from "@/lib/project-types";
-import { toReferredProRow, type ReferredProRow } from "@/lib/partner-referred-pros";
+import { numberReferredPros, toReferredProRow, type NumberedReferredProRow } from "@/lib/partner-referred-pros";
 
 /**
  * Database side of the B2B Affiliate & Partner Program. Pure maths and
@@ -654,16 +654,17 @@ async function loadReferredPros(partnerId: string) {
  * The partner's own view of the tradespeople they brought: trade, area, join date, status and — only
  * where the professional opted in — the business name. No emails, phones or ids (see src/lib/partner-referred-pros.ts).
  */
-export async function getPartnerReferredPros(partnerId: string): Promise<ReferredProRow[]> {
+export async function getPartnerReferredPros(partnerId: string): Promise<NumberedReferredProRow[]> {
   const rows = await loadReferredPros(partnerId);
-  return rows.map((r) => toReferredProRow({ joinedAt: r.user.createdAt, profile: r.profile }));
+  return numberReferredPros(rows.map((r) => toReferredProRow({ joinedAt: r.user.createdAt, profile: r.profile })));
 }
 
 /** The admin's view: everything, including names, emails, phones and whether the professional agreed to share their name. */
 export async function getAdminReferredPros(partnerId: string) {
   await requireRole(UserRole.ADMIN);
   const rows = await loadReferredPros(partnerId);
-  return rows.map((r) => ({ ...r, row: toReferredProRow({ joinedAt: r.user.createdAt, profile: r.profile }) }));
+  const withRows = rows.map((r) => ({ ...r, row: toReferredProRow({ joinedAt: r.user.createdAt, profile: r.profile }), joinedAt: r.user.createdAt }));
+  return numberReferredPros(withRows);
 }
 
 /**

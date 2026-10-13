@@ -91,16 +91,16 @@ export default async function AdminAffiliatePartnerPage(props: PageProps<"/admin
         <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">Tradespeople referred ({referredPros.length})</h2>
           <p className="text-xs text-zinc-500">
-            Full details, for you only. The partner sees just trade, area, join date and status, plus the business name where the professional ticked &ldquo;share my business name&rdquo;.
+            Full details, for you only. The partner sees just &ldquo;Sign-up N&rdquo; (N = order joined, the same number you see here), trade, area, join date and status, plus the business name where the professional ticked &ldquo;share my business name&rdquo;.
           </p>
           {referredPros.length === 0 ? (
             <p className="text-sm text-zinc-500">Nobody has signed up through this partner&apos;s tradespeople link yet.</p>
           ) : (
             <ul className="divide-y divide-zinc-100 text-sm">
-              {referredPros.map((r, i) => (
-                <li key={i} className="flex flex-col gap-1 py-3">
+              {referredPros.map((r) => (
+                <li key={r.signUpNumber} className="flex flex-col gap-1 py-3">
                   <span className="font-medium">
-                    {r.profile ? r.profile.businessName : "(profile not finished)"} · {r.user.name}
+                    Sign-up {r.signUpNumber} · {r.profile ? r.profile.businessName : "(profile not finished)"} · {r.user.name}
                   </span>
                   <span className="text-zinc-600">
                     {r.user.email}

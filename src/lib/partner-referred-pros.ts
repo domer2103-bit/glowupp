@@ -60,3 +60,18 @@ export function toReferredProRow(raw: ReferredProRaw, now: Date = new Date()): R
     paidJobs: p?.paidJobs ?? 0,
   };
 }
+
+/** A row plus its position in join order: "Sign-up 1" is the first tradesperson who joined through this partner's link. */
+export type NumberedReferredProRow = ReferredProRow & { signUpNumber: number };
+
+/**
+ * Numbers rows by when they joined (earliest = 1) and returns them in the order they were given. The number
+ * never depends on whether someone shared their name, and never changes when more people join later, so the
+ * partner and the admin can talk about "Sign-up 3" and mean the same person.
+ */
+export function numberReferredPros<T extends { joinedAt: Date }>(rows: T[]): (T & { signUpNumber: number })[] {
+  const order = rows.map((r, i) => ({ i, t: r.joinedAt.getTime() })).sort((a, b) => a.t - b.t || a.i - b.i);
+  const numberOf = new Map<number, number>();
+  order.forEach((o, rank) => numberOf.set(o.i, rank + 1));
+  return rows.map((r, i) => ({ ...r, signUpNumber: numberOf.get(i)! }));
+}

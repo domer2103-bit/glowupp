@@ -606,7 +606,10 @@ run("Partner credit for professionals they bring", () => {
       const html = md(await PartnerDashboardPage(pageProps()));
       expect(html).toContain("Tradespeople you brought (3)");
       expect(html).toContain("Opted In Ltd");
-      expect(html).toContain("Name not shared");
+      // anonymous rows are simply "Sign-up N", numbered in the order they joined
+      for (const n of [1, 2, 3]) expect(html).toContain(`Sign-up ${n}`);
+      expect(html).not.toContain("Sign-up 4");
+      expect(html).not.toContain("Name not shared");
       expect(html).not.toMatch(/Hidden Ltd|Someone Else Ltd|@opted\.test|@hidden\.test|07700/);
     });
 
@@ -616,7 +619,7 @@ run("Partner credit for professionals they bring", () => {
       const rows = await getAdminReferredPros(partner.id);
       expect(rows).toHaveLength(3);
       const html = md(await AdminAffiliatePartnerPage({ params: Promise.resolve({ id: partner.id }) } as never));
-      for (const needle of ["Opted In Ltd", "Hidden Ltd", "@opted.test", "@hidden.test", "@noprofile.test", "07700 900111", "name shown to partner: yes", "name shown to partner: no", "(profile not finished)"]) {
+      for (const needle of ["Sign-up 1", "Sign-up 2", "Sign-up 3", "Opted In Ltd", "Hidden Ltd", "@opted.test", "@hidden.test", "@noprofile.test", "07700 900111", "name shown to partner: yes", "name shown to partner: no", "(profile not finished)"]) {
         expect(html).toContain(needle);
       }
       expect(html).not.toContain("Someone Else Ltd");
