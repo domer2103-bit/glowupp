@@ -177,3 +177,61 @@ describe("counter card (A6)", () => {
     expect(textYs.some((y) => y < qrTop)).toBe(true);
   });
 });
+
+describe("A5 leaflet", () => {
+  const leaflet = (over: Partial<AssetContent> = {}) => buildAssetSvg("leaflet", content(over));
+  const baselines = (svg: string) => [...svg.matchAll(/<(?:text|tspan)[^>]* (?:y|dy)="(-?\d+(?:\.\d+)?)"/g)].map((m) => Number(m[1]));
+  const qrCardOf = (svg: string) => {
+    const m = /<rect x="([\d.]+)" y="([\d.]+)" width="(\d+)" height="\3" rx="40" fill="#ffffff"/.exec(svg)!;
+    return { x: Number(m[1]), y: Number(m[2]), size: Number(m[3]) };
+  };
+
+  it("is one of the printable formats, a true A5 at 300 dpi, and is named after the partner", () => {
+    expect(ASSET_KINDS).toContain("leaflet");
+    expect(ASSET_SPECS.leaflet).toMatchObject({ label: "A5 leaflet", width: 1748, height: 2480, mmWidth: 148, mmHeight: 210 });
+    expect(assetFileName("the-daily-grind-ab2c", "leaflet", "pdf")).toBe("glowupp-the-daily-grind-ab2c-a5-leaflet.pdf");
+    const svg = leaflet();
+    expect(svg).toContain('width="1748" height="2480" viewBox="0 0 1748 2480"');
+    expect(svg).toContain('<rect width="1748" height="2480" fill="#ffffff"/>'); // plain white: cheap to print
+  });
+
+  it("carries the logo, headline, explanation, the three homeowner steps, the call to action, the partner's name and the link", () => {
+    const words = readable(leaflet());
+    for (const needle of ["Glow", "Upp", "Bored waiting for your latte", "Snap a photo of your room. Scan the code. See it redesigned.", ...AUDIENCE_COPY.homeowner.steps, "Scan to try it", "The Daily Grind", "www.glowupp.co.uk/a/the-daily-grind-ab2c"]) {
+      expect(words).toContain(needle);
+    }
+  });
+
+  it("speaks to tradespeople with the tradespeople steps and call to action", () => {
+    const words = readable(leaflet({ audience: "professional", subline: "Free to join. Scan the code to create your profile.", link: "https://www.glowupp.co.uk/a/the-daily-grind-ab2c/pro" }));
+    for (const needle of [...AUDIENCE_COPY.professional.steps.map(escapeXml), "Scan to join free", "Free to join. Scan the code to create your profile.", "a/the-daily-grind-ab2c/pro"]) expect(words).toContain(needle);
+    expect(words).not.toContain("Scan to try it");
+  });
+
+  it("puts a big QR card in the middle of the page, between 380 and 720 px", () => {
+    const qr = qrCardOf(leaflet());
+    expect(qr.size).toBeGreaterThanOrEqual(380);
+    expect(qr.size).toBeLessThanOrEqual(720);
+    expect(qr.x).toBe(Math.round((1748 - qr.size) / 2));
+  });
+
+  it("keeps everything on the page and the QR clear of the text above, even with the longest headline, explanation, steps and name", () => {
+    for (const audience of ["homeowner", "professional"] as const) {
+      const svg = leaflet({ audience, headline: "word ".repeat(80).trim(), subline: "word ".repeat(80).trim(), businessName: "A very long business name ".repeat(8).trim(), link: "https://www.glowupp.co.uk/a/" + "a-very-long-slug-".repeat(6) + "ab2c" });
+      const qr = qrCardOf(svg);
+      const ys = baselines(svg);
+      expect(qr.size).toBeGreaterThanOrEqual(380);
+      expect(Math.max(...ys)).toBeLessThanOrEqual(2480 - 40); // the link line is the last thing on the page
+      expect(qr.y + qr.size).toBeLessThanOrEqual(2480 - 300); // room for call to action, name and link below the QR
+      const stepYs = [...svg.matchAll(/<text x="260" y="([\d.]+)"/g)].map((m) => Number(m[1]));
+      expect(stepYs).toHaveLength(3);
+      expect(Math.max(...stepYs)).toBeLessThan(qr.y);
+    }
+  });
+
+  it("escapes a hostile business name instead of injecting markup", () => {
+    const svg = leaflet({ businessName: '<script>alert(1)</script>"&' });
+    expect(svg).not.toContain("<script>");
+    expect(svg).toContain("&lt;script&gt;");
+  });
+});

@@ -10,7 +10,7 @@
  * assets are 300 dpi), so there is no scaling step to get wrong.
  */
 
-export type AssetKind = "social" | "coaster" | "sticker" | "poster";
+export type AssetKind = "social" | "coaster" | "sticker" | "leaflet" | "poster";
 
 export interface AssetSpec {
   label: string;
@@ -28,6 +28,7 @@ export const ASSET_SPECS: Record<AssetKind, AssetSpec> = {
   social: { label: "Social post", hint: "1080 × 1080 px for Instagram / Facebook", width: 1080, height: 1080, mmWidth: 200, mmHeight: 200, fileSuffix: "social-post" },
   coaster: { label: "Coaster / sticker", hint: "3.5 × 3.5 in (89 × 89 mm) at 300 dpi for coasters and square stickers, with cut guide", width: 1050, height: 1050, mmWidth: 88.9, mmHeight: 88.9, fileSuffix: "coaster" },
   sticker: { label: "Counter card", hint: "A6 (105 × 148 mm) for acrylic stands, tables and stickers, with cut guide", width: 1240, height: 1748, mmWidth: 105, mmHeight: 148, fileSuffix: "counter-card" },
+  leaflet: { label: "A5 leaflet", hint: "A5 (148 × 210 mm) at 300 dpi to print and hand out", width: 1748, height: 2480, mmWidth: 148, mmHeight: 210, fileSuffix: "a5-leaflet" },
   poster: { label: "A4 poster", hint: "A4 (210 × 297 mm) at 300 dpi for walls and windows", width: 2480, height: 3508, mmWidth: 210, mmHeight: 297, fileSuffix: "a4-poster" },
 };
 
@@ -236,6 +237,54 @@ function counterCard(c: AssetContent): string {
   );
 }
 
+/** A5 leaflet to print and hand out: logo, headline, the three steps, a big QR and the call to action. Plain white so it prints cheaply. */
+function leaflet(c: AssetContent): string {
+  const copy = AUDIENCE_COPY[c.audience ?? "homeowner"];
+  const { width: W, height: H } = ASSET_SPECS.leaflet;
+  const M = 120;
+  const head = fitText(c.headline, { maxWidth: W - 2 * M, maxHeight: 480, startSize: 140, minSize: 80 });
+  const sub = fitText(c.subline, { maxWidth: W - 2 * M, maxHeight: 190, startSize: 52, minSize: 34, lineHeight: 1.3 });
+  const HEAD_Y = 400;
+  const headLast = HEAD_Y + (head.lines.length - 1) * head.lineHeight;
+  const SUB_Y = headLast + 90;
+  const subLast = SUB_Y + (sub.lines.length - 1) * sub.lineHeight;
+  const stepsCopy = copy.steps.slice(0, 3);
+  const stepSize = Math.min(64, ...stepsCopy.map((t) => fitLineSize(t, (W - 2 * M - 150) * 0.92, 64, 40)));
+  const STEPS_Y = subLast + 130;
+  const STEP_GAP = 120;
+  const steps = stepsCopy
+    .map((step, i) => {
+      const y = STEPS_Y + i * STEP_GAP;
+      return (
+        `<circle cx="${M + 50}" cy="${y - 20}" r="48" fill="${BLUE}"/>` +
+        `<text x="${M + 50}" y="${y - 2}" text-anchor="middle" font-family="${FONT}" font-size="56" font-weight="800" fill="#ffffff">${i + 1}</text>` +
+        `<text x="${M + 140}" y="${y}" font-family="${FONT}" font-size="${stepSize}" font-weight="600" fill="${NAVY}">${escapeXml(step)}</text>`
+      );
+    })
+    .join("");
+  const stepsBottom = STEPS_Y + (stepsCopy.length - 1) * STEP_GAP;
+  // The QR takes whatever room is left below the steps (never smaller than 380 px, never larger than 720), with the call to action, the name and the link under it.
+  const qrTop = Math.round(stepsBottom + 70);
+  const QR = Math.max(380, Math.min(720, H - 100 - 340 - qrTop));
+  const ctaY = qrTop + QR + 95;
+  const name = fitText(c.businessName, { maxWidth: W - 2 * M, maxHeight: 60, startSize: 52, minSize: 30 });
+  const nameY = ctaY + 60;
+  const linkY = nameY + 52;
+  return wrapSvg(
+    W,
+    H,
+    `<rect width="${W}" height="${H}" fill="#ffffff"/>` +
+      `<text x="${M}" y="220" font-family="${FONT}" font-size="120" font-weight="800"><tspan fill="${NAVY}">Glow</tspan><tspan fill="${BLUE}">Upp</tspan></text>` +
+      textBlock(head.lines, M, HEAD_Y, head.fontSize, head.lineHeight, NAVY) +
+      textBlock(sub.lines, M, SUB_Y, sub.fontSize, sub.lineHeight, MUTED, { weight: 500 }) +
+      steps +
+      qrCard(c.qr, Math.round((W - QR) / 2), qrTop, QR, 40) +
+      `<text x="${W / 2}" y="${ctaY}" text-anchor="middle" font-family="${FONT}" font-size="76" font-weight="800" fill="${BLUE}">${escapeXml(copy.cta)}</text>` +
+      textBlock(name.lines, W / 2, nameY, name.fontSize, name.lineHeight, MUTED, { anchor: "middle", weight: 600 }) +
+      `<text x="${W / 2}" y="${linkY}" text-anchor="middle" font-family="${FONT}" font-size="${fitLineSize(shortLink(c.link), W - 2 * M, 34)}" fill="${MUTED}">${escapeXml(shortLink(c.link))}</text>`
+  );
+}
+
 function wallPoster(c: AssetContent): string {
   const cta = AUDIENCE_COPY[c.audience ?? "homeowner"].cta;
   const stepsCopy = AUDIENCE_COPY[c.audience ?? "homeowner"].steps;
@@ -284,6 +333,7 @@ export function buildAssetSvg(kind: AssetKind, content: AssetContent): string {
   if (kind === "social") return socialPost(content);
   if (kind === "coaster") return coaster(content);
   if (kind === "sticker") return counterCard(content);
+  if (kind === "leaflet") return leaflet(content);
   return wallPoster(content);
 }
 
