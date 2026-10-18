@@ -6,8 +6,8 @@ import { generateReferralCode, generateVanSlug, isValidVanSlug, normalizeReferra
  *
  * The deal: a partner earns `revenueShareRate` (50% by default) of the lead
  * fee GlowUpp actually collects (src/lib/fees.ts) on jobs booked by
- * homeowners they brought in. Whatever the fee turned out to be — 5%
- * marketplace, 1% private-link, or £0 for a free job — the partner gets
+ * homeowners they brought in. Whatever the fee turned out to be — 2%
+ * of the quote (capped at £250), or £0 for a free job — the partner gets
  * half of it, so a free job earns the partner nothing.
  */
 export const AFFILIATE_DEFAULT_SHARE_RATE = 0.5;

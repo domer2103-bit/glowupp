@@ -207,7 +207,7 @@ run("B2B Affiliate & Partner Program", () => {
   describe("50/50 credit when the lead fee is paid", () => {
     it("credits half of the collected fee exactly once, however often it is triggered", async () => {
       const partner = await makePartner();
-      const { project, transaction } = await jobWithFee({ partnerId: partner.id, feePence: 2500, quotePence: 50000 }); // £500 job, 5% = £25
+      const { project, transaction } = await jobWithFee({ partnerId: partner.id, feePence: 2500, quotePence: 125000 }); // £1,250 job, 2% = £25
 
       expect(await creditAffiliateForTransaction(transaction.id)).toBeNull(); // still PENDING: nothing collected yet
       expect((await partnerNow(partner.id)).totalEarningsPence).toBe(0);

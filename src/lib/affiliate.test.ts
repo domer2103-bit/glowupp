@@ -20,12 +20,12 @@ import {
 import { normalizeReferralCode } from "./referral";
 
 describe("calculateAffiliateShare (partner earns 50% of the fee GlowUpp collected)", () => {
-  it("splits the brief's example: £500 job at 5% = £25 fee -> £12.50 to the partner", () => {
+  it("splits the brief's example: £1,250 job at 2% = £25 fee -> £12.50 to the partner", () => {
     expect(calculateAffiliateShare(2500)).toBe(1250);
   });
 
-  it("works on a 1% private-link fee as well", () => {
-    expect(calculateAffiliateShare(2450)).toBe(1225); // £2,450 quote -> £24.50 fee -> £12.25
+  it("works on any other fee amount as well", () => {
+    expect(calculateAffiliateShare(4900)).toBe(2450); // £2,450 quote at 2% -> £49 fee -> £24.50
   });
 
   it("rounds down to a whole penny, never overpaying", () => {

@@ -27,7 +27,7 @@ const EXAMPLES = [50_000, 245_000, Math.round(LEAD_FEE_CAP_PENCE / LEAD_FEE_RATE
   return { quote, fee, share: calculateAffiliateShare(fee), label: fee === LEAD_FEE_CAP_PENCE ? `${formatPence(quote)} or more` : formatPence(quote) };
 });
 
-// A tradesperson's own-client jobs (their own private link): their first few are free, then a 1% fee — so half of it is 0.5% of the quote.
+// A tradesperson's own-client jobs (their own private link): their first few are free, then the same flat fee as any job — so half of it is the partner's share.
 const OWN_CLIENT_EXAMPLE_QUOTE = 245_000;
 const OWN_CLIENT_FEE = calculatePrivateLinkFee(OWN_CLIENT_EXAMPLE_QUOTE, PRIVATE_LINK_FREE_JOBS);
 const OWN_CLIENT_SHARE = calculateAffiliateShare(OWN_CLIENT_FEE);
@@ -43,7 +43,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Why is my share smaller on some jobs?",
-    a: `Your share is always half of the fee actually charged on that job. On jobs a professional finds through GlowUpp the fee is ${FEE_PERCENT}% of the quote (capped at ${formatPence(LEAD_FEE_CAP_PENCE)}). On a tradesperson's own-client jobs, through their own private link, it is only ${OWN_CLIENT_FEE_PERCENT}%, so your share is ${OWN_CLIENT_SHARE_PERCENT}% of the quote. Their first ${PRIVATE_LINK_FREE_JOBS} own-client jobs are free, and those earn nothing.`,
+    a: `Your share is always half of the fee actually charged on that job. On jobs a professional finds through GlowUpp the fee is ${FEE_PERCENT}% of the quote (capped at ${formatPence(LEAD_FEE_CAP_PENCE)}). On a tradesperson's own-client jobs, through their own private link, their first ${PRIVATE_LINK_FREE_JOBS} jobs are free and earn nothing; after that the same ${OWN_CLIENT_FEE_PERCENT}% fee applies, so your share is ${OWN_CLIENT_SHARE_PERCENT}% of the quote.`,
   },
   {
     q: "Why might a job earn me nothing?",
@@ -173,13 +173,12 @@ export default function PartnersPage() {
         <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 text-sm shadow-sm">
           <p className="font-semibold">When a tradesperson you brought works for their own clients</p>
           <p className="mt-2 text-zinc-600">
-            Tradespeople can also use GlowUpp for the clients they already have, through their own private link. On those jobs they pay only {OWN_CLIENT_FEE_PERCENT}% instead of {FEE_PERCENT}%, and their first{" "}
-            {PRIVATE_LINK_FREE_JOBS} such jobs are free. Your share is always half of the fee actually charged, so:
+            Tradespeople can also use GlowUpp for the clients they already have, through their own private link. Their first{" "}{PRIVATE_LINK_FREE_JOBS} such jobs are free, then the same {FEE_PERCENT}% fee applies. Your share is always half of the fee actually charged, so:
           </p>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-zinc-600">
             <li>Their first {PRIVATE_LINK_FREE_JOBS} own-client jobs: no fee, so you earn nothing (we tell you).</li>
             <li>
-              After that: {OWN_CLIENT_FEE_PERCENT}% fee, so you earn <strong>{OWN_CLIENT_SHARE_PERCENT}% of the quote</strong> — on a {formatPence(OWN_CLIENT_EXAMPLE_QUOTE)} job the fee is {formatPenceExact(OWN_CLIENT_FEE)} and
+              After that: {OWN_CLIENT_FEE_PERCENT}% fee, the same as any job, so you earn <strong>{OWN_CLIENT_SHARE_PERCENT}% of the quote</strong> — on a {formatPence(OWN_CLIENT_EXAMPLE_QUOTE)} job the fee is {formatPenceExact(OWN_CLIENT_FEE)} and
               you earn {formatPenceExact(OWN_CLIENT_SHARE)}.
             </li>
           </ul>
@@ -196,7 +195,7 @@ export default function PartnersPage() {
             <li>
               For tradespeople you bring, your share applies to jobs won {WINDOW_TEXT}.
             </li>
-            <li>On a tradesperson&apos;s own-client jobs the fee is only {OWN_CLIENT_FEE_PERCENT}% (after their first {PRIVATE_LINK_FREE_JOBS} free ones), so your share there is {OWN_CLIENT_SHARE_PERCENT}% of the quote.</li>
+            <li>A tradesperson&apos;s first {PRIVATE_LINK_FREE_JOBS} own-client jobs are free, so they earn you nothing. After that the same {OWN_CLIENT_FEE_PERCENT}% fee applies, so your share there is {OWN_CLIENT_SHARE_PERCENT}% of the quote.</li>
             <li>One fee is shared with one partner at most — the partner the homeowner came through comes first.</li>
             <li>Payments are by bank transfer once your account is checked and at least {MIN_PAYOUT} is waiting.</li>
             <li>Think of it as a bonus on top of something useful for your customers, not as guaranteed income. Early on you may earn nothing at all.</li>

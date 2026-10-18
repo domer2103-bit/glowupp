@@ -18,7 +18,7 @@ export default async function ProfessionalTransactionsPage() {
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">Lead fees</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            GlowUpp&apos;s fee for a project you&apos;ve won — not a payment to the homeowner, and not something they see. 5% of the
+            GlowUpp&apos;s fee for a project you&apos;ve won — not a payment to the homeowner, and not something they see. 2% of the
             accepted quote, capped at £250. Paying unlocks the homeowner&apos;s full address on the opportunity.
           </p>
           <p className="mt-1 text-sm text-zinc-500">
@@ -26,7 +26,7 @@ export default async function ProfessionalTransactionsPage() {
             jobs have no commission at all.
           </p>
           <p className="mt-1 text-sm text-zinc-500">
-            Clients who came through your own referral link or QR code: your first 3 jobs are free, then 1% of the accepted quote
+            Clients who came through your own referral link or QR code: your first 3 jobs are free, then 2% of the accepted quote
             (also capped at £250).
           </p>
           <p className="mt-1 text-sm text-zinc-500">

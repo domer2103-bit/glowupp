@@ -17,10 +17,10 @@ describe("/partners page", () => {
     expect(html.match(/Become a partner/g)!.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("shows the earnings table with the real numbers: £500 -> £12.50, £2,450 -> £61.25, £5,000+ -> £125 (the cap)", () => {
-    expect(text).toContain("£500 £25.00 £12.50");
-    expect(text).toContain("£2,450 £122.50 £61.25");
-    expect(text).toContain("£5,000 or more £250.00 £125.00");
+  it("shows the earnings table with the real numbers: £500 -> £5, £2,450 -> £24.50, £12,500+ -> £125 (the cap)", () => {
+    expect(text).toContain("£500 £10.00 £5.00");
+    expect(text).toContain("£2,450 £49.00 £24.50");
+    expect(text).toContain("£12,500 or more £250.00 £125.00");
   });
 
   it("is honest about the caveats: free promotional jobs, the 12-month window, the minimum payout, one partner per fee, no guarantee", () => {
@@ -34,13 +34,13 @@ describe("/partners page", () => {
     expect(text).not.toMatch(/guaranteed earnings|you will earn|passive income/i);
   });
 
-  it("explains the own-client rule: a 1% fee after three free jobs, so the partner's share is 0.5% of the quote", () => {
+  it("explains the own-client rule: three free jobs, then the same 2% fee, so the partner's share is 1% of the quote", () => {
     expect(text).toContain("When a tradesperson you brought works for their own clients");
-    expect(text).toContain("pay only 1% instead of 5%");
-    expect(text).toContain("first 3 such jobs are free");
-    expect(text).toContain("you earn 0.5% of the quote");
-    expect(text).toContain("on a £2,450 job the fee is £24.50 and you earn £12.25"); // 1% of £2,450 = £24.50, half = £12.25 = 0.5%
-    expect(text).toContain("so your share there is 0.5% of the quote");
+    expect(text).toContain("then the same 2% fee applies");
+    expect(text).toContain("Their first 3 such jobs are free");
+    expect(text).toContain("you earn 1% of the quote");
+    expect(text).toContain("on a £2,450 job the fee is £49.00 and you earn £24.50"); // 2% of £2,450 = £49, half = £24.50 = 1%
+    expect(text).toContain("so your share there is 1% of the quote");
     expect(text).toContain("Why is my share smaller on some jobs?");
   });
 

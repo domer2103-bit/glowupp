@@ -209,7 +209,7 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
   // differently from marketplace leads: a contractor's first
   // PRIVATE_LINK_FREE_JOBS are free (recorded as a £0 PAID Transaction, which
   // also unlocks the full address and counts towards the three), after that
-  // 1% of the quote through the same pay-to-unlock + Stripe flow as any
+  // 2% of the quote through the same pay-to-unlock + Stripe flow as any
   // other lead fee.
   if (project.isPrivatePipeline) {
     const priorJobs = await countPriorPrivateLinkJobs(quoteRequest.professionalId, quoteRequestId);
