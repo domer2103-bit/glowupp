@@ -254,7 +254,7 @@ run("Private Client Pipeline", () => {
     expect(await submitPrivateQuote(session.id, undefined, form(items))).toEqual({ error: "The client has already accepted this quote." });
   });
 
-  it("charges 1% from a contractor's fourth private-link job and holds the address until it is paid", async () => {
+  it("charges 2% from a contractor's fourth private-link job and holds the address until it is paid", async () => {
     const a = await makePro("Fee Co");
     const { referralCode } = await ensureReferralCodes(a.pro);
 
@@ -283,9 +283,9 @@ run("Private Client Pipeline", () => {
       expect((await getProfessionalQuotes()).find((q) => q.projectId === project.id)!.project.postcode).toBe("L1 2AB");
     }
 
-    // Job 4: 1% of £2,450 = £24.50, PENDING, address held back (outward code only) until paid.
+    // Job 4: 2% of £2,450 = £49, PENDING, address held back (outward code only) until paid.
     const four = await privateJob(4, "2450");
-    expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: four.qr.id } })).toMatchObject({ feeAmount: 2450, status: "PENDING" });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: four.qr.id } })).toMatchObject({ feeAmount: 4900, status: "PENDING" });
     state.currentUser = a.user;
     expect((await getProfessionalQuotes()).find((q) => q.projectId === four.project.id)!.project.postcode).toBe("L1");
 
@@ -293,7 +293,7 @@ run("Private Client Pipeline", () => {
     await prisma.transaction.update({ where: { quoteRequestId: four.qr.id }, data: { status: "PAID", paidAt: new Date() } });
     expect((await getProfessionalQuotes()).find((q) => q.projectId === four.project.id)!.project.postcode).toBe("L1 2AB");
 
-    // A fifth job over £25,000 is capped at £250, not 1% of the quote.
+    // A fifth job over £25,000 is capped at £250, not 2% of the quote.
     const five = await privateJob(5, "40000");
     expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: five.qr.id } })).toMatchObject({ feeAmount: 25000, status: "PENDING" });
 
@@ -320,7 +320,7 @@ run("Private Client Pipeline", () => {
       return { project, qr };
     }
 
-    // Early bird: jobs 1 and 2 free (PAID £0, address unlocked), job 3 is the normal 5%, held until paid.
+    // Early bird: jobs 1 and 2 free (PAID £0, address unlocked), job 3 is the normal 2%, held until paid.
     for (let n = 1; n <= 2; n++) {
       const { qr, project } = await marketplaceJob(early, n, 420000);
       expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: qr.id } })).toMatchObject({ feeAmount: 0, status: "PAID" });
@@ -328,13 +328,13 @@ run("Private Client Pipeline", () => {
       expect((await getProfessionalQuotes()).find((q) => q.projectId === project.id)!.project.postcode).toBe("L1 2AB");
     }
     const third = await marketplaceJob(early, 3, 420000);
-    expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: third.qr.id } })).toMatchObject({ feeAmount: 21000, status: "PENDING" });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: third.qr.id } })).toMatchObject({ feeAmount: 8400, status: "PENDING" });
     state.currentUser = early.user;
     expect((await getProfessionalQuotes()).find((q) => q.projectId === third.project.id)!.project.postcode).toBe("L1");
 
-    // Someone who signed up after the cutoff pays 5% from their first job.
+    // Someone who signed up after the cutoff pays 2% from their first job.
     const lateJob = await marketplaceJob(late, 4, 420000);
-    expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: lateJob.qr.id } })).toMatchObject({ feeAmount: 21000, status: "PENDING" });
+    expect(await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: lateJob.qr.id } })).toMatchObject({ feeAmount: 8400, status: "PENDING" });
   });
 
   it("keeps the lock when an anonymous guest signs up", async () => {

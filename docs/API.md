@@ -642,7 +642,7 @@ across two different parts of the app before this).
 Not a Server Action with a form — a side effect. `selectProfessional`
 (Phase 8) now also creates a `Transaction` row, in the same database
 transaction as the selection itself, computed via
-`calculateLeadFee(quoteAmountPence)` (`src/lib/fees.ts` — currently 5%
+`calculateLeadFee(quoteAmountPence)` (`src/lib/fees.ts` — currently 2%
 of the winning quote, rounded to the nearest penny). Logs `activity_log`
 (`type: "lead_fee_created"`) right after `professional_selected`.
 

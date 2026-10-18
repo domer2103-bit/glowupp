@@ -1080,9 +1080,9 @@ marketplace API, a live test beats trusting the docs.
   instead means the fee is a success fee in substance even though it's
   framed as a lead fee: a professional only ever pays once they've
   actually won the work, and the fee scales with the real job value
-  (5% of the winning `QuoteRequest.quoteAmount`, computed once in
+  (2% of the winning `QuoteRequest.quoteAmount`, computed once in
   `src/lib/fees.ts::calculateLeadFee` and frozen onto the `Transaction`
-  row — not recalculated later if the rate itself changes). The 5% rate
+  row — not recalculated later if the rate itself changes). The 2% rate
   is a placeholder in the same spirit as other MVP defaults elsewhere in
   this codebase (e.g. Phase 8's validation thresholds) — easy to tune,
   clearly isolated in one named constant, not a hardcoded magic number
@@ -1115,7 +1115,7 @@ marketplace API, a live test beats trusting the docs.
   route reads the `Transaction` table anywhere.
 - **Verified live, with a real number chosen to make the arithmetic
   checkable by eye**, not just by code review: a £20,000 quote produced
-  a £1,000 (5%) `Transaction`, correct on both the inline opportunity
+  a £1,000 (2% of a £50,000 quote) `Transaction`, correct on both the inline opportunity
   card and the dedicated `/professional/transactions` summary page.
   Confirmed two *older* selections (made before this feature existed,
   in Phases 8–10) correctly show no fee — nothing retroactive was
@@ -1555,7 +1555,7 @@ not just what shipped.
   problem for any marketplace, and it isn't fully solvable here either —
   discussed openly rather than promising more than the code delivers.
   The three real levers: keep the fee low enough that dodging it isn't
-  worth the risk (5%, Phase 11, already well below what most trade
+  worth the risk (2%, Phase 11 — flat 2% from 2026-10-18, originally 5% — already well below what most trade
   marketplaces charge); make the in-app experience valuable enough that
   leaving it loses something (the messaging, quote comparison, and
   visualizations already do this somewhat, just by existing); and soft,
@@ -1654,7 +1654,7 @@ A trade professional can hand a client a link or QR code on site. A project the 
 
 **Privacy.** Until the client presses "Send render & request official estimate", the contractor sees renders, project type and the **outward postcode only** — no name, email or address. After that the normal quote/messaging rules apply (a `QuoteRequest` is created, which also opens the message thread).
 
-**Money.** Per §23 GlowUpp never handles homeowner→professional money. A *deposit request* is therefore a recorded amount plus message: the client pays the contractor directly and the contractor marks it received. Nothing is processed or held. Private-pipeline jobs are the contractor's own client, so they're priced separately (see the `isPrivatePipeline` branch in `selectProfessional` and `calculatePrivateLinkFee` in `src/lib/fees.ts`): a contractor's **first 3 private-link jobs are free** (recorded as a £0 `PAID` `Transaction`, which also unlocks the full postcode and counts towards the three — `countPriorPrivateLinkJobs`, cancelled fees don't count, and selections made before this change count too), and **from the 4th, 1% of the accepted quote (max £250)** goes through the same pay-to-unlock + Stripe Checkout + 24h/48h reminder flow as marketplace leads. Fees under 30p are waived (Stripe's minimum). **Early-bird offer (marketplace, on top of the above):** a professional whose `User.createdAt` is before Black Friday 2026 (Fri 27 Nov 2026, 00:00 UK = 00:00Z, `EARLY_BIRD_CUTOFF` in `src/lib/fees.ts`) pays no commission on their first 2 marketplace jobs (`calculateMarketplaceFee`, counted by `countPriorMarketplaceJobs`; a free job is a £0 `PAID` `Transaction`, which unlocks the address; cancelled-unpaid fees don't count). A private job selected before this change has no `Transaction` and keeps unlocking on selection. Selecting reveals the full postcode to the contractor.
+**Money.** Per §23 GlowUpp never handles homeowner→professional money. A *deposit request* is therefore a recorded amount plus message: the client pays the contractor directly and the contractor marks it received. Nothing is processed or held. Private-pipeline jobs are the contractor's own client, so they're priced separately (see the `isPrivatePipeline` branch in `selectProfessional` and `calculatePrivateLinkFee` in `src/lib/fees.ts`): a contractor's **first 3 private-link jobs are free** (recorded as a £0 `PAID` `Transaction`, which also unlocks the full postcode and counts towards the three — `countPriorPrivateLinkJobs`, cancelled fees don't count, and selections made before this change count too), and **from the 4th, the same flat 2% of the accepted quote as marketplace jobs (max £250; was 1% until 2026-10-18)** goes through the same pay-to-unlock + Stripe Checkout + 24h/48h reminder flow as marketplace leads. Fees under 30p are waived (Stripe's minimum). **Early-bird offer (marketplace, on top of the above):** a professional whose `User.createdAt` is before Black Friday 2026 (Fri 27 Nov 2026, 00:00 UK = 00:00Z, `EARLY_BIRD_CUTOFF` in `src/lib/fees.ts`) pays no commission on their first 2 marketplace jobs (`calculateMarketplaceFee`, counted by `countPriorMarketplaceJobs`; a free job is a £0 `PAID` `Transaction`, which unlocks the address; cancelled-unpaid fees don't count). A private job selected before this change has no `Transaction` and keeps unlocking on selection. Selecting reveals the full postcode to the contractor.
 
 **Contractor UI.** `/professional/pipeline` — "Client Quote & Lock Tool" (copy link, on-screen QR, full-screen QR for on-site scanning, high-resolution PNG download) and "Private Leads & Direct Renders" (auto-refreshes every 10s while the tab is visible; itemised quote form with optional deposit).
 
@@ -1756,7 +1756,7 @@ On `/partner/dashboard` unseen notices open a dismissible pop-up ("Got it" is a 
 
 A static, no-login page that explains the programme before someone commits: the offer for homeowner partners and tradespeople partners, three steps, an earnings table, a "what to expect, honestly" box (pays only when the professional pays, free promotional jobs earn nothing, 12-month window, one fee per partner, £25 minimum payout, no guaranteed income), what partners get, a FAQ (`<details>`), and sign-up / sign-in buttons. The earnings rows, the percentages, the £25 minimum and the 12-month window are computed from the same constants the system pays by (`calculateLeadFee`, `calculateAffiliateShare`, `AFFILIATE_MIN_PAYOUT_PENCE`, `PRO_REFERRAL_EARNING_MONTHS`), so the page cannot drift from what partners are actually paid. "Partners" is linked from the footer and from `/partner/join` ("How the partner programme works"). Tests: `src/app/partners/page.test.tsx`.
 
-**Own-client jobs of a referred professional (rule stated, no code change).** A partner's share is always 50% of the fee actually charged, so it automatically follows the professional's fee type: marketplace jobs 5% (cap £250) -> 2.5% of the quote; a professional's own private-link clients 1% after their first 3 free jobs (`calculatePrivateLinkFee`) -> **0.5% of the quote**; free jobs £0 (and the partner is told). Verified end to end by a test that drives the real private-link flow for a referred professional (`partner-pro-referrals.integration.test.ts`: jobs 1-3 free, job 4 £24.50 fee -> £12.25, a £40,000 job capped at £250 fee -> £125). The rule is now spelled out in the partner terms (v2026-10-09), on `/partners` (own-client box, caveat, FAQ), on the partner dashboard and in the welcome email.
+**Own-client jobs of a referred professional (rule stated, no code change).** A partner's share is always 50% of the fee actually charged, so it automatically follows the professional's fee type: every job is a flat 2% (cap £250) -> **1% of the quote** to the partner (max £125), whether marketplace or a professional's own private-link clients (`calculatePrivateLinkFee`, after their first 3 free jobs); free jobs £0 (and the partner is told). Verified end to end by a test that drives the real private-link flow for a referred professional (`partner-pro-referrals.integration.test.ts`: jobs 1-3 free, job 4 £49 fee -> £24.50, a £40,000 job capped at £250 fee -> £125). The rule is spelled out in the partner terms (v2026-10-18), on `/partners` (own-client box, caveat, FAQ), on the partner dashboard and in the welcome email.
 
 ## 33. Post-roadmap — Photos are shrunk in the browser before upload
 

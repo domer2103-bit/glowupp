@@ -85,7 +85,7 @@ export default async function PartnerDashboardPage(props: PageProps<"/partner/da
         </section>
         <p className="text-xs text-zinc-500">
           You earn {dashboard.revenueSharePercent}% of the lead fee GlowUpp collects on jobs booked by homeowners who started through your link, and on jobs won by tradespeople who
-          signed up through your tradespeople link. Promotions such as free introductory jobs earn no share, because no fee is collected on them, and on a tradesperson&apos;s own-client jobs (a 1% fee) your share is 0.5% of the quote. A share appears once the
+          signed up through your tradespeople link. Promotions such as free introductory jobs earn no share, because no fee is collected on them. Your share is always half of the fee actually charged. A share appears once the
           professional has paid their fee. We pay by bank transfer once your account has been checked and at least {formatPenceExact(AFFILIATE_MIN_PAYOUT_PENCE)} is waiting for you.
         </p>
         <section id="tradespeople" className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">

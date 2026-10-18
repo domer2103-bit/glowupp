@@ -288,7 +288,7 @@ run("Partner credit for professionals they bring", () => {
     it("a discounted fee earns half of the discounted amount, and a fee not yet paid earns nothing", async () => {
       const partner = await makePartner();
       const { pro } = await makePro({ partnerId: partner.id });
-      const discounted = await job(pro, { feePence: 1000 }); // e.g. a 1% private-link fee
+      const discounted = await job(pro, { feePence: 1000 }); // e.g. a discounted fee
       expect(await creditAffiliateForTransaction(discounted.transaction.id)).toBe(500);
       const pending = await job(pro, { feePence: 5000, status: TransactionStatus.PENDING });
       expect(await creditAffiliateForTransaction(pending.transaction.id)).toBeNull();
@@ -468,7 +468,7 @@ run("Partner credit for professionals they bring", () => {
       return fd;
     }
 
-    it("first 3 are free and earn nothing (the partner is told); after that a 1% fee, so the partner earns 0.5% of the quote", async () => {
+    it("first 3 are free and earn nothing (the partner is told); after that the same 2% fee, so the partner earns 1% of the quote", async () => {
       const partner = await makePartner();
       const { user, pro } = await makePro({ partnerId: partner.id });
       const { referralCode } = await ensureReferralCodes(await prisma.professional.findUniqueOrThrow({ where: { id: pro.id } }));
@@ -502,18 +502,18 @@ run("Partner credit for professionals they bring", () => {
       expect(noFeeMail.mock.calls.every((c) => c[0].source === "PROFESSIONAL")).toBe(true);
       expect((await partnerNow(partner.id)).totalEarningsPence).toBe(0);
 
-      // Job 4: 1% of £2,450 = £24.50, held until paid. When paid the partner earns half: £12.25 = 0.5% of the quote.
+      // Job 4: 2% of £2,450 = £49, held until paid. When paid the partner earns half: £24.50 = 1% of the quote.
       const four = await privateJob(4, "2450");
       const feeTx = await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: four.qr.id } });
-      expect(feeTx).toMatchObject({ feeAmount: 2450, status: "PENDING" });
+      expect(feeTx).toMatchObject({ feeAmount: 4900, status: "PENDING" });
       expect(await creditAffiliateForTransaction(feeTx.id)).toBeNull(); // nothing until the fee is paid
       await prisma.transaction.update({ where: { id: feeTx.id }, data: { status: TransactionStatus.PAID, paidAt: new Date() } });
-      expect(await creditAffiliateForTransaction(feeTx.id)).toBe(1225);
-      expect(1225 / 245000).toBeCloseTo(0.005, 10); // exactly 0.5% of the quote
-      expect((await partnerNow(partner.id)).totalEarningsPence).toBe(1225);
+      expect(await creditAffiliateForTransaction(feeTx.id)).toBe(2450);
+      expect(2450 / 245000).toBeCloseTo(0.01, 10); // exactly 1% of the quote
+      expect((await partnerNow(partner.id)).totalEarningsPence).toBe(2450);
       expect(noFeeMail).toHaveBeenCalledTimes(3); // a paid fee needs no "no fee" notice
 
-      // Job 5 over £25,000: the fee is capped at £250, so the partner earns £125, not 0.5% of the quote.
+      // Job 5 over £25,000: the fee is capped at £250, so the partner earns £125, not 1% of the quote.
       const five = await privateJob(5, "40000");
       const capped = await prisma.transaction.findUniqueOrThrow({ where: { quoteRequestId: five.qr.id } });
       expect(capped.feeAmount).toBe(25000);

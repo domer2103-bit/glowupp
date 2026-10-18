@@ -213,7 +213,7 @@ export async function countPrivateLeads(professionalId: string): Promise<number>
 /**
  * How many private-link jobs this professional has already been selected
  * for, not counting `excludeQuoteRequestId` (the selection being priced)
- * or any whose fee auto-cancelled unpaid. Drives "first 3 free, then 1%"
+ * or any whose fee auto-cancelled unpaid. Drives "first 3 free, then 2%"
  * (src/lib/fees.ts::calculatePrivateLinkFee). Selections made before fee
  * rows existed for private jobs have no Transaction, so they're counted
  * from the still-selected quote requests too — otherwise a contractor who

@@ -4,22 +4,22 @@
  * See docs/BACKEND_ARCHITECTURE.md §23 for why a percentage-of-winning-quote
  * model was chosen over a flat per-lead fee.
  */
-export const LEAD_FEE_RATE = 0.05;
+export const LEAD_FEE_RATE = 0.02;
 
 /**
- * Caps the fee on large jobs (uncapped, 5% of a £30k renovation is £1,500
+ * Caps the fee on large jobs (uncapped, 2% of a £30k renovation is £600
  * — enough to make a professional walk away from a lead source they
- * haven't gotten value from yet). £250 in pence.
+ * haven't gotten value from yet). £250 in pence; reached at a £12,500 quote.
  */
 export const LEAD_FEE_CAP_PENCE = 25_000;
 
 /**
  * Private-link jobs (the contractor's own client, brought in through their
- * referral link/QR) are charged far less than marketplace leads: the first
- * PRIVATE_LINK_FREE_JOBS of them are free, then 1% of the accepted quote
- * (same £250 cap).
+ * referral link/QR): the first PRIVATE_LINK_FREE_JOBS of them are free, then
+ * the same flat 2% of the accepted quote as marketplace jobs (same £250 cap).
+ * Kept as its own constant so the two rates can be split again later.
  */
-export const PRIVATE_LINK_FEE_RATE = 0.01;
+export const PRIVATE_LINK_FEE_RATE = 0.02;
 export const PRIVATE_LINK_FREE_JOBS = 3;
 
 /** Stripe won't create a GBP Checkout session below 30p, so a fee smaller than this is waived rather than left uncollectable. */
@@ -56,7 +56,7 @@ export function calculatePrivateLinkFee(quoteAmountPence: number, priorPrivateJo
 
 /**
  * Fee for a marketplace job: free for an early-bird professional's first
- * EARLY_BIRD_FREE_JOBS jobs, otherwise the normal 5% (capped). `priorMarketplaceJobs`
+ * EARLY_BIRD_FREE_JOBS jobs, otherwise the normal 2% (capped). `priorMarketplaceJobs`
  * counts their earlier non-cancelled marketplace selections, free ones included.
  */
 export function calculateMarketplaceFee(quoteAmountPence: number, priorMarketplaceJobs: number, accountCreatedAt: Date): number {
