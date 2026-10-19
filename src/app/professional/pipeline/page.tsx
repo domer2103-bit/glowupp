@@ -8,6 +8,7 @@ import { buildReferralLinks } from "@/lib/referral";
 import { ensureReferralCodes, listPrivateLeads } from "@/lib/data/private-pipeline";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { QrLinkTool } from "./QrLinkTool";
+import { ShareGuideTool } from "./ShareGuideTool";
 import { LeadCard } from "./LeadCard";
 
 export default async function PipelinePage(props: PageProps<"/professional/pipeline">) {
@@ -72,7 +73,10 @@ export default async function PipelinePage(props: PageProps<"/professional/pipel
             </p>
           </>
         ) : (
-          <QrLinkTool shortLink={links.shortLink} vanLink={links.vanLink} businessName={professional.businessName} fileSlug={vanQrSlug} />
+          <>
+            <QrLinkTool shortLink={links.shortLink} vanLink={links.vanLink} businessName={professional.businessName} fileSlug={vanQrSlug} />
+            <ShareGuideTool shortLink={links.shortLink} guideLink={`${APP_URL.replace(/\/+$/, "")}/client-guide`} businessName={professional.businessName} />
+          </>
         )}
       </div>
     </div>
