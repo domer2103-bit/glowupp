@@ -323,7 +323,7 @@ run("B2B Affiliate & Partner Program", () => {
     });
   });
 
-  describe("payout rules (verified partner, at least £25 waiting)", () => {
+  describe("payout rules (verified partner, at least £10 waiting)", () => {
     async function partnerWithBalance(feePence: number, opts: { verified: boolean }) {
       const partner = await makePartner();
       await prisma.affiliatePartner.update({ where: { id: partner.id }, data: { selfRegistered: !opts.verified, verifiedAt: opts.verified ? new Date() : null } });
@@ -349,13 +349,13 @@ run("B2B Affiliate & Partner Program", () => {
       expect((await partnerNow(partner.id)).paidEarningsPence).toBe(10000);
     });
 
-    it("refuses a payout under £25 even for a verified partner, then allows it once the balance reaches £25", async () => {
+    it("refuses a payout under £10 even for a verified partner, then allows it once the balance reaches £10", async () => {
       const admin = await makeUser(UserRole.ADMIN);
-      const partner = await partnerWithBalance(4998, { verified: true }); // 50% = £24.99
-      expect(await recordAffiliatePayout(partner.id, 2499, admin.id, null)).toBe(false);
+      const partner = await partnerWithBalance(1998, { verified: true }); // 50% = £9.99
+      expect(await recordAffiliatePayout(partner.id, 999, admin.id, null)).toBe(false);
       const second = await jobWithFee({ partnerId: partner.id, feePence: 2, status: TransactionStatus.PAID });
-      await creditAffiliateForTransaction(second.transaction.id); // +£0.01 -> exactly £25.00
-      expect(await recordAffiliatePayout(partner.id, 2500, admin.id, null)).toBe(true);
+      await creditAffiliateForTransaction(second.transaction.id); // +£0.01 -> exactly £10.00
+      expect(await recordAffiliatePayout(partner.id, 1000, admin.id, null)).toBe(true);
     });
 
     it("only an admin can verify a partner", async () => {

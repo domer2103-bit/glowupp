@@ -386,7 +386,7 @@ run("B2B partner self-onboarding", () => {
       state.jar.set(PARTNER_COOKIE, mine.token);
       const unverified = md(await PartnerDashboardPage(pageProps()));
       expect(unverified).toContain("We&#x27;re checking your account");
-      expect(unverified).toContain("at least £25.00 is waiting");
+      expect(unverified).toContain("at least £10.00 is waiting");
 
       await prisma.affiliatePartner.update({ where: { id: mine.partner.id }, data: { verifiedAt: new Date() } });
       expect(await recordAffiliatePayout(mine.partner.id, 12345, admin.id, "secret bank ref")).toBe(true);
