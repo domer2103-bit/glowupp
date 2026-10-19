@@ -27,8 +27,8 @@ describe("/partners page", () => {
     expect(text).toMatch(/Free promotional jobs earn nothing/);
     expect(text).toContain("for 12 months after they sign up");
     expect(PRO_REFERRAL_EARNING_MONTHS).toBe(12); // the page text above follows this constant
-    expect(text).toContain("at least £25 is waiting");
-    expect(AFFILIATE_MIN_PAYOUT_PENCE).toBe(2500);
+    expect(text).toContain("at least £10 is waiting");
+    expect(AFFILIATE_MIN_PAYOUT_PENCE).toBe(1000);
     expect(text).toMatch(/one partner at most/);
     expect(text).toMatch(/not as guaranteed income/);
     expect(text).not.toMatch(/guaranteed earnings|you will earn|passive income/i);

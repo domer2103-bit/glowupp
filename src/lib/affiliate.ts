@@ -82,8 +82,8 @@ export function affiliateLandingPath(qrSlug: string): string {
 // Payout rules
 // ---------------------------------------------------------------------------
 
-/** Smallest balance worth a bank transfer: below this a partner keeps accruing and is paid once they pass it (£25, in pence). */
-export const AFFILIATE_MIN_PAYOUT_PENCE = 2_500;
+/** Smallest balance worth a bank transfer: below this a partner keeps accruing and is paid once they pass it (£10, in pence). */
+export const AFFILIATE_MIN_PAYOUT_PENCE = 1_000;
 
 export type PayoutBlock = { reason: "UNVERIFIED" } | { reason: "BELOW_MINIMUM"; shortByPence: number };
 

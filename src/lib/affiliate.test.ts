@@ -84,20 +84,20 @@ describe("partner identifiers and links", () => {
   });
 });
 
-describe("payoutBlock (verified partner, at least £25 waiting)", () => {
+describe("payoutBlock (verified partner, at least £10 waiting)", () => {
   const ok = new Date("2026-10-08T12:00:00Z");
   it("blocks an unverified partner whatever their balance", () => {
     expect(payoutBlock({ verifiedAt: null, balancePence: 1_000_000 })).toEqual({ reason: "UNVERIFIED" });
   });
   it("blocks a verified partner below the minimum and says how far short", () => {
-    expect(AFFILIATE_MIN_PAYOUT_PENCE).toBe(2500);
-    expect(payoutBlock({ verifiedAt: ok, balancePence: 1250 })).toEqual({ reason: "BELOW_MINIMUM", shortByPence: 1250 });
-    expect(payoutBlock({ verifiedAt: ok, balancePence: 2499 })).toEqual({ reason: "BELOW_MINIMUM", shortByPence: 1 });
-    expect(payoutBlock({ verifiedAt: ok, balancePence: 0 })).toEqual({ reason: "BELOW_MINIMUM", shortByPence: 2500 });
-    expect(payoutBlock({ verifiedAt: ok, balancePence: -500 })).toEqual({ reason: "BELOW_MINIMUM", shortByPence: 2500 });
+    expect(AFFILIATE_MIN_PAYOUT_PENCE).toBe(1000);
+    expect(payoutBlock({ verifiedAt: ok, balancePence: 250 })).toEqual({ reason: "BELOW_MINIMUM", shortByPence: 750 });
+    expect(payoutBlock({ verifiedAt: ok, balancePence: 999 })).toEqual({ reason: "BELOW_MINIMUM", shortByPence: 1 });
+    expect(payoutBlock({ verifiedAt: ok, balancePence: 0 })).toEqual({ reason: "BELOW_MINIMUM", shortByPence: 1000 });
+    expect(payoutBlock({ verifiedAt: ok, balancePence: -500 })).toEqual({ reason: "BELOW_MINIMUM", shortByPence: 1000 });
   });
   it("allows a verified partner at or above the minimum", () => {
-    expect(payoutBlock({ verifiedAt: ok, balancePence: 2500 })).toBeNull();
+    expect(payoutBlock({ verifiedAt: ok, balancePence: 1000 })).toBeNull();
     expect(payoutBlock({ verifiedAt: ok, balancePence: 12345 })).toBeNull();
   });
 });

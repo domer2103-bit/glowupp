@@ -68,7 +68,7 @@ describe("partner terms", () => {
     const { PARTNER_TERMS } = await import("./partner-terms");
     const { PARTNER_TERMS_VERSION } = await import("./partner-signup");
     expect(PARTNER_TERMS.some((t) => t.includes('"#ad"') && /advert/i.test(t))).toBe(true);
-    expect(PARTNER_TERMS.some((t) => t.includes("£25"))).toBe(true);
+    expect(PARTNER_TERMS.some((t) => t.includes("£10"))).toBe(true);
     // Professional referrals: what is earned, that promotions earn nothing, and that one fee is never shared twice.
     expect(PARTNER_TERMS.some((t) => /tradespeople who create a GlowUpp professional account/.test(t))).toBe(true);
     expect(PARTNER_TERMS.some((t) => /free introductory jobs/.test(t) && /earn no share/.test(t))).toBe(true);
