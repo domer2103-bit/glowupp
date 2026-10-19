@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getPortalReferrer } from "@/lib/data/private-pipeline";
+import { ClientGuideVideo } from "@/components/ClientGuideVideo";
 
 /**
  * Homepage welcome for a visitor who arrived through a contractor's link or
@@ -52,6 +53,12 @@ export async function PrivateWelcomeCard({ signedIn }: { signedIn: boolean }) {
             A free account saves your designs and lets you send them to {referrer.businessName}.
           </p>
         )}
+        <details className="mx-auto w-full max-w-sm rounded-2xl border border-zinc-200 p-3 text-left">
+          <summary className="cursor-pointer text-center text-sm font-medium text-[#3a6694]">Watch how it works (50 seconds)</summary>
+          <div className="mt-3">
+            <ClientGuideVideo />
+          </div>
+        </details>
       </div>
     </section>
   );
