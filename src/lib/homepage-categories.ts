@@ -17,7 +17,7 @@ export const HOMEPAGE_CATEGORIES: readonly HomepageCategory[] = [
     key: "kitchen",
     displayName: "Kitchen",
     tagline: "Modern, functional, beautiful.",
-    heroSubcopy: "Upload a photo of your kitchen and see it redesigned — new cabinets, worktops, and layout ideas in seconds.",
+    heroSubcopy: "Upload a photo of your kitchen and see it redesigned — new cabinets, worktops, and layout ideas in about two minutes.",
   },
   {
     key: "bathroom",

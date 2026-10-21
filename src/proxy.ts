@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { GUEST_COOKIE } from "@/lib/guest-cookie";
+import { ATTRIBUTION_COOKIE, ATTRIBUTION_MAX_AGE_SECONDS } from "@/lib/attribution-cookie";
+import { encodeAttribution, parseAttribution } from "@/lib/attribution";
 
 /**
  * Refreshes the Supabase session cookie on every request. Next.js 16
@@ -15,6 +17,10 @@ import { GUEST_COOKIE } from "@/lib/guest-cookie";
  * login-free redesign wizard has an id to work with on a visitor's very
  * first request — a Server Component can only *read* cookies, never set
  * one, so this has to happen here rather than in the wizard page itself.
+ *
+ * Also remembers, first visit wins for 30 days, where a visitor came from
+ * (utm_* tags or an outside referring site — src/lib/attribution.ts) so
+ * signup() can credit a new account to a post or channel.
  */
 export default async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -50,6 +56,19 @@ export default async function proxy(request: NextRequest) {
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
     });
+  }
+
+  if (!request.cookies.has(ATTRIBUTION_COOKIE) && request.method === "GET") {
+    const attribution = parseAttribution(request.nextUrl, request.headers.get("referer"));
+    if (attribution) {
+      response.cookies.set(ATTRIBUTION_COOKIE, encodeAttribution(attribution), {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: ATTRIBUTION_MAX_AGE_SECONDS,
+      });
+    }
   }
 
   return response;

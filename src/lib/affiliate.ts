@@ -47,8 +47,8 @@ export const AFFILIATE_DEFAULT_HEADLINES: Record<AffiliateCategoryKey, string> =
   GARDEN_CENTER: "Not sure how it looks in your garden? Scan to find out",
   SALON: "Stuck in the chair? Scan to see your dream kitchen",
   TRADE_SUPPLIER: "Picking materials? Scan to see how they'll look in your home",
-  INFLUENCER: "Redesign your home in seconds with AI",
-  OTHER: "Redesign your home in seconds with AI",
+  INFLUENCER: "Redesign your home in minutes with AI",
+  OTHER: "Redesign your home in minutes with AI",
 };
 
 /** A partner link is /a/<qrSlug>; the route also accepts the 8-char referral code. */

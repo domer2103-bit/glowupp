@@ -47,7 +47,7 @@ export default async function Home() {
           </h1>
           <p className="max-w-md text-zinc-600">
             Turn your photos into stunning new designs with AI. Upload a picture of your space and get a fresh look in
-            seconds — no design skills needed.
+            about two minutes — no design skills needed.
           </p>
           <Link
             href={user && !isHomeowner ? "/dashboard" : "#categories"}

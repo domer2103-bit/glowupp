@@ -110,7 +110,7 @@ export function categoryFaq(key: string): FaqItem[] {
     },
     {
       question: "Does it cost anything?",
-      answer: "It is free for homeowners. GlowUpp does not take a cut of your job; professionals pay a small fee only once you have picked them.",
+      answer: "It is free for homeowners. Professionals pay GlowUpp a small fee only once you have picked them.",
     },
     {
       question: "Are the designs exact plans?",

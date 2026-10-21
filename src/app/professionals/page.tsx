@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@/generated/prisma/client";
 import { EarlyBirdCountdown } from "@/components/EarlyBirdCountdown";
 import { pageMetadata } from "@/lib/seo";
+import { LEAD_FEE_CAP_PENCE, LEAD_FEE_RATE, PRIVATE_LINK_FREE_JOBS } from "@/lib/fees";
 
 export const metadata = pageMetadata({
   title: "For tradespeople: get discovered by homeowners | GlowUpp",
@@ -17,6 +18,8 @@ export default async function ProfessionalsPage() {
   const user = await getCurrentUser();
   const isProfessional = user?.role === UserRole.PROFESSIONAL;
   const ctaHref = isProfessional ? "/dashboard" : "/signup?role=professional";
+  const feePercent = `${Math.round(LEAD_FEE_RATE * 100)}%`;
+  const feeCap = `£${LEAD_FEE_CAP_PENCE / 100}`;
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-gradient-to-b from-blue-50 to-white text-[#132a4d]">
@@ -71,6 +74,24 @@ export default async function ProfessionalsPage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <p className="mb-1 font-semibold text-[#132a4d]">3. Quote and win the job</p>
           <p className="text-sm text-zinc-600">Message the homeowner directly and send a quote — no bidding wars.</p>
+        </div>
+      </section>
+
+      <section className="relative mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-6 py-12 sm:grid-cols-2">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <p className="mb-1 font-semibold text-[#132a4d]">Bring your own clients</p>
+          <p className="text-sm text-zinc-600">
+            Every professional gets a private link and QR code for the van, the yard sign or a quote. Your client uploads a
+            photo, sees their own space redesigned, and sends it to you for an estimate. It is private to you: other
+            tradespeople never see it. Your first {PRIVATE_LINK_FREE_JOBS} jobs through your own link are free.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <p className="mb-1 font-semibold text-[#132a4d]">What it costs</p>
+          <p className="text-sm text-zinc-600">
+            A free profile, no subscription. You only pay when a homeowner picks you: a flat {feePercent} of the accepted
+            quote, capped at {feeCap}.
+          </p>
         </div>
       </section>
 
