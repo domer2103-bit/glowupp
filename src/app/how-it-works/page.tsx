@@ -26,7 +26,7 @@ const STEPS = [
   },
   {
     title: "5. Compare quotes and hire",
-    body: "Message professionals directly, compare quotes, and choose who does the work. GlowUpp doesn't take a cut of the job — professionals pay a small fee only once you've picked them.",
+    body: "Message professionals directly, compare quotes, and choose who does the work. GlowUpp is free for homeowners — professionals pay GlowUpp a small fee only once you've picked them.",
   },
 ];
 

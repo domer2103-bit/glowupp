@@ -124,7 +124,7 @@ export function AffiliateAssetCanvas(props: { businessName: string; businessSlug
             <textarea value={subline} onChange={(e) => setSublines((x) => ({ ...x, [audience]: e.target.value }))} rows={2} maxLength={120} className={INPUT} />
           </label>
           <p className="text-xs text-zinc-500">
-            Check every claim (&ldquo;in seconds&rdquo;, &ldquo;free&rdquo;) against the live product before printing.
+            Check every claim (&ldquo;in minutes&rdquo;, &ldquo;free&rdquo;) against the live product before printing.
           </p>
           <button type="button" disabled={!svg || busy !== null} onClick={() => exportAs("png")} className={`${BUTTON} bg-[#3a6694] text-white hover:bg-[#2c5075]`}>
             {busy === "png" ? "Preparing PNG…" : "Download high-res PNG"}

@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { mergeGuestIntoUser } from "@/lib/guest";
 import { prisma } from "@/lib/prisma";
 import { stampProfessionalSignupWithAffiliate } from "@/lib/data/affiliates";
+import { recordSignupSource } from "@/lib/data/signup-attribution";
 import { UserRole } from "@/generated/prisma/client";
 import { PROJECT_TYPE_KEYS } from "@/lib/project-types";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -107,6 +108,10 @@ export async function signup(_prevState: ActionState, formData: FormData): Promi
   // branches, because the confirmation email is often opened in another
   // browser that has no cookie.
   if (role === UserRole.PROFESSIONAL && data.user) await stampProfessionalSignupWithAffiliate(data.user.id);
+
+  // Remember which post/channel brought this account (first-touch cookie set
+  // in src/proxy.ts). Same reason as above: the cookie only exists in this browser.
+  if (data.user) await recordSignupSource(data.user.id, role);
 
   // Supabase projects with "Confirm email" on don't return a session here —
   // the account exists but can't log in until the confirmation link is

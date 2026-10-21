@@ -35,7 +35,7 @@ export const ASSET_SPECS: Record<AssetKind, AssetSpec> = {
 export const ASSET_KINDS = Object.keys(ASSET_SPECS) as AssetKind[];
 
 export const DEFAULT_SUBLINE = "Snap a photo of your room. Scan the code. See it redesigned.";
-export const SOCIAL_AND_POSTER_HEADLINE = "Redesign your home in seconds with AI";
+export const SOCIAL_AND_POSTER_HEADLINE = "Redesign your home in minutes with AI";
 export const COASTER_HEADLINE = "Scan to see your room redesigned";
 const POSTER_STEPS = ["Snap a photo of your room", "Get your redesign", "Meet local pros"];
 

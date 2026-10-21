@@ -26,7 +26,7 @@ export default async function LaunchPage(props: PageProps<"/launch">) {
         Upload. Reimagine. <span className="text-[#3a6694]">See Your New Space.</span>
       </h1>
       <p className="relative mt-4 max-w-md text-zinc-600">
-        Turn a photo of your home into a stunning AI redesign in seconds — then find the right pro to make it real. Join the
+        Turn a photo of your home into a stunning AI redesign in about two minutes — then find the right pro to make it real. Join the
         waitlist to be the first to know when we launch.
       </p>
 
