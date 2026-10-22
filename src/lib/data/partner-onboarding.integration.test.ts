@@ -339,7 +339,7 @@ run("B2B partner self-onboarding", () => {
     it("the join page shows the five fields and the terms; the login page offers a new link", async () => {
       const join = md(await PartnerJoinPage(pageProps()));
       for (const name of ["business_name", "contact_name", "email", "phone", "category", "accept_terms"]) expect(join).toContain(`name="${name}"`);
-      for (const value of ["cafe", "gym", "garden_center", "salon", "trade_supplier", "influencer_other"]) expect(join).toContain(`value="${value}"`);
+      for (const value of ["cafe", "gym", "garden_center", "salon", "trade_supplier", "other_business"]) expect(join).toContain(`value="${value}"`);
       expect(join).toContain('action="/api/affiliates/self-register"');
       expect(join).toContain("50%");
       expect(md(await PartnerJoinPage(pageProps({ error: "busy" })))).toContain("Too many attempts");

@@ -30,7 +30,7 @@ export default async function AdminAffiliatesPage() {
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">Partner program</h1>
           <p className="mt-1 max-w-3xl text-sm text-zinc-500">
-            Local businesses and influencers who share GlowUpp. A partner earns half of the lead fee GlowUpp actually collects on jobs from homeowners who came through their
+            Local businesses who share GlowUpp. A partner earns half of the lead fee GlowUpp actually collects on jobs from homeowners who came through their
             link or QR. Payouts are made outside this system (bank transfer) — record them here once sent. A partner can be paid once you have verified them and they have at least {formatPenceExact(AFFILIATE_MIN_PAYOUT_PENCE)} waiting.
           </p>
         </div>

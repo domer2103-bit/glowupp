@@ -1,17 +1,17 @@
 import { z } from "zod";
 import type { AffiliateCategoryKey } from "@/lib/affiliate";
 
-/** What the public /partner/join form offers, mapped to the database category. "Influencer / other" is stored as INFLUENCER. */
+/** What the public /partner/join form offers, mapped to the database category. "Other business" is stored as OTHER (influencers and online-only accounts are not accepted). */
 export const PUBLIC_CATEGORY_OPTIONS: { value: string; label: string; category: AffiliateCategoryKey }[] = [
   { value: "cafe", label: "Café or coffee shop", category: "CAFE" },
   { value: "gym", label: "Gym or studio", category: "GYM" },
   { value: "garden_center", label: "Garden centre or nursery", category: "GARDEN_CENTER" },
   { value: "salon", label: "Salon or beauty bar", category: "SALON" },
   { value: "trade_supplier", label: "Trade supplier or merchant", category: "TRADE_SUPPLIER" },
-  { value: "influencer_other", label: "Influencer or other", category: "INFLUENCER" },
+  { value: "other_business", label: "Other business with a shop, premises or vehicle", category: "OTHER" },
 ];
 
-export const PARTNER_TERMS_VERSION = "2026-10-19";
+export const PARTNER_TERMS_VERSION = "2026-10-22";
 
 const trimmed = (max: number, tooLong: string) => z.string().trim().max(max, tooLong);
 

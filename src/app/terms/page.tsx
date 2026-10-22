@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
+import { companyLine } from "@/lib/company";
 
 export const metadata: Metadata = pageMetadata({ title: "Terms of Service — GlowUpp", description: "The terms that apply to using GlowUpp.", path: "/terms" });
 
@@ -15,14 +16,13 @@ export default function TermsOfServicePage() {
         <h1 className="mt-6 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Terms of Service
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 20 September 2026</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 22 October 2026</p>
 
         <div className="mt-10 space-y-10 text-zinc-700 dark:text-zinc-300">
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">1. Who we are</h2>
             <p>
-              GlowUpp (glowupp.co.uk) is operated by Dominik Wierzchowski, trading as GlowUpp, a
-              sole trader based at 65 Sandway Crescent, Liverpool, L11 2SW, United Kingdom
+              GlowUpp (glowupp.co.uk) is operated by {companyLine()}
               (&ldquo;GlowUpp&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). Contact:{" "}
               <a href="mailto:hello@glowupp.co.uk" className="underline">hello@glowupp.co.uk</a>.
               By creating an account or using GlowUpp, you agree to these terms.
@@ -153,8 +153,7 @@ export default function TermsOfServicePage() {
           </section>
 
           <p className="border-t border-zinc-200 pt-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-            GlowUpp is currently operated as a sole trader business, early in development. These
-            terms aim to be plain and fair rather than exhaustive — see also our{" "}
+            These terms aim to be plain and fair rather than exhaustive — see also our{" "}
             <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
         </div>

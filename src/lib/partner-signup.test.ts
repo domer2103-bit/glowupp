@@ -31,10 +31,10 @@ describe("PartnerSignupSchema", () => {
 
 describe("categories", () => {
   it("offers the six public choices and maps each to a real database category", () => {
-    expect(PUBLIC_CATEGORY_OPTIONS.map((o) => o.value)).toEqual(["cafe", "gym", "garden_center", "salon", "trade_supplier", "influencer_other"]);
+    expect(PUBLIC_CATEGORY_OPTIONS.map((o) => o.value)).toEqual(["cafe", "gym", "garden_center", "salon", "trade_supplier", "other_business"]);
     for (const o of PUBLIC_CATEGORY_OPTIONS) expect(AFFILIATE_CATEGORIES).toContain(publicCategoryToDb(o.value));
     expect(publicCategoryToDb("trade_supplier")).toBe("TRADE_SUPPLIER");
-    expect(publicCategoryToDb("influencer_other")).toBe("INFLUENCER");
+    expect(publicCategoryToDb("other_business")).toBe("OTHER");
     expect(publicCategoryToDb("unknown")).toBe("OTHER");
   });
 });

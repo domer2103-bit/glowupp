@@ -9,7 +9,7 @@ import { SUPPORT_EMAIL } from "@/lib/partner-terms";
 export const metadata: Metadata = pageMetadata({
   title: "Partner with GlowUpp — earn when your customers book a pro",
   description:
-    "Put a GlowUpp QR code in your café, gym, garden centre, salon or trade counter, or share your link online. Free to join. Earn 50% of the fee GlowUpp collects when the people you send book a professional.",
+    "Put a GlowUpp QR code in your café, gym, garden centre, salon or trade counter. Free to join. Earn 50% of the fee GlowUpp collects when the people you send book a professional.",
   path: "/partners",
 });
 
@@ -62,7 +62,7 @@ const FAQ: { q: string; a: string }[] = [
     a: "No. Jobs where the homeowner or the professional is you, or shares your email address or phone number, don't earn a share.",
   },
   {
-    q: "What if I post about GlowUpp online?",
+    q: "Can I promote GlowUpp online?",
     a: 'Start the post with "#ad" or "Ad" so it is clear it is an advert, and don\'t make claims about GlowUpp (such as about price, speed or results) that are untrue or that we haven\'t agreed.',
   },
   {
@@ -106,8 +106,7 @@ export default function PartnersPage() {
             <p className="text-xs font-semibold uppercase tracking-wide text-[#3a6694]">Homeowner partners</p>
             <h3 className="mt-1 text-lg font-semibold">Send people with a home to improve</h3>
             <p className="mt-2 text-sm text-zinc-600">
-              Cafés, gyms and studios, garden centres, salons, influencers — anywhere people have a few minutes and a phone. Put your QR code on a coaster, poster or counter card,
-              or share your link.
+              Cafés, gyms and studios, garden centres, salons — any business where people have a few minutes and a phone. Put your QR code on a coaster, poster or counter card.
             </p>
             <p className="mt-3 text-sm text-zinc-600">
               When someone opens your link, redesigns a room, picks a professional through GlowUpp and that professional pays their fee, you earn {SHARE_PERCENT}% of it.
