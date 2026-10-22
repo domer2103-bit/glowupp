@@ -82,7 +82,7 @@ export function JoinForm({ redirectError }: { redirectError?: string }) {
       </div>
 
       <details className="rounded-xl border border-zinc-200 bg-blue-50/50 px-4 py-3 text-sm">
-        <summary className="cursor-pointer font-medium text-[#3a6694]">Partner terms (short version)</summary>
+        <summary className="cursor-pointer font-medium text-[#3a6694]">Partner terms</summary>
         <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 text-zinc-700">
           {PARTNER_TERMS.map((t) => (
             <li key={t}>{t}</li>
@@ -91,7 +91,13 @@ export function JoinForm({ redirectError }: { redirectError?: string }) {
       </details>
       <label className="flex items-start gap-3 text-sm">
         <input name="accept_terms" type="checkbox" required className="mt-0.5 h-5 w-5 shrink-0 accent-[#3a6694]" />
-        <span>I&apos;ve read and accept the partner terms above.</span>
+        <span>
+          I&apos;ve read and accept the{" "}
+          <a href="/partners/terms" target="_blank" rel="noopener" className="underline">
+            full partner terms
+          </a>
+          .
+        </span>
       </label>
 
       {error && (

@@ -1,6 +1,7 @@
 import { AFFILIATE_MIN_PAYOUT_PENCE, PRO_REFERRAL_EARNING_MONTHS } from "@/lib/affiliate";
 import { formatPence } from "@/lib/money";
 import { PRIVATE_LINK_FEE_RATE, PRIVATE_LINK_FREE_JOBS } from "@/lib/fees";
+import { companyLine } from "@/lib/company";
 
 /**
  * Plain-English partner terms shown on /partner/join and accepted with a
@@ -12,6 +13,7 @@ import { PRIVATE_LINK_FEE_RATE, PRIVATE_LINK_FREE_JOBS } from "@/lib/fees";
 export const SUPPORT_EMAIL = "hello@glowupp.co.uk";
 
 export const PARTNER_TERMS: string[] = [
+  `These terms are between you and ${companyLine()} ("GlowUpp", "we", "us"). The partner programme is for businesses with a physical presence, such as shops, cafés, salons, gyms, garden centres, trade suppliers and tradespeople. It is not open to influencers or online-only accounts.`,
   "You earn 50% of the lead fee GlowUpp actually collects from a professional on a job booked by a homeowner who started through your link or QR code. The first partner link a homeowner opens (within 30 days) is the one credited.",
   `You also earn that same share on jobs won by tradespeople who create a GlowUpp professional account through your tradespeople link or QR code${PRO_REFERRAL_EARNING_MONTHS === null ? ", on every job they win through GlowUpp" : `, on jobs they win in the first ${PRO_REFERRAL_EARNING_MONTHS} months after they sign up`}. The first partner link a tradesperson opens (within 30 days of signing up) is the one credited.`,
   "We only ever pay a share of a fee we actually collect. Promotions and discounts in force when a professional signs up, or later — for example free introductory jobs — earn no share, because no fee is collected on them; a discounted fee earns a share of the discounted amount.",
@@ -19,8 +21,14 @@ export const PARTNER_TERMS: string[] = [
   "Each job's fee is shared with one partner at most: the partner the homeowner came through if there is one, otherwise the partner the professional signed up through.",
   "If a job carries no fee (for example a professional's free introductory jobs), or the fee is cancelled or reversed, there is no share on it. A share already credited is withdrawn if its fee is reversed.",
   "Your dashboard shows your visits, the redesigns started through your link, jobs booked, and what you have earned and been paid.",
-  `We pay what you have earned by bank transfer, once we have checked your account and have your payment details, and once at least ${formatPence(AFFILIATE_MIN_PAYOUT_PENCE)} is waiting for you. Shares are only ever paid on fees GlowUpp has actually received.`,
+  `We pay what you have earned by bank transfer once a month, once we have checked your account and have your payment details, and once at least ${formatPence(AFFILIATE_MIN_PAYOUT_PENCE)} is waiting for you. A smaller balance carries over to the next month. Shares are only ever paid on fees GlowUpp has actually received. If a fee is reversed after we have paid you your share of it, we can take that amount off what we owe you next.`,
   "Jobs where the homeowner or the professional is you, or shares your email address or phone number, do not earn a share.",
-  "If you promote GlowUpp online (for example in a social media post), make it clear it is an advert by starting the post with \"#ad\" or \"Ad\", and do not make claims about GlowUpp (such as about price, speed or results) that are untrue or that we have not agreed.",
-  `We can pause or close an account that misleads people about GlowUpp or otherwise misuses the programme, and can change or end the programme. Questions: ${SUPPORT_EMAIL}.`,
+  "You are an independent business, not our employee, agent or partner in law. You cannot speak for GlowUpp, make promises on our behalf, or tell anyone what a job will cost. Earnings are not a salary and depend on real bookings: we do not guarantee any volume of customers or income.",
+  "Promote GlowUpp honestly and lawfully: no spam or unsolicited messages (including texts, emails and WhatsApp to people who have not agreed to hear from you), no fake or paid-for sign-ups, no bots, no look-alike websites or misleading use of our name, and do not collect customers' personal details for us. Any online or social promotion must be clearly marked as an advert (start it with \"#ad\" or \"Ad\"), and must not make claims about GlowUpp (such as about price, speed or results) that are untrue or that we have not agreed.",
+  "You may use the posters, coasters and graphics we provide, unaltered, to promote GlowUpp, and must stop when your account ends. The GlowUpp name, logo and materials remain ours.",
+  "You are responsible for your own tax on what you earn, and for telling any tax authority about it. We may ask for details such as your business name, address and, if you are VAT-registered, your VAT number.",
+  `We can pause or close an account that misleads people about GlowUpp or otherwise misuses the programme, and can hold back payment while we look into suspected fraud. You can close your account at any time by emailing ${SUPPORT_EMAIL}. Shares already earned on fees we have received stay payable once they reach the minimum, but a balance below the minimum when an account closes is not paid.`,
+  "We may change or end the programme or these terms. A change only applies to jobs booked after we tell you by email, and what you have already earned on earlier jobs stays payable.",
+  "Nothing in these terms limits liability that cannot lawfully be limited. Otherwise, our total liability to you under the programme is limited to the amounts we owe you. These terms are governed by the law of England and Wales, and the courts of England and Wales have jurisdiction.",
+  `Questions: ${SUPPORT_EMAIL}.`,
 ];

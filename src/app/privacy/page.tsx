@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
+import { companyLine } from "@/lib/company";
 
 export const metadata: Metadata = pageMetadata({ title: "Privacy Policy — GlowUpp", description: "How GlowUpp collects, uses, and protects your data.", path: "/privacy" });
 
@@ -15,14 +16,13 @@ export default function PrivacyPolicyPage() {
         <h1 className="mt-6 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Privacy Policy
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 8 October 2026</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 22 October 2026</p>
 
         <div className="mt-10 space-y-10 text-zinc-700 dark:text-zinc-300">
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">1. Who we are</h2>
             <p>
-              GlowUpp (glowupp.co.uk) is operated by Dominik Wierzchowski, trading as GlowUpp, a
-              sole trader based at 65 Sandway Crescent, Liverpool, L11 2SW, United Kingdom. For
+              GlowUpp (glowupp.co.uk) is operated by {companyLine()}. For
               any question about this policy or your data, contact{" "}
               <a href="mailto:hello@glowupp.co.uk" className="underline">hello@glowupp.co.uk</a>.
             </p>
@@ -144,7 +144,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <p className="border-t border-zinc-200 pt-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-            GlowUpp is currently operated as a sole trader business. This policy is written to be
+            This policy is written to be
             accurate and plain-spoken rather than exhaustive; if you have questions about how your
             data is handled, just ask.
           </p>
