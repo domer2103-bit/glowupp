@@ -47,6 +47,10 @@ export default async function AdminHubPage() {
               {affiliates.length} partners{owedToPartners > 0 ? ` · ${owedToPartners} to pay` : ""}
             </span>
           </Link>
+          <Link href="/admin/poll" className={CARD_CLASS}>
+            <span className="font-medium">Pricing poll</span>
+            <span className="text-sm text-zinc-500">2% or monthly?</span>
+          </Link>
           <Link href="/admin/waitlist" className={CARD_CLASS}>
             <span className="font-medium">Launch waitlist</span>
             <span className="text-sm text-zinc-500">{waitlistSignups.length} signed up</span>
