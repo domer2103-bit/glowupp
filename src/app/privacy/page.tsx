@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
-import { companyLine } from "@/lib/company";
+import { companyLine, ICO_REGISTRATION_NUMBER } from "@/lib/company";
 
 export const metadata: Metadata = pageMetadata({ title: "Privacy Policy — GlowUpp", description: "How GlowUpp collects, uses, and protects your data.", path: "/privacy" });
 
@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
         <h1 className="mt-6 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Privacy Policy
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 22 October 2026</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 26 October 2026</p>
 
         <div className="mt-10 space-y-10 text-zinc-700 dark:text-zinc-300">
           <section className="space-y-3">
@@ -28,7 +28,9 @@ export default function PrivacyPolicyPage() {
             </p>
             <p>
               We are the &ldquo;data controller&rdquo; for the personal data described below, for
-              the purposes of UK GDPR and the Data Protection Act 2018.
+              the purposes of UK GDPR and the Data Protection Act 2018. We are registered with the
+              Information Commissioner&rsquo;s Office (ICO) under registration number{" "}
+              {ICO_REGISTRATION_NUMBER}.
             </p>
           </section>
 
