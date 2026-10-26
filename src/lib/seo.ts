@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HOMEPAGE_CATEGORIES, getHomepageCategory, type HomepageCategory } from "@/lib/homepage-categories";
+import { BLOG_POSTS, blogPath } from "@/lib/blog";
 
 /**
  * Everything search engines and link previews need to know about the public site, in one place:
@@ -62,6 +63,7 @@ export const STATIC_PUBLIC_PAGES: readonly SitemapPage[] = [
   { path: "/professionals", priority: 0.8, changeFrequency: "weekly" },
   { path: "/partners", priority: 0.7, changeFrequency: "monthly" },
   { path: "/partner/join", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/blog", priority: 0.7, changeFrequency: "weekly" },
   { path: "/privacy", priority: 0.2, changeFrequency: "yearly" },
   { path: "/terms", priority: 0.2, changeFrequency: "yearly" },
 ];
@@ -71,7 +73,11 @@ export function categoryPath(key: string): string {
 }
 
 export function sitemapPages(): SitemapPage[] {
-  return [...STATIC_PUBLIC_PAGES, ...HOMEPAGE_CATEGORIES.map((c) => ({ path: categoryPath(c.key), priority: 0.9, changeFrequency: "monthly" as const }))];
+  return [
+    ...STATIC_PUBLIC_PAGES,
+    ...HOMEPAGE_CATEGORIES.map((c) => ({ path: categoryPath(c.key), priority: 0.9, changeFrequency: "monthly" as const })),
+    ...BLOG_POSTS.map((p) => ({ path: blogPath(p.slug), priority: 0.6, changeFrequency: "monthly" as const })),
+  ];
 }
 
 /** Lowercase noun for use mid-sentence: "Living room" -> "living room". */
@@ -156,5 +162,21 @@ export function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: trail.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t.name, item: absoluteUrl(t.path) })),
+  };
+}
+
+export function articleJsonLd(post: { title: string; description: string; slug: string; published: string; heroSrc: string }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.description,
+    datePublished: post.published,
+    dateModified: post.published,
+    inLanguage: "en-GB",
+    image: absoluteUrl(post.heroSrc),
+    mainEntityOfPage: absoluteUrl(blogPath(post.slug)),
+    author: { "@type": "Organization", name: SITE_NAME },
+    publisher: { "@type": "Organization", name: SITE_NAME, logo: { "@type": "ImageObject", url: absoluteUrl("/icon.svg") } },
   };
 }

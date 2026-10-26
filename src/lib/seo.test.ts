@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
+import { BLOG_POSTS } from "@/lib/blog";
 import { HOMEPAGE_CATEGORIES } from "@/lib/homepage-categories";
 import { isCrawler } from "@/lib/crawler";
 import { PRIVATE_PATHS, SITE_ORIGIN, STATIC_PUBLIC_PAGES, absoluteUrl, breadcrumbJsonLd, categoryFaq, categoryMetadata, faqJsonLd, jsonLdString, pageMetadata, sitemapPages } from "@/lib/seo";
@@ -56,7 +57,7 @@ describe("sitemap and robots", () => {
     expect(urls).toContain(absoluteUrl("/"));
     expect(urls).toContain(absoluteUrl("/how-it-works"));
     for (const c of HOMEPAGE_CATEGORIES) expect(urls).toContain(absoluteUrl(`/redesign/${c.key}`));
-    expect(urls).toHaveLength(STATIC_PUBLIC_PAGES.length + HOMEPAGE_CATEGORIES.length);
+    expect(urls).toHaveLength(STATIC_PUBLIC_PAGES.length + HOMEPAGE_CATEGORIES.length + BLOG_POSTS.length);
   });
   it("never lists a private or noindex page in the sitemap", () => {
     for (const p of sitemapPages()) {
