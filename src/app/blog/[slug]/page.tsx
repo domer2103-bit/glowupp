@@ -85,6 +85,23 @@ export default async function BlogPostPage(props: PageProps<"/blog/[slug]">) {
           )
         )}
 
+        {post.sources && (
+          <section className="mt-12">
+            <h2 className="text-2xl font-semibold">Where these figures come from</h2>
+            <p className="mt-2 text-sm text-zinc-600">Prices checked {post.pricesChecked}. Check the guides for their latest figures.</p>
+            <ul className="mt-3 flex flex-col gap-2 text-sm">
+              {post.sources.map((src) => (
+                <li key={src.url}>
+                  <a href={src.url} target="_blank" rel="noopener noreferrer nofollow" className="text-[#3a6694] underline">
+                    {src.name}
+                  </a>
+                  <span className="text-zinc-500"> · {src.note}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="mt-12">
           <h2 className="text-2xl font-semibold">Common questions</h2>
           <dl className="mt-4 flex flex-col gap-4">
