@@ -1704,6 +1704,835 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
     related: ["get-local-clients-without-paying-per-lead", "price-a-job-without-undercutting-yourself"],
   },
+  {
+    slug: "how-to-photograph-a-room-for-an-ai-redesign",
+    title: "How to photograph a room for an AI redesign",
+    description: "Simple tips for taking a clear photo of your room, garden or house front so an AI redesign tool gives you a realistic result.",
+    published: "2026-10-27",
+    category: "living-room",
+    heroSrc: "/homepage/living-room.jpg",
+    heroAlt: "A tired living room next to an AI redesign with navy walls and white panelling",
+    intro:
+      "The better your photo, the more realistic the redesign. You do not need a good camera: a phone, some daylight and two minutes of tidying make a big difference.",
+    blocks: [
+      { type: "h2", text: "Use natural light" },
+      {
+        type: "p",
+        text: "Take the photo in daylight with the curtains or blinds open, and switch the lights on if the room is dark. Avoid pointing the camera straight at a bright window, which turns the rest of the room into a silhouette.",
+      },
+      { type: "h2", text: "Stand in a corner and show the whole room" },
+      {
+        type: "p",
+        text: "Stand in a corner or doorway so that two walls, the floor and the ceiling are all in the frame. A photo that shows the whole space gives the tool more to work with than a close-up of one wall.",
+      },
+      { type: "h2", text: "Tidy first" },
+      {
+        type: "ul",
+        items: [
+          "Clear loose items from floors, worktops and surfaces.",
+          "Put away anything you would not want in the final picture, such as laundry or bins.",
+          "Move people and pets out of the shot.",
+        ],
+      },
+      { type: "h2", text: "Hold the phone level and steady" },
+      {
+        type: "p",
+        text: "Hold the phone at about chest height, keep it level so the walls look straight, and take the photo in landscape if the room is wide. Rest your elbows against your body or lean on a wall to avoid blur.",
+      },
+      { type: "h2", text: "Take a few and pick the best" },
+      {
+        type: "p",
+        text: "Take several photos from different corners and choose the clearest. Check that nothing is blurred and that the edges of the room are visible.",
+      },
+      { type: "h2", text: "Outdoor spaces" },
+      {
+        type: "p",
+        text: "For a garden, drive or house front, choose a bright but not harshly sunny moment, stand back far enough to see the whole space and keep parked cars and bins out of the frame if you can.",
+      },
+      { type: "h2", text: "Remember what a redesign is" },
+      {
+        type: "p",
+        text: "An AI redesign is an idea, not a survey or a promise of how the finished job will look. Use it to decide what you like and to brief a professional, then ask them what is possible in your actual space. " + NOT_ADVICE,
+      },
+    ],
+    faq: [
+      {
+        question: "Do I need a professional camera?",
+        answer: "No. A recent phone camera in good daylight is usually enough. Clarity, light and showing the whole room matter more than the equipment.",
+      },
+      {
+        question: "Should I tidy before I take the photo?",
+        answer: "Yes. Clearing surfaces and floors makes the room easier to see and gives a cleaner result.",
+      },
+      {
+        question: "Can I use a photo I already have?",
+        answer: "You can, as long as it is clear, well lit and shows the whole space as it looks now.",
+      },
+    ],
+    related: ["how-to-write-a-brief-for-a-tradesperson", "how-to-make-a-small-room-feel-bigger"],
+  },
+  {
+    slug: "how-to-write-a-brief-for-a-tradesperson",
+    title: "How to write a brief for a tradesperson",
+    description: "A simple one-page brief template: what to include so tradespeople can quote accurately, and how to use photos and ideas to explain what you want.",
+    published: "2026-10-27",
+    category: "kitchen",
+    heroSrc: "/homepage/hero.jpg",
+    heroAlt: "A dated kitchen next to an AI redesign of the same room with navy units",
+    intro:
+      "A clear brief gets you better quotes, fewer misunderstandings and a faster start. It takes about twenty minutes to write, and you can send the same brief to everyone you ask.",
+    blocks: [
+      { type: "h2", text: "1. What you want done" },
+      {
+        type: "p",
+        text: "Describe the job in plain English: what you want removed, what you want added and what you want left alone. Be specific about the result you are after, not only the task.",
+      },
+      { type: "h2", text: "2. The space" },
+      {
+        type: "ul",
+        items: [
+          "The address or area, and the type of property (terrace, semi, flat) and roughly how old it is.",
+          "Measurements of the room or area, if you can take them.",
+          "Anything that affects access, such as stairs, parking or a narrow side entrance.",
+          "Known problems, such as damp, old wiring or a boiler you want to keep where it is.",
+        ],
+      },
+      { type: "h2", text: "3. Photos and ideas" },
+      {
+        type: "p",
+        text: "Attach photos of the space as it is now and a few pictures of styles or finishes you like. An AI redesign of your own photo is a quick way to show exactly what you have in mind.",
+      },
+      { type: "h2", text: "4. Materials and finishes" },
+      {
+        type: "p",
+        text: "Say what you have already chosen, what you are happy for the tradesperson to suggest and who is buying what. This is the biggest reason two quotes are not comparable.",
+      },
+      { type: "h2", text: "5. Timing" },
+      {
+        type: "p",
+        text: "Say when you would like the work to start and whether you have a deadline, such as a family visit or a move-in date. Be honest about how flexible you are.",
+      },
+      { type: "h2", text: "6. Budget" },
+      {
+        type: "p",
+        text: "You do not have to share a number, but it helps to say if you have a firm limit or want options at different levels. Ask for an itemised quote so you can compare.",
+      },
+      { type: "h2", text: "Send the same brief to everyone" },
+      {
+        type: "p",
+        text: "When every tradesperson works from the same information, the quotes are much easier to compare. Keep a copy, and write down any extra details you give someone verbally and send them to everybody.",
+      },
+      { type: "h2", text: "Share your design with local professionals" },
+      {
+        type: "p",
+        text: "On GlowUpp you can upload a photo, see a redesign and share it with local professionals as your brief. It is free for homeowners. " + NOT_ADVICE,
+      },
+    ],
+    faq: [
+      {
+        question: "How long should a brief be?",
+        answer: "One page is usually enough: what you want, the space, photos, finishes, timing and any known problems.",
+      },
+      {
+        question: "Should I tell tradespeople my budget?",
+        answer: "It is up to you. Many people say whether they have a firm limit, or ask for options at different levels, without giving an exact number.",
+      },
+      {
+        question: "Do I need measurements?",
+        answer: "They help, but a tradesperson will usually measure properly before giving a final quote.",
+      },
+    ],
+    related: ["get-three-quotes-from-tradespeople", "compare-builders-quotes-like-for-like"],
+  },
+  {
+    slug: "how-to-choose-paint-colours-for-a-room",
+    title: "How to choose paint colours for a room",
+    description: "A practical way to choose paint colours: look at the light, pick a palette, test samples on the wall and avoid the common mistakes.",
+    published: "2026-10-27",
+    category: "painting",
+    heroSrc: "/homepage/painting.jpg",
+    heroAlt: "A scuffed, bare wall next to the same room repainted in green",
+    intro:
+      "Colours look different in every room and every light, which is why paint chips so often disappoint. A little planning and some testing is far cheaper than repainting a room you do not like.",
+    blocks: [
+      { type: "h2", text: "Start with the light" },
+      {
+        type: "p",
+        text: "North-facing rooms get cooler, bluer light and can make colours look flat or grey. South-facing rooms are warmer and brighter. Look at your room at different times of day before you choose.",
+      },
+      { type: "h2", text: "Work from what you cannot change" },
+      {
+        type: "p",
+        text: "Floors, worktops, tiles, a sofa you are keeping and the colour of the woodwork all affect which colours will work. Choose paint to suit them rather than the other way round.",
+      },
+      { type: "h2", text: "Pick a simple palette" },
+      {
+        type: "ul",
+        items: [
+          "One main colour for most of the walls.",
+          "A lighter or darker shade for woodwork and ceilings.",
+          "One accent for a feature wall, a door or furniture.",
+        ],
+      },
+      { type: "h2", text: "Dark colours can work in small rooms" },
+      {
+        type: "p",
+        text: "A dark, rich colour can make a small room feel cosy rather than small, especially if you carry it over the walls and woodwork. Light colours reflect more light and help a dim room.",
+      },
+      { type: "h2", text: "Test before you buy lots" },
+      {
+        type: "p",
+        text: "Buy a sample pot, paint a large patch on two different walls (or on a big piece of lining paper) and look at it in the morning, the afternoon and with the lights on. Live with it for a few days.",
+      },
+      { type: "h2", text: "Choose the right finish" },
+      {
+        type: "p",
+        text: "Matt hides imperfections on walls and ceilings. Eggshell or satin is easier to wipe and suits woodwork, kitchens and bathrooms. Use paint made for damp rooms where it is needed.",
+      },
+      { type: "h2", text: "Mistakes to avoid" },
+      {
+        type: "ul",
+        items: [
+          "Choosing from a tiny paint chip under shop lights.",
+          "Skipping the testing stage.",
+          "Painting over damp, flaking or mouldy walls without fixing the cause first.",
+          "Using too many different colours.",
+        ],
+      },
+      { type: "h2", text: "See it before you paint" },
+      {
+        type: "p",
+        text: "Upload a photo of your room to GlowUpp to see AI-generated colour ideas on your own walls. It is a guide, not an exact match, so always test a real sample. " + NOT_ADVICE,
+      },
+    ],
+    faq: [
+      {
+        question: "How do I test a paint colour?",
+        answer: "Paint a large patch on two different walls or on lining paper and look at it in different light over a few days.",
+      },
+      {
+        question: "Do dark colours make a room look smaller?",
+        answer: "They can make it feel cosier. In a small room a dark colour used on walls and woodwork can look deliberate and stylish, but it does reduce reflected light.",
+      },
+      {
+        question: "Which finish should I use?",
+        answer: "Matt for most walls and ceilings, and eggshell or satin for woodwork and rooms that need wiping. Use paint made for damp rooms in kitchens and bathrooms.",
+      },
+    ],
+    related: ["living-room-colour-ideas", "how-to-make-a-small-room-feel-bigger"],
+  },
+  {
+    slug: "how-to-make-a-small-room-feel-bigger",
+    title: "How to make a small room feel bigger",
+    description: "Practical ways to make a small room feel more spacious: light, colour, mirrors, furniture size, storage and tidy lines.",
+    published: "2026-10-27",
+    category: "bedroom",
+    heroSrc: "/homepage/bedroom.jpg",
+    heroAlt: "A dark traditional bedroom next to the same room redesigned in soft, light colours",
+    intro:
+      "You cannot move the walls, but you can change how a room feels. Most of the tricks come down to light, clear floor space and keeping the eye moving.",
+    blocks: [
+      { type: "h2", text: "Let in as much light as possible" },
+      {
+        type: "p",
+        text: "Keep windows clear, use light, thin curtains or blinds that pull right back and add lamps at different heights so no corner is dark. A bright room always feels bigger.",
+      },
+      { type: "h2", text: "Choose light, calm colours" },
+      {
+        type: "p",
+        text: "Soft, light colours on the walls and ceiling reflect light and make the edges of the room harder to see. Using the same or similar shades on walls and woodwork can also make the room feel less broken up.",
+      },
+      { type: "h2", text: "Use mirrors carefully" },
+      {
+        type: "p",
+        text: "A large mirror opposite or beside a window bounces light around the room. Place it so it reflects something pleasant, not clutter.",
+      },
+      { type: "h2", text: "Get the furniture scale right" },
+      {
+        type: "ul",
+        items: [
+          "Choose fewer, slightly smaller pieces rather than lots of little ones.",
+          "Pick furniture on legs, so you can see floor underneath.",
+          "Keep the main walkways clear.",
+        ],
+      },
+      { type: "h2", text: "Go up, not out" },
+      {
+        type: "p",
+        text: "Use tall shelves, wall-mounted lights and curtains hung close to the ceiling to draw the eye upwards. Make sure shelving is fixed safely to the wall.",
+      },
+      { type: "h2", text: "Hide the clutter" },
+      {
+        type: "p",
+        text: "Closed storage, under-bed drawers and baskets keep surfaces clear. A few well-chosen objects look better than many.",
+      },
+      { type: "h2", text: "Mistakes to avoid" },
+      {
+        type: "ul",
+        items: [
+          "Large, heavy furniture that fills the room.",
+          "Dark, heavy curtains that block the window.",
+          "Too many patterns and colours.",
+        ],
+      },
+      { type: "h2", text: "Try ideas before you buy" },
+      {
+        type: "p",
+        text: "Upload a photo of your room to GlowUpp to see AI-generated ideas for colour and layout before you spend anything. " + NOT_ADVICE,
+      },
+    ],
+    faq: [
+      {
+        question: "Does a mirror really make a room look bigger?",
+        answer: "A large mirror placed to reflect light from a window can make a room feel brighter and more open. It works best when it reflects something tidy.",
+      },
+      {
+        question: "Should I use light or dark colours in a small room?",
+        answer: "Light colours reflect more light and usually make a room feel more spacious. Dark colours can work for a cosy effect if you commit to them.",
+      },
+      {
+        question: "What furniture works best in a small room?",
+        answer: "A few well-sized pieces on legs, with clear walkways and plenty of closed storage.",
+      },
+    ],
+    related: ["small-bathroom-ideas", "how-to-choose-paint-colours-for-a-room"],
+  },
+  {
+    slug: "how-to-plan-a-small-bathroom-layout",
+    title: "How to plan a small bathroom layout",
+    description: "A step-by-step way to plan a small bathroom layout: measure, list what you need, think about clearances, storage and what to ask a plumber.",
+    published: "2026-10-27",
+    category: "bathroom",
+    heroSrc: "/homepage/bathroom.jpg",
+    heroAlt: "A tired small bathroom next to an AI redesign with green tiles and a glass shower screen",
+    intro:
+      "In a small bathroom every few centimetres matter. Planning the layout on paper first saves expensive changes later, and moving pipes is the biggest thing to understand before you start.",
+    blocks: [
+      { type: "h2", text: "1. Measure the room accurately" },
+      {
+        type: "p",
+        text: "Measure the length and width, the height, and the position of the door, window, radiator and any pipes or boxing. Draw a simple plan on squared paper and mark everything on it.",
+      },
+      { type: "h2", text: "2. List what you really need" },
+      {
+        type: "p",
+        text: "Decide what has to be there: toilet, basin, and bath or shower. Then add the nice-to-haves, such as a second basin, a bath as well as a shower or a heated towel rail.",
+      },
+      { type: "h2", text: "3. Think about where the pipes are" },
+      {
+        type: "p",
+        text: "The toilet's waste pipe and the existing water supplies strongly affect what is practical. Keeping fittings near where they are is usually simpler than moving them. Ask a plumber before you commit to a layout that moves things.",
+      },
+      { type: "h2", text: "4. Leave space to use it" },
+      {
+        type: "ul",
+        items: [
+          "You need clear floor space in front of the toilet and basin to use them comfortably.",
+          "Check how doors, shower doors and windows open.",
+          "Ask your fitter or the fitting instructions for the minimum clearances for each item.",
+        ],
+      },
+      { type: "h2", text: "5. Choose slimmer fittings" },
+      {
+        type: "p",
+        text: "Short-projection toilets, slim basins and a walk-in shower with a glass screen save space and look lighter than a bath with a curtain.",
+      },
+      { type: "h2", text: "6. Plan storage and lighting" },
+      {
+        type: "p",
+        text: "Recessed shelves, a mirrored cabinet and a vanity unit with drawers keep surfaces clear. Bathrooms have strict safety rules for electrical work and lights, so use a qualified electrician.",
+      },
+      { type: "h2", text: "7. Ventilation and waterproofing" },
+      {
+        type: "p",
+        text: "Good ventilation and properly waterproofed walls and floors stop damp and mould. Ask your fitter how they will deal with both.",
+      },
+      { type: "h2", text: "Mistakes to avoid" },
+      {
+        type: "ul",
+        items: [
+          "Ordering fittings before checking the measurements.",
+          "Moving the toilet without checking the waste pipe.",
+          "Forgetting storage and ventilation.",
+        ],
+      },
+      { type: "h2", text: "See the idea first" },
+      {
+        type: "p",
+        text: "Upload a photo of your bathroom to GlowUpp to see AI-generated ideas, then talk the layout through with a plumber or fitter. " + NOT_ADVICE,
+      },
+    ],
+    faq: [
+      {
+        question: "Can I move the toilet in a small bathroom?",
+        answer: "Often yes, but it depends on where the waste pipe runs. Ask a plumber before you design around a new position.",
+      },
+      {
+        question: "Walk-in shower or bath?",
+        answer: "In a small room a walk-in shower with a glass screen usually saves space. Keep a bath if you or your household value it more.",
+      },
+      {
+        question: "Who should do the electrics in a bathroom?",
+        answer: "A qualified electrician. Bathrooms have specific safety rules for lights, switches and sockets.",
+      },
+    ],
+    related: ["small-bathroom-ideas", "what-order-to-renovate-a-house"],
+  },
+  {
+    slug: "how-to-live-at-home-during-building-work",
+    title: "How to live at home during building work",
+    description: "Practical tips for staying in your home while the builders are in: dust, a temporary kitchen, security, pets, children and keeping on good terms.",
+    published: "2026-10-27",
+    category: "extension",
+    heroSrc: "/homepage/extension.jpg",
+    heroAlt: "The plain back of a brick house next to the same house with a new glazed extension",
+    intro:
+      "Many people stay at home during renovation work to save money and keep an eye on the job. It is doable with some planning and a sense of humour.",
+    blocks: [
+      { type: "h2", text: "Agree the practical details before work starts" },
+      {
+        type: "ul",
+        items: [
+          "Working hours and which days they will be on site.",
+          "Which rooms and which toilet the team will use.",
+          "Where materials, tools and the skip will go.",
+          "How the site will be locked and made safe at night.",
+          "Who you can ring if there is a problem, and who is in charge on the day.",
+        ],
+      },
+      { type: "h2", text: "Plan for dust" },
+      {
+        type: "p",
+        text: "Ask for dust sheets and closed doors between the work area and the rest of the house. Cover furniture you cannot move, and expect to clean more often than usual.",
+      },
+      { type: "h2", text: "Set up a temporary kitchen" },
+      {
+        type: "p",
+        text: "If the kitchen is out of action, move a kettle, microwave, fridge and a few plates and pans to another room. Plan simple meals and be realistic about takeaways. Washing up in the bathroom basin gets old quickly.",
+      },
+      { type: "h2", text: "Keep water, heating and power in mind" },
+      {
+        type: "p",
+        text: "Ask when the water, power or heating will be off and for how long, so you are not caught out in winter or with a young family.",
+      },
+      { type: "h2", text: "Security, children and pets" },
+      {
+        type: "ul",
+        items: [
+          "Make sure doors and windows can be locked when the work is open to the outside.",
+          "Keep children and pets away from tools, materials and open areas.",
+          "Put valuables and papers away.",
+        ],
+      },
+      { type: "h2", text: "Keep a good relationship with the team" },
+      {
+        type: "p",
+        text: "Give a short daily check-in rather than ongoing interruptions, offer somewhere to leave kit overnight and keep requests for changes in writing. Good communication prevents most arguments.",
+      },
+      { type: "h2", text: "Decide when it is worth moving out" },
+      {
+        type: "p",
+        text: "For major work, such as a full rewire, no heating in winter or a whole-house project, a short stay with family or a rental may be easier and quicker for everyone. Discuss it with your contractor.",
+      },
+      { type: "h2", text: "Plan the work first" },
+      {
+        type: "p",
+        text: "See what you want with a GlowUpp redesign, then ask tradespeople how they would run the job around your home. " + NOT_ADVICE,
+      },
+    ],
+    faq: [
+      {
+        question: "Can I live in the house during an extension?",
+        answer: "Often yes, if the existing rooms stay usable and the work area can be separated. Discuss dust, water, power and security with your builder.",
+      },
+      {
+        question: "How do I cope without a kitchen?",
+        answer: "Set up a temporary kitchen with a kettle, microwave and fridge in another room, and plan simple meals.",
+      },
+      {
+        question: "What should I agree with the builder before starting?",
+        answer: "Working hours, access, toilet use, where materials go, security and who to call if there is a problem.",
+      },
+    ],
+    related: ["how-to-set-a-realistic-renovation-budget", "what-order-to-renovate-a-house"],
+  },
+  {
+    slug: "how-to-find-out-if-you-need-planning-permission",
+    title: "How to find out if you need planning permission",
+    description: "How to check whether your project needs planning permission or building regulations approval, who to ask and what to do before you start.",
+    published: "2026-10-27",
+    category: "exterior",
+    heroSrc: "/homepage/exterior.jpg",
+    heroAlt: "A tired grey house front next to an AI redesign with white render and a navy front door",
+    intro:
+      "Whether you need permission depends on what you are doing and where you live. It is worth checking early, because starting work without a required permission can cause serious problems later, including when you come to sell.",
+    blocks: [
+      { type: "h2", text: "Planning permission and building regulations are different" },
+      {
+        type: "p",
+        text: "Planning permission is about what you build and how it affects the area. Building regulations are about whether the work is safe and meets technical standards. A project can need one, both or neither.",
+      },
+      { type: "h2", text: "Permitted development" },
+      {
+        type: "p",
+        text: "Many smaller projects fall under permitted development, which means you do not need to apply for full planning permission, as long as you stay within certain limits. The rules have conditions and are different in different parts of the UK, so check yours instead of assuming.",
+      },
+      { type: "h2", text: "Where you live matters" },
+      {
+        type: "ul",
+        items: [
+          "Conservation areas, listed buildings and some protected areas have extra restrictions.",
+          "Flats and maisonettes often do not have the same permitted development rights as houses.",
+          "Some properties have rights removed, so check your title documents or ask the council.",
+          "If you rent or own a leasehold, you may need permission from the landlord or freeholder too.",
+        ],
+      },
+      { type: "h2", text: "How to check" },
+      {
+        type: "ul",
+        items: [
+          "Use the official Planning Portal for guidance on your type of project.",
+          "Contact your local council's planning department. Some offer a pre-application service.",
+          "Ask your architect, designer or builder, but still confirm anything important with the council.",
+          "For some projects you can apply for a lawful development certificate, which is formal confirmation that your plans are allowed.",
+        ],
+      },
+      { type: "h2", text: "Get it in writing" },
+      {
+        type: "p",
+        text: "Keep copies of any permission, certificate or written advice. Ask your builder to confirm who is responsible for applications and for the completion certificates.",
+      },
+      { type: "h2", text: "Mistakes to avoid" },
+      {
+        type: "ul",
+        items: [
+          "Assuming a neighbour's project means yours is fine too.",
+          "Starting work before you have the permission you need.",
+          "Forgetting about building regulations because planning is not needed.",
+        ],
+      },
+      { type: "h2", text: "Ideas first, rules second" },
+      {
+        type: "p",
+        text: "See ideas for your home with a GlowUpp redesign, then check what is allowed before you commit. A redesign image does not mean a change is permitted. " + NOT_ADVICE,
+      },
+    ],
+    faq: [
+      {
+        question: "What is permitted development?",
+        answer: "A set of rules that allow some types of work without a full planning application, provided you stay within the limits and conditions. The rules vary by location and property type.",
+      },
+      {
+        question: "Do I need building regulations approval if I do not need planning permission?",
+        answer: "Possibly. They are separate systems, so check both with your council or a qualified professional.",
+      },
+      {
+        question: "What if I live in a conservation area?",
+        answer: "Extra restrictions often apply, so check with your local council before you plan any exterior changes.",
+      },
+    ],
+    related: ["front-door-exterior-colour-ideas", "what-order-to-renovate-a-house"],
+  },
+  {
+    slug: "how-to-solve-a-problem-with-a-builder",
+    title: "How to solve a problem with a builder",
+    description: "A calm, step-by-step approach if building work goes wrong: talk first, write it down, give a chance to fix it, and where to get independent advice.",
+    published: "2026-10-27",
+    category: "driveway",
+    heroSrc: "/homepage/driveway.jpg",
+    heroAlt: "A cracked, weedy driveway next to a new block-paved driveway",
+    intro:
+      "Most problems with building work can be sorted out without a fight if you act early, stay calm and keep a record. This is general information, not legal advice.",
+    blocks: [
+      { type: "h2", text: "1. Keep records from day one" },
+      {
+        type: "p",
+        text: "Keep the quote, any agreed changes, messages, invoices and receipts. Take dated photos of the work as it goes. Records make it much easier to explain what was agreed and what happened.",
+      },
+      { type: "h2", text: "2. Raise it quickly and politely" },
+      {
+        type: "p",
+        text: "Tell the tradesperson what the problem is as soon as you notice it, preferably in a message so there is a record. Be specific about what is wrong and what you would like done.",
+      },
+      { type: "h2", text: "3. Give a chance to put it right" },
+      {
+        type: "p",
+        text: "Most good tradespeople will want to fix a genuine problem. Agree a clear plan and a date in writing.",
+      },
+      { type: "h2", text: "4. Be careful about withholding payment" },
+      {
+        type: "p",
+        text: "If you have a payment plan, check what the quote or contract says before you hold anything back. Withholding money without good reason can put you in the wrong, so get advice first.",
+      },
+      { type: "h2", text: "5. Get independent advice" },
+      {
+        type: "ul",
+        items: [
+          "Citizens Advice can explain your consumer rights and next steps.",
+          "If the tradesperson belongs to a trade body or scheme, check whether it has a complaints or mediation process.",
+          "For electrical or gas problems that affect safety, get another registered professional to check the work.",
+        ],
+      },
+      { type: "h2", text: "6. Formal steps if it is not resolved" },
+      {
+        type: "p",
+        text: "If you cannot agree, you can write a formal complaint setting out the problem and what you want. Beyond that there are options such as mediation or a small claims process. Ask Citizens Advice or a solicitor which fits your situation.",
+      },
+      { type: "h2", text: "How to avoid it in the first place" },
+      {
+        type: "ul",
+        items: [
+          "Check insurance and registration before you hire.",
+          "Agree an itemised written quote and staged payments.",
+          "Get changes agreed in writing before the work is done.",
+        ],
+      },
+      { type: "h2", text: "Start with a clear brief" },
+      {
+        type: "p",
+        text: "Clear expectations help prevent most disputes. Use a GlowUpp redesign as part of your brief so everyone is working to the same picture. " + NOT_ADVICE,
+      },
+    ],
+    faq: [
+      {
+        question: "What should I do first if I am unhappy with the work?",
+        answer: "Tell the tradesperson promptly and in writing what is wrong and what you would like done, and give them a reasonable chance to fix it.",
+      },
+      {
+        question: "Can I refuse to pay if the work is poor?",
+        answer: "It depends on the agreement and the facts, and withholding money can backfire. Get independent advice, for example from Citizens Advice, before you decide.",
+      },
+      {
+        question: "Where can I get free advice?",
+        answer: "Citizens Advice is a good first stop for consumer rights, and trade bodies may offer complaints or mediation if the tradesperson is a member.",
+      },
+    ],
+    related: ["red-flags-in-a-quote", "check-a-tradespersons-insurance-reviews-and-past-work"],
+  },
+  {
+    slug: "how-to-get-more-reviews-as-a-tradesperson",
+    audience: "professional",
+    title: "How to get more reviews as a tradesperson",
+    description: "A simple routine for tradespeople to collect good reviews: ask at the right moment, make it easy, reply to every one and handle a bad one calmly.",
+    published: "2026-10-27",
+    category: "flooring",
+    heroSrc: "/homepage/flooring.jpg",
+    heroAlt: "A worn, carpeted lounge next to the same space redesigned with oak flooring",
+    intro:
+      "Reviews are often the thing that decides between you and the next tradesperson. Most happy customers never leave one unless they are asked, so asking is the whole trick.",
+    blocks: [
+      { type: "h2", text: "Ask at the right moment" },
+      {
+        type: "p",
+        text: "The best time is just after the job is finished and the client is pleased, while they are looking at the result. A quick, genuine request then works far better than a message weeks later.",
+      },
+      { type: "h2", text: "Make it easy" },
+      {
+        type: "ul",
+        items: [
+          "Send a direct link to the place you want the review, so it is one tap.",
+          "Say which site and why: for example, that it helps people find a reliable local tradesperson.",
+          "Use a QR code on your invoice or business card.",
+        ],
+      },
+      { type: "h2", text: "A simple message you can adapt" },
+      {
+        type: "p",
+        text: "Something like: \"Thanks again, it was a pleasure working on your home. If you are happy with the job, a short review would really help me. Here is the link.\" Keep it short, and never offer money or favours in return.",
+      },
+      { type: "h2", text: "Add photos where the client agrees" },
+      {
+        type: "p",
+        text: "Before and after photos next to a review make it more convincing. Always ask permission before you share pictures of someone's home.",
+      },
+      { type: "h2", text: "Reply to every review" },
+      {
+        type: "p",
+        text: "Thank people for good reviews, by name where appropriate. New customers read replies as much as the reviews themselves.",
+      },
+      { type: "h2", text: "Handle a bad review calmly" },
+      {
+        type: "ul",
+        items: [
+          "Take a breath and do not reply while you are angry.",
+          "Respond politely, say what you will do to put things right and offer to talk offline.",
+          "Do not argue, and do not post private details about the client.",
+        ],
+      },
+      { type: "h2", text: "Do not fake or buy reviews" },
+      {
+        type: "p",
+        text: "Fake reviews, or paying for them, can get you removed from platforms and can break consumer rules. Real reviews from real jobs are worth far more.",
+      },
+      { type: "h2", text: "Make it part of finishing a job" },
+      {
+        type: "p",
+        text: "Add the review request to your end-of-job routine, alongside the final invoice and tidying up. On GlowUpp, a complete profile with recent work also helps homeowners choose you. Read our guide on showing clients the finished job first for more.",
+      },
+    ],
+    faq: [
+      {
+        question: "When should I ask for a review?",
+        answer: "Soon after you finish the job, while the client is happy with the result and the work is fresh in their mind.",
+      },
+      {
+        question: "Can I offer a discount for a review?",
+        answer: "It is best not to. Incentivised reviews can break the rules of review platforms and can undermine trust.",
+      },
+      {
+        question: "How should I answer a bad review?",
+        answer: "Stay calm and polite, explain how you will put it right and offer to talk offline. Never argue in public.",
+      },
+    ],
+    related: ["show-clients-the-finished-job-first", "send-a-quote-clients-say-yes-to"],
+  },
+  {
+    slug: "how-to-use-your-private-link-and-qr-code",
+    audience: "professional",
+    title: "How to use your private link and QR code to win your own clients",
+    description: "Practical ways for tradespeople to use a private GlowUpp link and QR code on the van, with quotes and in conversation, so clients can see their own space redesigned.",
+    published: "2026-10-27",
+    category: "garden",
+    heroSrc: "/homepage/garden.jpg",
+    heroAlt: "A bare terrace back garden next to an AI redesign with lawn, path and planting",
+    intro:
+      "Most of your best work comes from people who already know you: past clients, neighbours, passers-by and people who see your van. Your private link gives them an easy way to picture the job before they ask for a quote.",
+    blocks: [
+      { type: "h2", text: "What your private link does" },
+      {
+        type: "p",
+        text: `Every professional on GlowUpp gets a private link and QR code. A client uploads a photo, sees their own space redesigned and sends it to you for an estimate. It is private to you: other tradespeople do not see it. Your first ${PRIVATE_LINK_FREE_JOBS} jobs through your own link are free, and after that GlowUpp charges ${FEE_PERCENT} of the accepted quote (capped at ${FEE_CAP}).`,
+      },
+      { type: "h2", text: "Where to put it" },
+      {
+        type: "ul",
+        items: [
+          "On the back and sides of your van, as a QR code with a short line such as \"See your space redesigned\".",
+          "On a yard or site sign outside a job you are working on, if the client agrees.",
+          "On your business cards, flyers and invoices.",
+          "At the bottom of every quote and email you send.",
+          "In the bio of your social media profiles.",
+        ],
+      },
+      { type: "h2", text: "Use it during a visit" },
+      {
+        type: "p",
+        text: "When you are quoting, ask whether the client would like to see their space redesigned. They can scan the code while you are there, and you both leave with the same picture of the job.",
+      },
+      { type: "h2", text: "Send it after an enquiry" },
+      {
+        type: "p",
+        text: "When someone messages you and you cannot visit yet, reply with your link and a short note: \"Upload a photo of the space and you will see some ideas. I will send you a quote based on what you like.\"",
+      },
+      { type: "h2", text: "Ask satisfied clients to share it" },
+      {
+        type: "p",
+        text: "A happy client is the best advertisement. Ask them to pass your link to friends or family who are planning something similar.",
+      },
+      { type: "h2", text: "Keep it honest" },
+      {
+        type: "p",
+        text: "Explain that a redesign is an idea, not a promise of the finished result, and write the specification into your quote. Clients appreciate straight talk.",
+      },
+      { type: "h2", text: "Get started" },
+      {
+        type: "p",
+        text: "Create your free profile to get your link and QR code. There is no monthly fee. You can see the details on the professionals page.",
+      },
+    ],
+    faq: [
+      {
+        question: "Can other tradespeople see jobs that come through my private link?",
+        answer: "No. A job from your private link is private to you.",
+      },
+      {
+        question: "What does it cost to use my private link?",
+        answer: `Your first ${PRIVATE_LINK_FREE_JOBS} jobs through your own link are free. After that GlowUpp charges ${FEE_PERCENT} of the accepted quote, capped at ${FEE_CAP}. There is no monthly fee.`,
+      },
+      {
+        question: "Where should I put my QR code?",
+        answer: "On your van, business cards, invoices, quotes, site signs (with the client's permission) and social media profiles.",
+      },
+    ],
+    related: ["get-local-clients-without-paying-per-lead", "pay-per-lead-monthly-fee-or-commission"],
+  },
+  {
+    slug: "how-to-photograph-your-finished-work",
+    audience: "professional",
+    title: "How to photograph your finished work so it wins jobs",
+    description: "Simple photography tips for tradespeople: tidy first, use daylight, take before and after shots from the same spot, and ask permission before you share.",
+    published: "2026-10-27",
+    category: "patio",
+    heroSrc: "/homepage/patio.jpg",
+    heroAlt: "A rotten old deck next to an AI redesign with new red-brown decking and outdoor sofas",
+    intro:
+      "Good photos of your work are your best advertising. They do not need a professional camera, just a few minutes of care at the end of each job.",
+    blocks: [
+      { type: "h2", text: "Take a before photo before you start" },
+      {
+        type: "p",
+        text: "Photograph the space as it is before any work begins. It is the only chance to get it, and before-and-after pairs are the most convincing photos you can show.",
+      },
+      { type: "h2", text: "Take the after from the same spot" },
+      {
+        type: "p",
+        text: "Stand in the same place, at the same height and angle as the before photo. Matching the two makes the improvement obvious.",
+      },
+      { type: "h2", text: "Tidy and clean first" },
+      {
+        type: "ul",
+        items: [
+          "Remove tools, dust sheets and rubbish from the frame.",
+          "Wipe surfaces and sweep floors.",
+          "Open blinds and switch lights on.",
+        ],
+      },
+      { type: "h2", text: "Use daylight and keep the phone level" },
+      {
+        type: "p",
+        text: "Natural light looks best. Hold your phone level so that walls and edges look straight, and clean the lens before you start.",
+      },
+      { type: "h2", text: "Take wide shots and close-ups" },
+      {
+        type: "p",
+        text: "Take one or two wide photos of the whole space and a few close-ups of the details that show your skill, such as joins, edges and finishes.",
+      },
+      { type: "h2", text: "Ask permission" },
+      {
+        type: "p",
+        text: "Always ask the client before you share photos of their home, and keep house numbers, family photos and anything personal out of the frame.",
+      },
+      { type: "h2", text: "Use your photos where clients look" },
+      {
+        type: "ul",
+        items: [
+          "On your GlowUpp profile and in your quotes.",
+          "In reply messages to new enquiries.",
+          "On your social media pages and your van or business cards.",
+        ],
+      },
+      { type: "h2", text: "Make it a habit" },
+      {
+        type: "p",
+        text: "Put photos on your end-of-job checklist, next to the final invoice and the review request. A small library of good photos builds up quickly, and our guide on showing clients the finished job first explains how to use them in a quote.",
+      },
+    ],
+    faq: [
+      {
+        question: "Do I need a good camera?",
+        answer: "No. A recent phone, clean lens and good daylight are enough for most jobs.",
+      },
+      {
+        question: "Do I need the client's permission to share photos?",
+        answer: "Yes, it is good practice and often a legal requirement to ask, and to keep personal details out of the picture.",
+      },
+      {
+        question: "What makes a before and after photo convincing?",
+        answer: "Taking both from the same position, height and angle, in similar light.",
+      },
+    ],
+    related: ["how-to-get-more-reviews-as-a-tradesperson", "show-clients-the-finished-job-first"],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
