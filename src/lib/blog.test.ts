@@ -25,9 +25,22 @@ describe("blog posts", () => {
 
   it("avoid invented prices and statistics", () => {
     for (const p of BLOG_POSTS) {
-      // GlowUpp's own fee cap (from the real constant) is allowed; any other price figure is not.
+      // GlowUpp's own fee cap (from the real constant) is allowed. Any other price figure needs published sources (next test).
+      if (p.sources) continue;
       const text = JSON.stringify(p).replaceAll(formatPence(LEAD_FEE_CAP_PENCE), "");
       expect(text, p.slug).not.toMatch(/£\s?\d{2,}(?!\d)/);
+    }
+  });
+
+  it("only show other prices when they come from at least two named, dated sources", () => {
+    for (const p of BLOG_POSTS.filter((x) => x.sources)) {
+      expect(p.sources!.length, p.slug).toBeGreaterThanOrEqual(2);
+      expect(p.pricesChecked, p.slug).toMatch(/^[A-Z][a-z]+ 20\d\d$/);
+      for (const src of p.sources!) {
+        expect(src.url, p.slug).toMatch(/^https:\/\//);
+        expect(src.note.length, `${p.slug} ${src.url}`).toBeGreaterThan(10);
+      }
+      expect(JSON.stringify(p), p.slug).toContain("not quotes");
     }
   });
 
