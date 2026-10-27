@@ -65,14 +65,24 @@ export default async function BlogPostPage(props: PageProps<"/blog/[slug]">) {
           )}
         </div>
 
-        {category && (
+        {post.audience === "professional" ? (
           <div className="mt-10 flex flex-col items-center gap-3 rounded-2xl border border-[#3a6694] bg-blue-50 p-6 text-center">
-            <p className="font-semibold">See your own {category.displayName.toLowerCase()} redesigned</p>
-            <p className="text-sm text-zinc-600">Upload a photo and see AI-generated ideas in about two minutes. Free for homeowners, no sign-up needed to start.</p>
-            <Link href={categoryPath(category.key)} className="rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]">
-              Try it with your photo
+            <p className="font-semibold">Show clients the job before you quote</p>
+            <p className="text-sm text-zinc-600">Free profile, your own link and QR code, and a redesign of the client&apos;s own space. You only pay when a job is won.</p>
+            <Link href="/professionals" className="rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]">
+              See how it works for tradespeople
             </Link>
           </div>
+        ) : (
+          category && (
+            <div className="mt-10 flex flex-col items-center gap-3 rounded-2xl border border-[#3a6694] bg-blue-50 p-6 text-center">
+              <p className="font-semibold">See your own {post.ctaNoun ?? category.displayName.toLowerCase()} redesigned</p>
+              <p className="text-sm text-zinc-600">Upload a photo and see AI-generated ideas in about two minutes. Free for homeowners, no sign-up needed to start.</p>
+              <Link href={categoryPath(category.key)} className="rounded-full bg-[#3a6694] px-6 py-3 text-sm font-medium text-white hover:bg-[#2c5075]">
+                Try it with your photo
+              </Link>
+            </div>
+          )
         )}
 
         <section className="mt-12">

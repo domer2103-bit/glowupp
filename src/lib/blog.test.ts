@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BLOG_POSTS, blogPath, getBlogPost } from "@/lib/blog";
+import { LEAD_FEE_CAP_PENCE } from "@/lib/fees";
+import { formatPence } from "@/lib/money";
 import { getHomepageCategory } from "@/lib/homepage-categories";
 import { sitemapPages } from "@/lib/seo";
 
@@ -21,8 +23,9 @@ describe("blog posts", () => {
 
   it("avoid invented prices and statistics", () => {
     for (const p of BLOG_POSTS) {
-      const text = JSON.stringify(p);
-      expect(text, p.slug).not.toMatch(/£\s?\d{2,}(?!\d)/); // no price figures: the blog quotes none
+      // GlowUpp's own fee cap (from the real constant) is allowed; any other price figure is not.
+      const text = JSON.stringify(p).replaceAll(formatPence(LEAD_FEE_CAP_PENCE), "");
+      expect(text, p.slug).not.toMatch(/£\s?\d{2,}(?!\d)/);
     }
   });
 
