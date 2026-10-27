@@ -36,6 +36,12 @@ export interface BlogPost {
   related: string[];
 }
 
+/** The link-preview picture for a post (built by ~/Desktop/glowupp/blog/make_share_images.py into public/share/): 1200 x 630, one per category and audience. */
+export function blogShareImage(post: BlogPost) {
+  const prefix = post.audience === "professional" ? "blog-pro" : "blog";
+  return { url: `/share/${prefix}-${post.category}.png`, width: 1200, height: 630, alt: post.heroAlt };
+}
+
 /** GlowUpp's own fee, read from the real fee constants so a post can never drift from what the product charges. */
 const FEE_PERCENT = `${Math.round(LEAD_FEE_RATE * 100)}%`;
 const FEE_CAP = formatPence(LEAD_FEE_CAP_PENCE);
