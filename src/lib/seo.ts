@@ -23,13 +23,14 @@ export function absoluteUrl(path: string): string {
 }
 
 /** Metadata for one public page: title, description, canonical address and the link-preview (Open Graph / Twitter) tags. `noindex` keeps a page out of search results. */
-export function pageMetadata(opts: { title: string; description: string; path: string; noindex?: boolean }): Metadata {
+export function pageMetadata(opts: { title: string; description: string; path: string; noindex?: boolean; image?: typeof SHARE_IMAGE }): Metadata {
+  const image = opts.image ?? SHARE_IMAGE;
   return {
     title: opts.title,
     description: opts.description,
     alternates: { canonical: opts.path },
-    openGraph: { title: opts.title, description: opts.description, url: opts.path, siteName: SITE_NAME, type: "website", locale: "en_GB", images: [SHARE_IMAGE] },
-    twitter: { card: "summary_large_image", title: opts.title, description: opts.description, images: [SHARE_IMAGE.url] },
+    openGraph: { title: opts.title, description: opts.description, url: opts.path, siteName: SITE_NAME, type: "website", locale: "en_GB", images: [image] },
+    twitter: { card: "summary_large_image", title: opts.title, description: opts.description, images: [image.url] },
     ...(opts.noindex ? { robots: { index: false, follow: false } } : {}),
   };
 }

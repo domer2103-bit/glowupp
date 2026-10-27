@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BeforeAfterImage } from "@/components/BeforeAfterImage";
 import { JsonLd } from "@/components/JsonLd";
-import { BLOG_POSTS, blogPath, getBlogPost } from "@/lib/blog";
+import { BLOG_POSTS, blogPath, blogShareImage, getBlogPost } from "@/lib/blog";
 import { getHomepageCategory } from "@/lib/homepage-categories";
 import { articleJsonLd, breadcrumbJsonLd, categoryPath, faqJsonLd, pageMetadata } from "@/lib/seo";
 
@@ -15,7 +15,7 @@ export async function generateMetadata(props: PageProps<"/blog/[slug]">): Promis
   const { slug } = await props.params;
   const post = getBlogPost(slug);
   if (!post) return {};
-  return pageMetadata({ title: `${post.title} | GlowUpp`, description: post.description, path: blogPath(post.slug) });
+  return pageMetadata({ title: `${post.title} | GlowUpp`, description: post.description, path: blogPath(post.slug), image: blogShareImage(post) });
 }
 
 export default async function BlogPostPage(props: PageProps<"/blog/[slug]">) {

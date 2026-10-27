@@ -1,5 +1,7 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { BLOG_POSTS, blogPath, getBlogPost } from "@/lib/blog";
+import { BLOG_POSTS, blogPath, blogShareImage, getBlogPost } from "@/lib/blog";
 import { LEAD_FEE_CAP_PENCE } from "@/lib/fees";
 import { formatPence } from "@/lib/money";
 import { getHomepageCategory } from "@/lib/homepage-categories";
@@ -27,6 +29,10 @@ describe("blog posts", () => {
       const text = JSON.stringify(p).replaceAll(formatPence(LEAD_FEE_CAP_PENCE), "");
       expect(text, p.slug).not.toMatch(/£\s?\d{2,}(?!\d)/);
     }
+  });
+
+  it("each have a link-preview picture in /public/share", () => {
+    for (const p of BLOG_POSTS) expect(existsSync(path.join(process.cwd(), "public", blogShareImage(p).url)), p.slug).toBe(true);
   });
 
   it("are all in the sitemap", () => {
