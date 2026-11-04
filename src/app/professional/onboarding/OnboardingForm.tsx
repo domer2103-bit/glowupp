@@ -222,7 +222,7 @@ export function OnboardingForm({ userName, userEmail, introducedBy }: { userName
                 <img
                   key={i}
                   src={URL.createObjectURL(file)}
-                  alt={file.name}
+                  alt={`Preview of selected photo ${i + 1}`}
                   className="aspect-square rounded-lg border border-zinc-200 object-cover"
                 />
               ))}

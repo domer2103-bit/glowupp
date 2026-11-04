@@ -58,7 +58,7 @@ export default async function QuoteThreadPage(props: PageProps<"/projects/[id]/q
                 (url, i) =>
                   url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={photos[i].id} src={url} alt="Past work" className="aspect-square rounded-lg object-cover" />
+                    <img key={photos[i].id} src={url} alt={`Photo ${i + 1} of this tradesperson's past work`} loading="lazy" decoding="async" className="aspect-square rounded-lg object-cover" />
                   )
               )}
             </div>

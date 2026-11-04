@@ -22,7 +22,7 @@ export function StyleOptionCard({
       {ready ? (
         <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`Open the ${label} design full size`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt={`${label} design`} className="aspect-video w-full rounded-xl object-cover" />
+          <img src={url} alt={`AI-generated ${label} design for your room`} decoding="async" className="aspect-video w-full rounded-xl object-cover" />
         </a>
       ) : (
         <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-3 text-center text-sm text-zinc-500">
