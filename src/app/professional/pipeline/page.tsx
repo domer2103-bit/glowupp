@@ -69,7 +69,7 @@ export default async function PipelinePage(props: PageProps<"/professional/pipel
             </p>
             <p className="text-xs text-zinc-500">
               Your first 3 jobs from your own link are free. After that GlowUpp charges 2% of the accepted quote (max £250), and paying unlocks
-              the client&apos;s full address.
+              the client&apos;s full address. With the Pro plan there is no fee on your own clients at all.
             </p>
           </>
         ) : (
