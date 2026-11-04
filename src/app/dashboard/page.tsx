@@ -86,6 +86,7 @@ export default async function DashboardPage() {
               </Section>
               <Section title="Money">
                 <DashboardCard href="/professional/transactions" title="Lead fees" />
+                <DashboardCard href="/professional/plan" title="Your plan" description="Pay as you win, or go Pro for no fee on your own clients." />
               </Section>
               <Section title="Your profile">
                 <DashboardCard href="/professional/verification" title="Get verified" />

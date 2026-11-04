@@ -7,6 +7,7 @@ import { getSignedPhotoUrl } from "@/lib/storage";
 import { penceToPounds } from "@/lib/money";
 import { MessageThread } from "@/components/MessageThread";
 import { QuoteRequestStatus, VerificationStatus } from "@/generated/prisma/client";
+import { hasActivePro } from "@/lib/data/subscriptions";
 
 export default async function QuoteThreadPage(props: PageProps<"/projects/[id]/quotes/[quoteRequestId]">) {
   const { id, quoteRequestId } = await props.params;
@@ -23,6 +24,7 @@ export default async function QuoteThreadPage(props: PageProps<"/projects/[id]/q
     orderBy: { uploadOrder: "asc" },
   });
   const photoUrls = await Promise.all(photos.map((p) => getSignedPhotoUrl(p.storagePath)));
+  const isPro = await hasActivePro(quoteRequest.professional.id);
 
   return (
     <div className="relative flex flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-blue-50 to-white px-6 py-16 text-[#132a4d]">
@@ -38,6 +40,7 @@ export default async function QuoteThreadPage(props: PageProps<"/projects/[id]/q
             {quoteRequest.professional.verificationStatus === VerificationStatus.VERIFIED && (
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">✓ Verified</span>
             )}
+            {isPro && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-[#2c5075]">Pro</span>}
           </h1>
           {quoteRequest.professional.description && (
             <p className="mt-1 text-sm text-zinc-600">{quoteRequest.professional.description}</p>

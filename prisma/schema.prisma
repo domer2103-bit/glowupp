@@ -270,6 +270,39 @@ enum VerificationStatus {
   REJECTED
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INACTIVE
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+/// A professional's paid GlowUpp Pro plan, kept in step with Stripe by the
+/// webhook (src/app/api/webhooks/stripe/route.ts). One row per professional.
+/// Money is taken by Stripe Checkout; this table only records the state.
+model ProfessionalSubscription {
+  id                   String             @id @default(uuid()) @db.Uuid
+  professionalId       String             @unique @map("professional_id") @db.Uuid
+  professional         Professional       @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  stripeCustomerId     String             @map("stripe_customer_id")
+  stripeSubscriptionId String             @unique @map("stripe_subscription_id")
+  status               SubscriptionStatus
+  interval             BillingInterval
+  /// What this subscriber pays per billing period, in pence. Stripe keeps charging this price, so a launch price stays locked while they stay subscribed.
+  unitAmountPence      Int                @map("unit_amount_pence")
+  currentPeriodEnd     DateTime?          @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  @@map("professional_subscriptions")
+}
+
 model Professional {
   id                 String              @id @default(uuid()) @db.Uuid
   userId             String              @unique @map("user_id") @db.Uuid
@@ -306,6 +339,7 @@ model Professional {
   // Nullable so existing professionals need no backfill — it is minted
   // lazily the first time they open the pipeline page
   // (ensureReferralCodes in src/lib/data/private-pipeline.ts).
+  subscription             ProfessionalSubscription?
   referralCode             String?            @unique @map("referral_code")
   // Human-readable slug for the van-decal/yard-sign URL
   // (/pro/<slug>/quote). Same lazy minting as referralCode.

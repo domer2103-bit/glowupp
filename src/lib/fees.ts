@@ -48,7 +48,9 @@ export function calculateLeadFee(quoteAmountPence: number, rate: number = LEAD_F
  * jobs this professional has already been selected for (cancelled
  * selections don't count — see countPriorPrivateLinkJobs).
  */
-export function calculatePrivateLinkFee(quoteAmountPence: number, priorPrivateJobs: number): number {
+export function calculatePrivateLinkFee(quoteAmountPence: number, priorPrivateJobs: number, hasActivePro = false): number {
+  // A paid Pro plan removes the fee on the professional's own clients entirely.
+  if (hasActivePro) return 0;
   if (priorPrivateJobs < PRIVATE_LINK_FREE_JOBS) return 0;
   const fee = calculateLeadFee(quoteAmountPence, PRIVATE_LINK_FEE_RATE);
   return fee < MIN_CHARGEABLE_FEE_PENCE ? 0 : fee;

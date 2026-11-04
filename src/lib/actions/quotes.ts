@@ -12,6 +12,7 @@ import { isAtOrPastStatus } from "@/lib/project-status";
 import { poundsToPence } from "@/lib/money";
 import { notifyProfessionalSelected, notifyOpenMarketProject, notifyQuoteSubmitted } from "@/lib/notifications";
 import { calculateMarketplaceFee, calculatePrivateLinkFee } from "@/lib/fees";
+import { hasActivePro } from "@/lib/data/subscriptions";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { assertNotPrivate, countPriorMarketplaceJobs, countPriorPrivateLinkJobs } from "@/lib/data/private-pipeline";
 import { settleFreeJobForAffiliate } from "@/lib/data/affiliates";
@@ -213,7 +214,8 @@ export async function selectProfessional(projectId: string, quoteRequestId: stri
   // other lead fee.
   if (project.isPrivatePipeline) {
     const priorJobs = await countPriorPrivateLinkJobs(quoteRequest.professionalId, quoteRequestId);
-    const privateFee = calculatePrivateLinkFee(quoteRequest.quoteAmount, priorJobs);
+    // A paid Pro plan means no fee on the professional's own clients at all.
+    const privateFee = calculatePrivateLinkFee(quoteRequest.quoteAmount, priorJobs, await hasActivePro(quoteRequest.professionalId));
     const free = privateFee === 0;
     await prisma.$transaction([
       prisma.quoteRequest.updateMany({ where: { projectId }, data: { selected: false } }),

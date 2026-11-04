@@ -6,6 +6,7 @@ import { requireProjectOwner } from "@/lib/data/projects";
 import { getOutwardCode } from "@/lib/postcode";
 import { evaluateMatch } from "@/lib/matching";
 import { notPrivatePipelineWhere } from "@/lib/data/private-pipeline";
+import { activeProIds } from "@/lib/data/subscriptions";
 import { UserRole, ProjectStatus, TransactionStatus, VerificationStatus } from "@/generated/prisma/client";
 
 /**
@@ -13,7 +14,9 @@ import { UserRole, ProjectStatus, TransactionStatus, VerificationStatus } from "
  * each group — homeowner-owner only. Verified professionals sort first:
  * the one real benefit of the optional verification badge (see
  * docs/BACKEND_ARCHITECTURE.md) is a better chance of being seen and
- * picked, not a requirement to quote at all.
+ * picked, not a requirement to quote at all. A paid Pro plan counts for
+ * the same lift (and is labelled "Pro" on the page), so verified + Pro
+ * comes first, then either one, then everyone else.
  */
 export async function getProjectQuoteRequests(projectId: string) {
   await requireProjectOwner(projectId);
@@ -23,11 +26,10 @@ export async function getProjectQuoteRequests(projectId: string) {
     orderBy: { sentAt: "desc" },
   });
 
-  return requests.sort((a, b) => {
-    const aVerified = a.professional.verificationStatus === VerificationStatus.VERIFIED ? 0 : 1;
-    const bVerified = b.professional.verificationStatus === VerificationStatus.VERIFIED ? 0 : 1;
-    return aVerified - bVerified;
-  });
+  const proIds = await activeProIds(requests.map((r) => r.professionalId));
+  const withPro = requests.map((r) => ({ ...r, isPro: proIds.has(r.professionalId) }));
+  const rank = (r: (typeof withPro)[number]) => (r.professional.verificationStatus === VerificationStatus.VERIFIED ? 1 : 0) + (r.isPro ? 1 : 0);
+  return withPro.sort((a, b) => rank(b) - rank(a));
 }
 
 /**

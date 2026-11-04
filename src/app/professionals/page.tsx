@@ -43,23 +43,26 @@ export default async function ProfessionalsPage() {
         >
           {isProfessional ? "Go to your dashboard →" : "Get Started →"}
         </Link>
+        <Link href="/pricing" className="w-fit text-sm font-medium text-[#3a6694] underline">See plans and pricing</Link>
       </section>
 
-      <section className="relative mx-auto w-full max-w-6xl px-6 py-12">
-        <h2 className="mb-6 text-center text-2xl font-semibold">Which trade are you?</h2>
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <section className="relative mx-auto w-full max-w-4xl px-6 py-10">
+        <h2 className="text-center text-2xl font-semibold">GlowUpp works well for these trades</h2>
+        <p className="mx-auto mt-2 max-w-md text-center text-sm text-zinc-600">You choose the trades you offer when you create your profile.</p>
+        {/* Information only, not links: compact pills so they don't look like buttons or stack into tall blocks. */}
+        <ul className="mt-6 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:justify-center">
           {HOMEPAGE_CATEGORIES.map((cat) => (
-            <div
+            <li
               key={cat.key}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-zinc-200 bg-white p-4 text-center shadow-sm"
+              className="flex items-center gap-2.5 rounded-full border border-zinc-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-medium shadow-sm"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-[#3a6694]">
-                <CategoryIcon type={cat.key} className="h-5 w-5" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#3a6694]">
+                <CategoryIcon type={cat.key} className="h-4 w-4" />
               </span>
-              <p className="text-sm font-medium">{cat.displayName}</p>
-            </div>
+              {cat.displayName}
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
 
       <section className="relative mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-6 py-12 sm:grid-cols-3">

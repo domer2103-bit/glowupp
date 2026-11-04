@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 /** The "For Customers / For Professionals" pill switch in SiteHeader — a client component only because it needs usePathname() to know which side is active. */
 export function AudienceToggle() {
   const pathname = usePathname();
-  const isProfessional = pathname.startsWith("/professionals");
+  // /pricing is the tradespeople's plans page, so it belongs to the "For Professionals" side.
+  const isProfessional = pathname.startsWith("/professionals") || pathname.startsWith("/pricing");
 
   return (
     <div className="flex rounded-full border border-zinc-300 p-0.5 text-sm">
