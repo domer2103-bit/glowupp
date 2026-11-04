@@ -1690,12 +1690,12 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "Where GlowUpp stands" },
       {
         type: "p",
-        text: `GlowUpp uses commission only. A profile is free, and you pay ${FEE_PERCENT} of the accepted quote (capped at ${FEE_CAP}) only when a client picks you. For clients you bring yourself through your own link, your first ${PRIVATE_LINK_FREE_JOBS} jobs are free before the same percentage applies. There is no monthly fee today. We are asking tradespeople whether they would prefer a flat monthly fee as an alternative, and nothing changes unless that is what people want.`,
+        text: `GlowUpp is built on commission. A profile is free, and you pay ${FEE_PERCENT} of the accepted quote (capped at ${FEE_CAP}) only when a client picks you. For clients you bring yourself through your own link, your first ${PRIVATE_LINK_FREE_JOBS} jobs are free before the same percentage applies. There is also an optional paid Pro plan for tradespeople who bring in a lot of their own clients: it removes the fee on those jobs. The pricing page has the current price. Nothing is compulsory, and the free profile stays free.`,
       },
-      { type: "h2", text: "Tell us which you would pick" },
+      { type: "h2", text: "See the plans" },
       {
         type: "p",
-        text: "If you are a tradesperson, you can tell us which you would prefer in a 20-second anonymous survey at glowupp.co.uk/poll. It is a survey only, and nothing changes today.",
+        text: "If you are a tradesperson, you can see the free plan and the optional paid Pro plan side by side on the pricing page at glowupp.co.uk/pricing.",
       },
     ],
     faq: [
@@ -1709,7 +1709,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         question: "Does GlowUpp charge a monthly fee?",
-        answer: "No. GlowUpp is free to join and charges commission only when you win a job. We are surveying tradespeople about whether they would like a flat monthly option as well.",
+        answer: "Not unless you want one. GlowUpp is free to join and charges commission only when you win a job. There is an optional paid Pro plan, mainly for tradespeople who bring in many of their own clients, and the pricing page has the details.",
       },
     ],
     related: ["get-local-clients-without-paying-per-lead", "price-a-job-without-undercutting-yourself"],
@@ -2447,7 +2447,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "Get started" },
       {
         type: "p",
-        text: "Create your free profile to get your link and QR code. There is no monthly fee. You can see the details on the professionals page.",
+        text: "Create your free profile to get your link and QR code. There is no monthly fee on the free plan. You can see the details on the professionals and pricing pages.",
       },
     ],
     faq: [
@@ -2457,7 +2457,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         question: "What does it cost to use my private link?",
-        answer: `Your first ${PRIVATE_LINK_FREE_JOBS} jobs through your own link are free. After that GlowUpp charges ${FEE_PERCENT} of the accepted quote, capped at ${FEE_CAP}. There is no monthly fee.`,
+        answer: `Your first ${PRIVATE_LINK_FREE_JOBS} jobs through your own link are free. After that GlowUpp charges ${FEE_PERCENT} of the accepted quote, capped at ${FEE_CAP}. There is no monthly fee on the free plan, and the optional Pro plan removes the fee on your own clients (see the pricing page).`,
       },
       {
         question: "Where should I put my QR code?",
@@ -3267,7 +3267,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "A profile to start with" },
       {
         type: "p",
-        text: "Create your free GlowUpp profile and add your areas, services and photos. There is no monthly fee. See the professionals page for how it works.",
+        text: "Create your free GlowUpp profile and add your areas, services and photos. There is no monthly fee on the free plan. See the professionals page for how it works.",
       },
     ],
     faq: [
@@ -3353,7 +3353,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "Where GlowUpp fits" },
       {
         type: "p",
-        text: `Your free GlowUpp profile includes a private link and QR code for your own clients. Your first ${PRIVATE_LINK_FREE_JOBS} jobs through it are free, and after that GlowUpp charges ${FEE_PERCENT} of the accepted quote (capped at ${FEE_CAP}). There is no monthly fee.`,
+        text: `Your free GlowUpp profile includes a private link and QR code for your own clients. Your first ${PRIVATE_LINK_FREE_JOBS} jobs through it are free, and after that GlowUpp charges ${FEE_PERCENT} of the accepted quote (capped at ${FEE_CAP}). There is no monthly fee on the free plan, and the optional Pro plan removes the fee on your own clients.`,
       },
     ],
     faq: [
@@ -3752,7 +3752,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "8. Follow up quotes once" },
       { type: "p", text: "If you have not heard back, send one polite message a few days later." },
       { type: "h2", text: "Where GlowUpp fits" },
-      { type: "p", text: `A free GlowUpp profile includes a private link and QR code for your own clients. Your first ${PRIVATE_LINK_FREE_JOBS} jobs through it are free, and after that GlowUpp charges ${FEE_PERCENT} of the accepted quote (capped at ${FEE_CAP}). Marketplace jobs cost the same only if the client picks you. There is no monthly fee.` },
+      { type: "p", text: `A free GlowUpp profile includes a private link and QR code for your own clients. Your first ${PRIVATE_LINK_FREE_JOBS} jobs through it are free, and after that GlowUpp charges ${FEE_PERCENT} of the accepted quote (capped at ${FEE_CAP}). Marketplace jobs cost the same only if the client picks you. There is no monthly fee on the free plan.` },
     ],
     faq: [
       { question: "What is the cheapest way to get more customers?", answer: "Referrals, reviews, a good profile with photos and quick replies cost little and work well together." },

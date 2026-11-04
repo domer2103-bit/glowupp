@@ -6,10 +6,12 @@ import { UserRole } from "@/generated/prisma/client";
 import { EarlyBirdCountdown } from "@/components/EarlyBirdCountdown";
 import { pageMetadata } from "@/lib/seo";
 import { LEAD_FEE_CAP_PENCE, LEAD_FEE_RATE, PRIVATE_LINK_FREE_JOBS } from "@/lib/fees";
+import { PRO_LAUNCH_PRICE_PENCE } from "@/lib/plans";
+import { formatPence } from "@/lib/money";
 
 export const metadata = pageMetadata({
   title: "For tradespeople: get discovered by homeowners | GlowUpp",
-  description: "Homeowners upload a photo, see an AI redesign and come ready to hire. Free to create a profile; you pay a fee only if you are selected for a job.",
+  description: "Homeowners upload a photo, see an AI redesign and come ready to hire. Free to create a profile; you pay a fee only if you are selected for a job, or go Pro for no fee on your own clients.",
   path: "/professionals",
 });
 
@@ -20,6 +22,7 @@ export default async function ProfessionalsPage() {
   const ctaHref = isProfessional ? "/dashboard" : "/signup?role=professional";
   const feePercent = `${Math.round(LEAD_FEE_RATE * 100)}%`;
   const feeCap = `£${LEAD_FEE_CAP_PENCE / 100}`;
+  const proPrice = formatPence(PRO_LAUNCH_PRICE_PENCE.month);
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-gradient-to-b from-blue-50 to-white text-[#132a4d]">
@@ -92,8 +95,10 @@ export default async function ProfessionalsPage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <p className="mb-1 font-semibold text-[#132a4d]">What it costs</p>
           <p className="text-sm text-zinc-600">
-            A free profile, no subscription. You only pay when a homeowner picks you: a flat {feePercent} of the accepted
-            quote, capped at {feeCap}.
+            A free profile, no subscription needed. You only pay when a homeowner picks you: a flat {feePercent} of the accepted
+            quote, capped at {feeCap}. If you bring a lot of your own clients, Pro (from {proPrice} a month) removes the fee on
+            them.{" "}
+            <Link href="/pricing" className="font-medium text-[#3a6694] underline">See plans</Link>
           </p>
         </div>
       </section>

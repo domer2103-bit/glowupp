@@ -176,6 +176,7 @@ export default function PartnersPage() {
           </p>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-zinc-600">
             <li>Their first {PRIVATE_LINK_FREE_JOBS} own-client jobs: no fee, so you earn nothing (we tell you).</li>
+            <li>If they take GlowUpp&apos;s paid Pro plan, their own-client jobs have no fee at all, so those jobs earn you nothing.</li>
             <li>
               After that: {OWN_CLIENT_FEE_PERCENT}% fee, the same as any job, so you earn <strong>{OWN_CLIENT_SHARE_PERCENT}% of the quote</strong> — on a {formatPence(OWN_CLIENT_EXAMPLE_QUOTE)} job the fee is {formatPenceExact(OWN_CLIENT_FEE)} and
               you earn {formatPenceExact(OWN_CLIENT_SHARE)}.
@@ -195,6 +196,7 @@ export default function PartnersPage() {
               For tradespeople you bring, your share applies to jobs won {WINDOW_TEXT}.
             </li>
             <li>A tradesperson&apos;s first {PRIVATE_LINK_FREE_JOBS} own-client jobs are free, so they earn you nothing. After that the same {OWN_CLIENT_FEE_PERCENT}% fee applies, so your share there is {OWN_CLIENT_SHARE_PERCENT}% of the quote.</li>
+            <li>A tradesperson on GlowUpp&apos;s paid Pro plan pays no fee on their own-client jobs, so those jobs earn you nothing.</li>
             <li>One fee is shared with one partner at most — the partner the homeowner came through comes first.</li>
             <li>Payments are by bank transfer once your account is checked and at least {MIN_PAYOUT} is waiting.</li>
             <li>Think of it as a bonus on top of something useful for your customers, not as guaranteed income. Early on you may earn nothing at all.</li>

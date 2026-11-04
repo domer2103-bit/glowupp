@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
         <h1 className="mt-6 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Privacy Policy
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 26 October 2026</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 5 November 2026</p>
 
         <div className="mt-10 space-y-10 text-zinc-700 dark:text-zinc-300">
           <section className="space-y-3">
@@ -43,6 +43,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Quote and matching data</strong> — details of quote requests, professional responses, and which professional (if any) you select.</li>
               <li><strong>Referral information</strong> — if you arrive through a contractor&rsquo;s or a GlowUpp partner&rsquo;s link or QR code, we note which one, and attach it to your project (or, if you sign up as a professional, to your account) so the right person is credited. A partner never sees who you are — only how many people used their link.</li>
               <li><strong>Partner details</strong> — if you join the GlowUpp partner programme: your business name, your name, email address, phone number, the kind of business, the terms you accepted and when, and records of what you have earned and been paid.</li>
+              <li><strong>Payment records</strong> — card payments (lead fees and the Pro plan) are taken by Stripe, and we never see or store your card number. We keep Stripe&rsquo;s customer and subscription references, the amount, the billing period, and whether a payment succeeded or your plan was cancelled.</li>
               <li><strong>Technical data</strong> — basic server logs (IP address, timestamps, error logs) kept for security and debugging.</li>
             </ul>
           </section>
@@ -72,6 +73,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Anthropic</strong> (Claude) — processes your project descriptions and messages to power the AI design assistant.</li>
               <li><strong>Kie.ai</strong> — generates the AI design visualisation images from your photos and prompts.</li>
               <li><strong>Resend</strong> — delivers transactional emails on our behalf.</li>
+              <li><strong>Stripe</strong> — takes card payments from professionals (lead fees and the Pro plan) and sends payment receipts.</li>
               <li><strong>The partner who introduced a professional</strong> — if you joined GlowUpp as a professional through a partner&rsquo;s link or QR code, that partner can see your trade, the areas you cover, when you joined and how far you have got (for example &ldquo;profile created&rdquo; or &ldquo;won a job&rdquo;). They can see your business name only if you tick the box to share it, which you can change at any time on your dashboard. They never see your phone number, email or your jobs.</li>
               <li><strong>Professionals you choose</strong> — if you request quotes, we share your project details and, once you accept a quote, your full address, with the professional(s) involved. Before that point, professionals only see your general area, not your exact address.</li>
             </ul>

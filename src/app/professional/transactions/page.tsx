@@ -34,7 +34,7 @@ export default async function ProfessionalTransactionsPage() {
           )}
           <p className="mt-1 text-sm text-zinc-500">
             Clients who came through your own referral link or QR code: your first 3 jobs are free, then 2% of the accepted quote
-            (also capped at £250).
+            (also capped at £250). With the Pro plan there is no fee on these at all.
           </p>
           <p className="mt-1 text-sm text-zinc-500">
             If a job falls through after you&apos;ve paid a fee, email{" "}
