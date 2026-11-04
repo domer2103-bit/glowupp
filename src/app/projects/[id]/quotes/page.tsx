@@ -45,6 +45,7 @@ export default async function ProjectQuotesPage(props: PageProps<"/projects/[id]
                     {qr.professional.verificationStatus === "VERIFIED" && (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">✓ Verified</span>
                     )}
+                    {qr.isPro && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-[#2c5075]">Pro</span>}
                   </span>
                   <span className="text-xs text-zinc-500">
                     {qr.status}

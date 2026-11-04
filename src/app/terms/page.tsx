@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
         <h1 className="mt-6 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Terms of Service
         </h1>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 22 October 2026</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 4 November 2026</p>
 
         <div className="mt-10 space-y-10 text-zinc-700 dark:text-zinc-300">
           <section className="space-y-3">
@@ -92,6 +92,16 @@ export default function TermsOfServicePage() {
                 you bring through your own GlowUpp referral link or QR code are free for your first three
                 jobs, then 2% of the accepted quote (also capped at £250). If a job falls through after a
                 fee has been paid, email hello@glowupp.co.uk and we&rsquo;ll review it.
+              </li>
+              <li>
+                Professionals can also subscribe to the paid GlowUpp Pro plan (see the pricing page). It is billed in
+                advance, monthly or yearly, by card through Stripe, at the price shown when you subscribe, and that price
+                stays the same for as long as your subscription continues without a break. You can cancel at any time from
+                your plan page; the plan then stays active until the end of the period you have paid for and does not
+                renew. We don&rsquo;t refund part-used periods unless we have made an error or the law says otherwise.
+                While Pro is active you pay no lead fee on jobs from your own clients (those who come through your own
+                link or QR code). Pro does not change the 2% fee on marketplace jobs. If a payment fails we will retry it,
+                and Pro ends if it still can&rsquo;t be taken. Pro is not a guarantee of work or of any number of leads.
               </li>
             </ul>
           </section>

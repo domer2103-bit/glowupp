@@ -5,6 +5,7 @@ import { stripe } from "@/lib/stripe";
 import { TransactionStatus } from "@/generated/prisma/client";
 import { notifyLeadFeePaid } from "@/lib/notifications";
 import { creditAffiliateForTransaction } from "@/lib/data/affiliates";
+import { syncSubscriptionFromStripe } from "@/lib/data/subscriptions";
 
 /**
  * Stripe webhook — the only source of truth for a Transaction moving to
@@ -29,6 +30,33 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch (err) {
     console.error("[stripe webhook] signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  // Pro plan: Checkout finished for a subscription, or Stripe changed/ended one.
+  // The subscription object in the event carries the whole state, so we store it as given.
+  if (event.type === "checkout.session.completed" && (event.data.object as Stripe.Checkout.Session).mode === "subscription") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+    if (!subscriptionId) {
+      console.error("[stripe webhook] subscription checkout with no subscription id", session.id);
+      return NextResponse.json({ received: true });
+    }
+    const sub = await stripe.subscriptions.retrieve(subscriptionId);
+    const synced = await syncSubscriptionFromStripe(sub);
+    if (synced) {
+      await prisma.activityLog.create({
+        data: { type: "pro_subscription_started", actorId: null, metadata: { professionalId: synced.professionalId, stripeSubscriptionId: sub.id } },
+      }).catch((err) => console.error("[stripe webhook] activity log failed", err));
+    } else {
+      console.error("[stripe webhook] could not match subscription to a professional", sub.id);
+    }
+    return NextResponse.json({ received: true });
+  }
+  if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
+    const sub = event.data.object as Stripe.Subscription;
+    const synced = await syncSubscriptionFromStripe(sub);
+    if (!synced) console.error("[stripe webhook] subscription event for unknown professional", sub.id);
+    return NextResponse.json({ received: true });
   }
 
   if (event.type === "checkout.session.completed") {

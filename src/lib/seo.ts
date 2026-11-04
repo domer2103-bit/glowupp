@@ -62,6 +62,7 @@ export const STATIC_PUBLIC_PAGES: readonly SitemapPage[] = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
   { path: "/how-it-works", priority: 0.8, changeFrequency: "monthly" },
   { path: "/professionals", priority: 0.8, changeFrequency: "weekly" },
+  { path: "/pricing", priority: 0.7, changeFrequency: "monthly" },
   { path: "/partners", priority: 0.7, changeFrequency: "monthly" },
   { path: "/partner/join", priority: 0.5, changeFrequency: "monthly" },
   { path: "/blog", priority: 0.7, changeFrequency: "weekly" },
