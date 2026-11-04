@@ -2,8 +2,12 @@ import Link from "next/link";
 import { getProfessionalTransactions } from "@/lib/data/transactions";
 import { createLeadFeeCheckoutSession } from "@/lib/actions/payments";
 import { penceToPounds } from "@/lib/money";
+import { requireRole } from "@/lib/auth";
+import { UserRole } from "@/generated/prisma/client";
+import { EARLY_BIRD_FREE_JOBS, isEarlyBird } from "@/lib/fees";
 
 export default async function ProfessionalTransactionsPage() {
+  const user = await requireRole(UserRole.PROFESSIONAL);
   const transactions = await getProfessionalTransactions();
   const totalOwed = transactions.filter((t) => t.status === "PENDING").reduce((sum, t) => sum + t.feeAmount, 0);
 
@@ -21,10 +25,13 @@ export default async function ProfessionalTransactionsPage() {
             GlowUpp&apos;s fee for a project you&apos;ve won — not a payment to the homeowner, and not something they see. 2% of the
             accepted quote, capped at £250. Paying unlocks the homeowner&apos;s full address on the opportunity.
           </p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Early-bird offer: if your GlowUpp account was created before Black Friday 2026 (27 November), your first 2 marketplace
-            jobs have no commission at all.
-          </p>
+          {/* Only accounts created before the cutoff are entitled to this, so it disappears for everyone else once the offer ends. */}
+          {isEarlyBird(user.createdAt) && (
+            <p className="mt-1 text-sm text-zinc-500">
+              Early-bird offer: your GlowUpp account was created before Black Friday 2026, so your first {EARLY_BIRD_FREE_JOBS} marketplace
+              jobs have no commission at all.
+            </p>
+          )}
           <p className="mt-1 text-sm text-zinc-500">
             Clients who came through your own referral link or QR code: your first 3 jobs are free, then 2% of the accepted quote
             (also capped at £250).
