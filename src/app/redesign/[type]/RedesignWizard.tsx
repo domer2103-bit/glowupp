@@ -198,7 +198,7 @@ export function RedesignWizard({
               {latestPhoto?.url && (
                 <div className="w-full max-w-sm overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={latestPhoto.url} alt={`Your ${categoryLabel.toLowerCase()}`} className="aspect-[4/3] w-full object-cover" />
+                  <img src={latestPhoto.url} alt={`Your uploaded ${categoryLabel.toLowerCase()} photo`} className="aspect-[4/3] w-full object-cover" />
                 </div>
               )}
               <form onSubmit={onUploadSubmit}>

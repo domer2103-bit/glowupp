@@ -34,7 +34,7 @@ export function LeadCard({ lead }: { lead: PrivateLead }) {
           {lead.renders.map((r) =>
             r.url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={r.id} src={r.url} alt={`Render v${r.version}`} className={`aspect-[4/3] w-full rounded-lg border object-cover ${r.selected ? "border-[#3a6694] ring-2 ring-[#3a6694]/40" : "border-zinc-200"}`} />
+              <img key={r.id} src={r.url} alt={`AI-generated design, version ${r.version}${r.selected ? " (chosen by the client)" : ""}`} loading="lazy" decoding="async" className={`aspect-[4/3] w-full rounded-lg border object-cover ${r.selected ? "border-[#3a6694] ring-2 ring-[#3a6694]/40" : "border-zinc-200"}`} />
             ) : null
           )}
         </div>

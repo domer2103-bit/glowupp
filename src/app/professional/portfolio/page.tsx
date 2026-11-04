@@ -40,7 +40,7 @@ export default async function PortfolioPage() {
               <div key={photo.id} className="flex flex-col gap-1">
                 {photoUrls[i] && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photoUrls[i]!} alt="Portfolio" className="aspect-square rounded-lg border border-zinc-200 object-cover" />
+                  <img src={photoUrls[i]!} alt={`Portfolio photo ${i + 1} of your past work`} loading="lazy" decoding="async" className="aspect-square rounded-lg border border-zinc-200 object-cover" />
                 )}
                 <form action={deletePortfolioPhoto.bind(null, photo.id)}>
                   <button type="submit" className="text-xs text-red-600 underline">

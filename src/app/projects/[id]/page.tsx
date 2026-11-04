@@ -168,7 +168,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
             {design.url && (
               <a href={design.url} target="_blank" rel="noopener noreferrer" className="mt-5 block" aria-label="Open your design full size">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={design.url} alt="Your chosen design" className="aspect-video w-full rounded-2xl border border-zinc-200 object-cover" />
+                <img src={design.url} alt="AI-generated design you chose" className="aspect-video w-full rounded-2xl border border-zinc-200 object-cover" />
               </a>
             )}
             {generatingNow && (
@@ -206,7 +206,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
                   <figure key={version.id} className="w-28">
                     {version.url && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={version.url} alt={`Earlier version ${version.version}`} className="aspect-square w-full rounded-xl border border-zinc-200 object-cover" />
+                      <img src={version.url} alt={`Earlier AI-generated design, version ${version.version}`} loading="lazy" decoding="async" className="aspect-square w-full rounded-xl border border-zinc-200 object-cover" />
                     )}
                     <figcaption className="mt-1 text-center text-xs text-zinc-500">
                       <form action={selectDesignConcept.bind(null, project.id, version.id)}>
@@ -248,11 +248,11 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
                       {finished?.url ? (
                         <a href={finished.url} target="_blank" rel="noopener noreferrer" aria-label="Open this design full size">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={finished.url} alt="Designed in your chosen style" className="aspect-video w-full rounded-xl object-cover" />
+                          <img src={finished.url} alt="AI-generated design in your chosen style" className="aspect-video w-full rounded-xl object-cover" />
                         </a>
                       ) : photo.url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={photo.url} alt="Your photo" className="aspect-video w-full rounded-xl object-cover" />
+                        <img src={photo.url} alt="Your original photo" className="aspect-video w-full rounded-xl object-cover" />
                       ) : null}
                       <p className="text-xs text-zinc-500">{finished ? "Designed in your style" : inProgress ? "Creating your design…" : "Not designed yet"}</p>
                       {!hasDesigns && (
