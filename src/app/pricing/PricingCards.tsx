@@ -68,7 +68,7 @@ export function PricingCards({
           <h2 className="text-xl font-bold">Pro</h2>
           <p className="mt-1 min-h-10 text-sm text-zinc-600">For tradespeople who bring their own clients and want to stand out when homeowners compare quotes.</p>
           <p className="mt-5 flex items-baseline gap-2">
-            <span className="text-lg font-semibold text-zinc-400 line-through">{formatPence(PRO_LIST_PRICE_PENCE[interval])}</span>
+            <span className="text-3xl font-bold text-zinc-500 line-through decoration-2">{formatPence(PRO_LIST_PRICE_PENCE[interval])}</span>
             <span className="text-5xl font-bold tracking-tight">{formatPence(PRO_LAUNCH_PRICE_PENCE[interval])}</span>
             <span className="text-sm text-zinc-500">/{perYear ? "year" : "month"}</span>
           </p>
@@ -100,7 +100,7 @@ export function PricingCards({
           <h2 className="flex items-center gap-2 text-xl font-bold">Max <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-bold text-zinc-600">Coming soon</span></h2>
           <p className="mt-1 min-h-10 text-sm text-zinc-600">For busy firms that want the most: their area, their team and their brand.</p>
           <p className="mt-5 flex items-baseline gap-2">
-            <span className="text-lg font-semibold text-zinc-400 line-through">{formatPence(MAX_LIST_PRICE_PENCE)}</span>
+            <span className="text-3xl font-bold text-zinc-500 line-through decoration-2">{formatPence(MAX_LIST_PRICE_PENCE)}</span>
             <span className="text-5xl font-bold tracking-tight">{formatPence(MAX_LAUNCH_PRICE_PENCE)}</span>
             <span className="text-sm text-zinc-500">/month</span>
           </p>
