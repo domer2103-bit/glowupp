@@ -46,6 +46,8 @@ export function buildDesignPrompt(
 ): string {
   const details: string[] = [];
   for (const field of definition.fields) {
+    // Quote-only detail (size, subfloor, known problems) is for the tradesperson, not the picture.
+    if (field.forQuoteOnly) continue;
     const value = requirementsData[field.key];
     if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) continue;
     const formatted = Array.isArray(value) ? value.join(", ") : String(value);

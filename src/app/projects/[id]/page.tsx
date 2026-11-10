@@ -171,6 +171,9 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
                 <img src={design.url} alt="AI-generated design you chose" className="aspect-video w-full rounded-2xl border border-zinc-200 object-cover" />
               </a>
             )}
+            <p className="mt-3 text-xs text-zinc-500">
+              AI-generated picture: an idea of the finished look, not a quote, a survey or a plan. A tradesperson confirms what is possible, and the price, after seeing the job.
+            </p>
             {generatingNow && (
               <p role="status" className="mt-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-[#132a4d]">
                 Working on your update — it takes about a minute or two. This page refreshes by itself.
@@ -286,7 +289,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
                 </p>
               ) : (
                 <p className="mt-2 text-sm text-zinc-600">
-                  This design stays between you and {pipeline.professional.businessName} — it isn&apos;t shared with other tradespeople. When you&apos;re happy with it, send it over to get an official estimate.
+                  This design stays between you and {pipeline.professional.businessName} — it isn&apos;t shared with other tradespeople. When you&apos;re happy with it, send it over to get an official estimate. They may confirm the final price after seeing the job.
                 </p>
               )}
               {isGuest ? (
@@ -311,14 +314,14 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
                 <>
                   <h2 className="text-lg font-bold">Tradespeople are being asked to quote</h2>
                   <p className="mt-2 text-sm text-zinc-600">
-                    Local professionals who match your project can see it and send quotes. You&apos;ll get an email as they come in.
+                    Local professionals who match your project can see it and send quotes. You&apos;ll get an email as they come in. A quote may be confirmed after the tradesperson has seen the job.
                   </p>
                 </>
               ) : (
                 <>
                   <h2 className="text-lg font-bold">Ready to make it happen?</h2>
                   <p className="mt-2 text-sm text-zinc-600">
-                    Send your design to local tradespeople and they&apos;ll send you quotes. It&apos;s your choice — nothing is shared until you press the button.
+                    Send your design to local tradespeople and they&apos;ll send you quotes. It&apos;s your choice — nothing is shared until you press the button. The picture is an idea, not a price: the tradesperson confirms the final price after seeing the job.
                   </p>
                 </>
               )}
