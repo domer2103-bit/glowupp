@@ -25,6 +25,12 @@ export interface FieldDefinition {
   type: FieldType;
   options?: readonly string[];
   required?: boolean;
+  /**
+   * Detail that helps a tradesperson quote (size, subfloor, known problems) but
+   * must NOT go into the AI picture prompt: the redesign should not try to draw
+   * damp or an uneven floor. Skipped by buildDesignPrompt.
+   */
+  forQuoteOnly?: boolean;
 }
 
 export interface ProjectTypeDefinition {
@@ -80,6 +86,8 @@ const KITCHEN: ProjectTypeDefinition = {
     { key: "flooring", label: "Flooring", type: "text" },
     { key: "lighting", label: "Lighting", type: "text" },
     { key: "storage", label: "Storage", type: "textarea" },
+    { key: "approxRoomSize", label: "Approximate room size (e.g. 3m x 4m)", type: "text", forQuoteOnly: true },
+    { key: "knownIssues", label: "Known problems (damp, uneven walls or floors, old fittings to remove)", type: "textarea", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
@@ -97,6 +105,8 @@ const BATHROOM: ProjectTypeDefinition = {
     { key: "desiredStyle", label: "Desired style", type: "text", required: true },
     { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "bath_shower", "vanity", "toilet", "tiles", "storage", "lighting", "colours", "other"] },
     { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "approxRoomSize", label: "Approximate room size (e.g. 3m x 4m)", type: "text", forQuoteOnly: true },
+    { key: "knownIssues", label: "Known problems (damp, uneven walls or floors, old fittings to remove)", type: "textarea", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
@@ -115,6 +125,7 @@ const DRIVEWAY: ProjectTypeDefinition = {
     { key: "desiredStyle", label: "Desired style", type: "text", required: true },
     { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "surface", "colour", "edging", "drainage", "gates", "other"] },
     { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "approxSizeSqm", label: "Approximate size (sqm)", type: "number", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
@@ -134,6 +145,7 @@ const GARDEN: ProjectTypeDefinition = {
     { key: "maintenancePreference", label: "Maintenance preference", type: "select", options: ["low", "medium", "high"] },
     { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "lawn", "planting", "fencing", "lighting", "seating", "storage", "patio", "other"] },
     { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "approxSizeSqm", label: "Approximate garden size (sqm)", type: "number", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
@@ -182,6 +194,7 @@ const PAINTING: ProjectTypeDefinition = {
     { key: "desiredStyle", label: "Desired style", type: "text", required: true },
     { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "colour", "feature_wall", "ceiling", "trim", "other"] },
     { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "approxRoomSize", label: "Approximate room size (e.g. 3m x 4m)", type: "text", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
@@ -210,6 +223,9 @@ const FLOORING: ProjectTypeDefinition = {
     { key: "desiredStyle", label: "Desired style", type: "text", required: true },
     { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "material", "colour", "pattern", "underfloor_heating", "other"] },
     { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "approxFloorAreaSqm", label: "Approximate floor area (sqm)", type: "number", forQuoteOnly: true },
+    { key: "subfloor", label: "Subfloor (what is under the current floor)", type: "select", options: ["concrete", "timber_boards", "chipboard_or_plywood", "not_sure"], forQuoteOnly: true },
+    { key: "floorAndWallCondition", label: "Condition of the floor and walls (damp, uneven, old flooring to remove, walls needing repair)", type: "textarea", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
@@ -225,6 +241,8 @@ const LIVING_ROOM: ProjectTypeDefinition = {
     { key: "desiredStyle", label: "Desired style", type: "text", required: true },
     { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "seating", "storage", "lighting", "flooring", "colours", "layout", "other"] },
     { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "approxRoomSize", label: "Approximate room size (e.g. 3m x 4m)", type: "text", forQuoteOnly: true },
+    { key: "knownIssues", label: "Known problems (damp, uneven walls or floors, old fittings to remove)", type: "textarea", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
@@ -240,6 +258,8 @@ const BEDROOM: ProjectTypeDefinition = {
     { key: "desiredStyle", label: "Desired style", type: "text", required: true },
     { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "bed", "storage", "lighting", "flooring", "colours", "other"] },
     { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "approxRoomSize", label: "Approximate room size (e.g. 3m x 4m)", type: "text", forQuoteOnly: true },
+    { key: "knownIssues", label: "Known problems (damp, uneven walls or floors, old fittings to remove)", type: "textarea", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };
@@ -254,6 +274,8 @@ const KIDS_ROOM: ProjectTypeDefinition = {
     { key: "desiredStyle", label: "Desired style", type: "text", required: true },
     { key: "changesWanted", label: "What would you like to change", type: "multiselect", options: ["complete_redesign", "bed", "storage", "theme", "lighting", "colours", "other"] },
     { key: "coloursPreference", label: "Colour preference", type: "multiselect", options: ["white", "cream", "grey", "green", "blue", "black", "wood", "surprise_me"] },
+    { key: "approxRoomSize", label: "Approximate room size (e.g. 3m x 4m)", type: "text", forQuoteOnly: true },
+    { key: "knownIssues", label: "Known problems (damp, uneven walls or floors, old fittings to remove)", type: "textarea", forQuoteOnly: true },
     { key: "mustHaveFeatures", label: "Must-have features", type: "textarea" },
   ],
 };

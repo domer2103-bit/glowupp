@@ -20,6 +20,9 @@ export default async function ProjectQuotesPage(props: PageProps<"/projects/[id]
             ← {project.title}
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">Quotes</h1>
+          <p className="mt-2 text-sm text-zinc-600">
+            Quotes are based on your photos and brief. The AI picture is an idea, not a survey, so a tradesperson may confirm the final price after seeing the job.
+          </p>
         </div>
 
         {quoteRequests.length === 0 ? (

@@ -30,6 +30,9 @@ export function OpenProjectCard({ project }: OpenProjectCardProps) {
           : ""}
       </p>
       {project.description && <p className="text-sm text-zinc-600">{project.description}</p>}
+      <p className="text-xs text-zinc-500">
+        The AI picture is an illustration, not a survey or a binding price. Confirm measurements, condition and what is possible on site before you commit.
+      </p>
 
       <form action={dispatch} className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-blue-50 p-3">
         <span className="text-xs font-medium">Submit a quote</span>

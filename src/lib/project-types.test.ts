@@ -94,3 +94,30 @@ describe("required fields for the open market", () => {
     }
   });
 });
+
+describe("quote-only detail (size, subfloor, known problems)", () => {
+  it("flooring asks about floor area, subfloor and floor/wall condition", () => {
+    const keys = getProjectTypeDefinition("flooring")!.fields.map((f) => f.key);
+    expect(keys).toEqual(expect.arrayContaining(["approxFloorAreaSqm", "subfloor", "floorAndWallCondition"]));
+    expect(validateRequirementsData("flooring", { approxFloorAreaSqm: 18, subfloor: "concrete", floorAndWallCondition: "damp patch by the window" })).toEqual({
+      approxFloorAreaSqm: 18,
+      subfloor: "concrete",
+      floorAndWallCondition: "damp patch by the window",
+    });
+  });
+
+  it("room-based projects ask for room size and known problems", () => {
+    for (const key of ["kitchen", "bathroom", "living-room", "bedroom", "kids-room"]) {
+      const keys = getProjectTypeDefinition(key)!.fields.map((f) => f.key);
+      expect(keys, key).toEqual(expect.arrayContaining(["approxRoomSize", "knownIssues"]));
+    }
+  });
+
+  it("quote-only fields are never required, so they can't block a quote request", () => {
+    for (const key of PROJECT_TYPE_KEYS) {
+      for (const f of getProjectTypeDefinition(key)!.fields) {
+        if (f.forQuoteOnly) expect(f.required, `${key}.${f.key}`).not.toBe(true);
+      }
+    }
+  });
+});
