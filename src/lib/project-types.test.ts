@@ -121,3 +121,33 @@ describe("quote-only detail (size, subfloor, known problems)", () => {
     }
   });
 });
+
+import { describeRequirements } from "./project-types";
+
+describe("describeRequirements", () => {
+  it("lists only filled fields, quote-relevant ones first, in readable form", () => {
+    const lines = describeRequirements("flooring", {
+      desiredStyle: "Scandinavian",
+      desiredMaterial: "laminate",
+      approxFloorAreaSqm: 18,
+      subfloor: "chipboard_or_plywood",
+      floorAndWallCondition: "Damp patch by the window",
+    });
+    expect(lines.map((l) => l.label)).toEqual(["Approximate floor area", "Subfloor", "Condition of the floor and walls", "Desired material", "Desired style"]);
+    expect(lines[0]).toEqual({ label: "Approximate floor area", value: "18", forQuote: true });
+    expect(lines[1].value).toBe("Chipboard or plywood");
+    expect(lines.slice(3).every((l) => !l.forQuote)).toBe(true);
+  });
+
+  it("returns nothing for an empty brief or an unknown type", () => {
+    expect(describeRequirements("flooring", {})).toEqual([]);
+    expect(describeRequirements("spaceship", { a: 1 })).toEqual([]);
+    expect(describeRequirements("flooring", null)).toEqual([]);
+  });
+
+  it("formats yes/no and multi-select values", () => {
+    const lines = describeRequirements("kitchen", { island: true, changesWanted: ["cabinets", "complete_redesign"] });
+    expect(lines.find((l) => l.label === "Island")?.value).toBe("Yes");
+    expect(lines.find((l) => l.label.startsWith("What would you like"))?.value).toBe("Cabinets, Complete redesign");
+  });
+});
