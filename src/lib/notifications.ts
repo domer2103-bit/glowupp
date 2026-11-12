@@ -80,19 +80,24 @@ interface QuoteSubmittedInput {
   professionalBusinessName: string;
   quoteAmountPence: number;
   quoteTimeline: string;
+  /** True when the figure is an estimate whose final price follows a site survey. Undefined keeps the plain quote wording. */
+  subjectToSurvey?: boolean;
 }
 
 /** Sent to the homeowner the moment a professional submits a quote. */
 export async function notifyQuoteSubmitted(input: QuoteSubmittedInput): Promise<void> {
   const link = `${APP_URL}/projects/${input.projectId}/quotes`;
   const amount = formatPence(input.quoteAmountPence);
+  const kind = input.subjectToSurvey ? "estimate" : "quote";
+  const surveyText = input.subjectToSurvey ? "\n\nThis is an estimate: the final price is confirmed after a site survey." : "";
+  const surveyHtml = input.subjectToSurvey ? "<p>This is an estimate: the final price is confirmed after a site survey.</p>" : "";
 
   await sendBestEffort({
     to: input.homeownerEmail,
-    subject: `New quote for "${input.projectTitle}": ${amount}`,
-    text: `Hi ${input.homeownerName},\n\n${input.professionalBusinessName} sent you a quote for "${input.projectTitle}": ${amount}, estimated timeline ${input.quoteTimeline}.\n\nCompare your quotes: ${link}\n\n— GlowUpp`,
+    subject: `New ${kind} for "${input.projectTitle}": ${amount}`,
+    text: `Hi ${input.homeownerName},\n\n${input.professionalBusinessName} sent you ${input.subjectToSurvey ? "an estimate" : "a quote"} for "${input.projectTitle}": ${amount}, estimated timeline ${input.quoteTimeline}.${surveyText}\n\nCompare your quotes: ${link}\n\n— GlowUpp`,
     html: emailWrapper(
-      `<p>Hi ${escapeHtml(input.homeownerName)},</p><p><strong>${escapeHtml(input.professionalBusinessName)}</strong> sent you a quote for <strong>${escapeHtml(input.projectTitle)}</strong>: <strong>${amount}</strong>, estimated timeline ${escapeHtml(input.quoteTimeline)}.</p><p><a href="${link}">Compare your quotes</a></p>`
+      `<p>Hi ${escapeHtml(input.homeownerName)},</p><p><strong>${escapeHtml(input.professionalBusinessName)}</strong> sent you ${input.subjectToSurvey ? "an estimate" : "a quote"} for <strong>${escapeHtml(input.projectTitle)}</strong>: <strong>${amount}</strong>, estimated timeline ${escapeHtml(input.quoteTimeline)}.</p>${surveyHtml}<p><a href="${link}">Compare your quotes</a></p>`
     ),
   });
 }

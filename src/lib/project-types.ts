@@ -336,3 +336,34 @@ export function validateRequirementsData(projectType: string, data: unknown) {
   }
   return schemaForProjectType(definition).parse(data);
 }
+
+export interface BriefLine {
+  label: string;
+  value: string;
+  /** True for the detail a tradesperson needs to estimate (size, condition), shown first. */
+  forQuote: boolean;
+}
+
+function prettyValue(value: unknown): string {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.map((v) => prettyValue(v)).join(", ");
+  const text = String(value).replace(/_/g, " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * The homeowner's brief as readable lines for a tradesperson: only the fields that
+ * have a value, with the quote-relevant ones (size, subfloor, known problems) first.
+ */
+export function describeRequirements(projectType: string, data: unknown): BriefLine[] {
+  const definition = getProjectTypeDefinition(projectType);
+  if (!definition || !data || typeof data !== "object") return [];
+  const record = data as Record<string, unknown>;
+  const lines: BriefLine[] = [];
+  for (const field of definition.fields) {
+    const value = record[field.key];
+    if (!isFieldValueSet(value)) continue;
+    lines.push({ label: field.label.replace(/\s*\(.*\)\s*$/, ""), value: prettyValue(value), forQuote: !!field.forQuoteOnly });
+  }
+  return [...lines.filter((l) => l.forQuote), ...lines.filter((l) => !l.forQuote)];
+}

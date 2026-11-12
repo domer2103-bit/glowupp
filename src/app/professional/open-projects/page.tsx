@@ -16,7 +16,7 @@ export default async function OpenProjectsPage() {
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">Open projects</h1>
           <p className="text-sm text-zinc-500">
-            Projects matching your services and area that a homeowner has chosen to open up for quotes. Submit one if it&apos;s a
+            Projects matching your services and area that a homeowner has chosen to open up for quotes. Send an estimate if it&apos;s a
             fit — no invitation needed.
           </p>
         </div>

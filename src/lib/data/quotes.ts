@@ -5,6 +5,7 @@ import { requireUser, requireRole } from "@/lib/auth";
 import { requireProjectOwner } from "@/lib/data/projects";
 import { getOutwardCode } from "@/lib/postcode";
 import { evaluateMatch } from "@/lib/matching";
+import { describeRequirements } from "@/lib/project-types";
 import { notPrivatePipelineWhere } from "@/lib/data/private-pipeline";
 import { activeProIds } from "@/lib/data/subscriptions";
 import { UserRole, ProjectStatus, TransactionStatus, VerificationStatus } from "@/generated/prisma/client";
@@ -59,11 +60,16 @@ export async function getOpenMarketProjects() {
       ...notPrivatePipelineWhere(),
     },
     orderBy: { updatedAt: "desc" },
+    include: { requirements: true },
   });
 
   return openProjects
     .filter((project) => evaluateMatch({ projectType: project.projectType, postcode: project.postcode, budgetMin: project.budgetMin, budgetMax: project.budgetMax, targetStartDate: project.targetStartDate }, professional).isMatch)
-    .map((project) => ({ ...project, postcode: getOutwardCode(project.postcode) }));
+    .map(({ requirements, ...project }) => ({
+      ...project,
+      postcode: getOutwardCode(project.postcode),
+      brief: describeRequirements(project.projectType, requirements?.data),
+    }));
 }
 
 /**

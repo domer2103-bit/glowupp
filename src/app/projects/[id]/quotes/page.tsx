@@ -63,6 +63,9 @@ export default async function ProjectQuotesPage(props: PageProps<"/projects/[id]
 
                 {qr.status === "QUOTED" && (
                   <div className="mt-2 flex flex-col gap-1 rounded-lg border border-zinc-200 bg-blue-50 p-3 text-sm">
+                    <span className="self-start rounded-full bg-white px-2 py-0.5 text-xs font-medium text-[#2c5075]">
+                      {qr.subjectToSurvey ? "Estimate — final price after a site survey" : "Fixed quote"}
+                    </span>
                     {readLineItems(qr.quoteLineItems).length > 0 && (
                       <ul className="mb-1 flex flex-col gap-0.5 border-b border-zinc-200 pb-2 text-zinc-700">
                         {readLineItems(qr.quoteLineItems).map((item, i) => (

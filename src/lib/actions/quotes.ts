@@ -107,7 +107,7 @@ export async function pushToOpenMarket(projectId: string, _prevState?: ActionSta
 }
 
 const SubmitQuoteSchema = z.object({
-  quoteAmount: z.coerce.number().positive("Enter a quote amount."),
+  quoteAmount: z.coerce.number().positive("Enter an estimate amount."),
   quoteTimeline: z.string().trim().min(1, "Enter an estimated timeline."),
   quoteNotes: z.string().trim().max(2000).optional(),
 });
@@ -154,6 +154,8 @@ export async function submitOpenMarketQuote(projectId: string, _prevState: Actio
     quoteNotes: formData.get("quoteNotes") || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Please check the form and try again." };
+  // The tick box is on by default: an estimate whose final price follows a site survey.
+  const subjectToSurvey = formData.get("subjectToSurvey") === "on";
 
   const now = new Date();
   const quoteRequest = await prisma.quoteRequest.create({
@@ -167,6 +169,7 @@ export async function submitOpenMarketQuote(projectId: string, _prevState: Actio
       quoteAmount: poundsToPence(parsed.data.quoteAmount),
       quoteTimeline: parsed.data.quoteTimeline,
       quoteNotes: parsed.data.quoteNotes,
+      subjectToSurvey,
     },
   });
 
@@ -187,6 +190,7 @@ export async function submitOpenMarketQuote(projectId: string, _prevState: Actio
     professionalBusinessName: professional.businessName,
     quoteAmountPence: poundsToPence(parsed.data.quoteAmount),
     quoteTimeline: parsed.data.quoteTimeline,
+    subjectToSurvey,
   });
 
   revalidatePath("/professional/open-projects");

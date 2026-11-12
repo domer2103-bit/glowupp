@@ -423,6 +423,9 @@ model QuoteRequest {
   quoteAmount    Int?                @map("quote_amount")
   quoteTimeline  String?             @map("quote_timeline")
   quoteNotes     String?             @map("quote_notes") @db.Text
+  // True when the professional marked their figure as an estimate whose final price is
+  // confirmed after a site survey (the default); false for a firm fixed quote.
+  subjectToSurvey Boolean            @default(true) @map("subject_to_survey")
   // Itemised breakdown for private-pipeline quotes: an array of
   // { description: string, amountPence: number }. quoteAmount is always
   // the sum of these when present. Null for open-market quotes.
